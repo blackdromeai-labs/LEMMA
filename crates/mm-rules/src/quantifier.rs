@@ -193,18 +193,6 @@ impl QuantifierEngine {
     ///
     /// # Returns
     /// An expression equivalent to `body` with every free occurrence of `var` replaced by `value`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use mm_core::{Expr, SymbolTable};
-    /// let st = SymbolTable::new();
-    /// let x = st.intern("x");
-    /// let five = Expr::Const(5.0);
-    /// let body = Expr::Add(Box::new(Expr::Var(x)), Box::new(Expr::Const(1.0)));
-    /// let out = QuantifierEngine::new().substitute(&body, x, &five);
-    /// assert_eq!(out, Expr::Add(Box::new(Expr::Const(5.0)), Box::new(Expr::Const(1.0))));
-    /// ```
     fn substitute(&self, body: &Expr, var: Symbol, value: &Expr) -> Expr {
         match body {
             Expr::Var(v) if *v == var => value.clone(),

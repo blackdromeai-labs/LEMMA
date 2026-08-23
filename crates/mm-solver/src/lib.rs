@@ -13,21 +13,19 @@
 //!
 //! ## Solvers
 //!
-//! - [`LemmaSolver`] - Basic algebraic simplification and calculus
-//! - [`IMOSolver`] - Full IMO competition solver with DeepMCTS
+//! - [`LemmaSolver`] - Algebraic simplification and differentiation over parsed expressions
+//! - [`IMOSolver`] - Search over an expression that is already in formal form
+//!
+//! Neither accepts a natural-language problem statement. [`IMOSolver::solve_text`] reports
+//! that the input is unsupported rather than searching something else.
 //!
 //! ## Example
 //!
 //! ```rust
-//! use mm_solver::{LemmaSolver, IMOSolver};
+//! use mm_solver::LemmaSolver;
 //!
-//! // Basic simplification
 //! let mut solver = LemmaSolver::new();
 //! let result = solver.simplify("2 + 3").unwrap();
-//!
-//! // IMO-level solving
-//! let imo = IMOSolver::new();
-//! let result = imo.solve_text("Find all functions f such that f(x+y) = f(x) + f(y)");
 //! ```
 
 pub mod imo_solver;
@@ -36,9 +34,11 @@ pub mod orchestrator;
 use mm_core::{Expr, MathError, SymbolTable};
 use mm_rules::{rule::standard_rules, RuleSet};
 use mm_search::{BeamSearch, SearchConfig, Step};
-use mm_verifier::{Verifier, VerifyResult};
+use mm_verifier::{VerificationStatus, Verifier, VerifyResult};
 
-pub use imo_solver::{IMOSolveResult, IMOSolver, IMOSolverConfig, SolutionStep};
+pub use imo_solver::{
+    IMOOutcome, IMOSolveResult, IMOSolver, IMOSolverConfig, SolutionStep, UnsupportedInput,
+};
 
 /// The LEMMA solver.
 ///
@@ -99,22 +99,12 @@ impl LemmaSolver {
         let expr = self.parse(input)?;
         let solution = self.search.simplify(expr);
 
-        Ok(SolveResult {
-            result: solution.result,
-            steps: solution.steps,
-            verified: solution.verified,
-        })
+        Ok(SolveResult::from_solution(solution))
     }
 
     /// Simplify an already-parsed expression.
     pub fn simplify_expr(&self, expr: Expr) -> SolveResult {
-        let solution = self.search.simplify(expr);
-
-        SolveResult {
-            result: solution.result,
-            steps: solution.steps,
-            verified: solution.verified,
-        }
+        SolveResult::from_solution(self.search.simplify(expr))
     }
 
     /// Compute the derivative of an expression.
@@ -129,21 +119,18 @@ impl LemmaSolver {
         };
 
         // Simplify to evaluate the derivative
-        let solution = self.search.simplify(deriv);
-
-        Ok(SolveResult {
-            result: solution.result,
-            steps: solution.steps,
-            verified: solution.verified,
-        })
+        Ok(SolveResult::from_solution(self.search.simplify(deriv)))
     }
 
     /// Solve an equation for a variable.
     ///
-    /// Returns all solutions found.
+    /// Not implemented. It parses and validates the equation, then reports
+    /// [`MathError::NotImplemented`]. It previously returned an empty vector, which reads as
+    /// "this equation has no solutions" rather than "nothing looked for any".
+    ///
+    /// [`Self::simplify_expr`] can make progress on an [`Expr::Equation`] through the
+    /// equation rules; [`Self::verify_solution`] can check a candidate value.
     pub fn solve_for(&mut self, equation: &str, var: &str) -> Result<Vec<SolveResult>, MathError> {
-        // Parse the equation
-        // For now, we expect "lhs = rhs" format
         let parts: Vec<&str> = equation.split('=').collect();
         if parts.len() != 2 {
             return Err(MathError::ParseError(
@@ -151,18 +138,16 @@ impl LemmaSolver {
             ));
         }
 
-        let lhs = self.parse(parts[0].trim())?;
-        let rhs = self.parse(parts[1].trim())?;
-        let var_symbol = self.symbols.intern(var);
+        // Parse both sides so a malformed equation is still reported as a parse error.
+        self.parse(parts[0].trim())?;
+        self.parse(parts[1].trim())?;
+        self.symbols.intern(var);
 
-        let eq = Expr::Equation {
-            lhs: Box::new(lhs),
-            rhs: Box::new(rhs),
-        };
-
-        // TODO: Implement equation solving
-        // For now, return empty
-        Ok(vec![])
+        Err(MathError::NotImplemented(
+            "solve_for: equation solving is not implemented; use simplify_expr on an \
+             Expr::Equation, or verify_solution to check a candidate"
+                .to_string(),
+        ))
     }
 
     /// Verify that a value is a solution to an equation.
@@ -215,11 +200,27 @@ pub struct SolveResult {
     pub result: Expr,
     /// The steps taken to reach the result.
     pub steps: Vec<Step>,
-    /// Whether the result was verified.
-    pub verified: bool,
+    /// What is actually known about the result.
+    ///
+    /// Replaces a `verified: bool` that several code paths set to `true` unconditionally.
+    pub status: VerificationStatus,
 }
 
 impl SolveResult {
+    /// Carry a search solution through unchanged, status included.
+    fn from_solution(solution: mm_search::Solution) -> Self {
+        Self {
+            result: solution.result,
+            steps: solution.steps,
+            status: solution.status,
+        }
+    }
+
+    /// Whether the trace replays from the input and every step was independently checked.
+    pub fn is_fully_verified(&self) -> bool {
+        self.status.is_fully_checked()
+    }
+
     /// Get the number of steps.
     pub fn num_steps(&self) -> usize {
         self.steps.len()
@@ -250,9 +251,7 @@ impl SolveResult {
             output.push_str(&format!("\nFinal Result: {:?}\n", self.result));
         }
 
-        if self.verified {
-            output.push_str("✓ Verified\n");
-        }
+        output.push_str(&format!("Verification: {}\n", self.status));
 
         output
     }
@@ -282,5 +281,38 @@ mod tests {
 
         let expr = solver.parse("x + 1").unwrap();
         assert!(matches!(expr, Expr::Add(_, _)));
+    }
+
+    #[test]
+    fn solve_for_reports_that_it_is_unimplemented() {
+        let mut solver = LemmaSolver::new();
+
+        let err = solver.solve_for("x + 1 = 3", "x").unwrap_err();
+        assert!(
+            matches!(err, MathError::NotImplemented(_)),
+            "an unimplemented solver must not return an empty solution set, got {err:?}"
+        );
+    }
+
+    #[test]
+    fn solve_for_still_reports_parse_errors() {
+        let mut solver = LemmaSolver::new();
+        assert!(matches!(
+            solver.solve_for("x + 1", "x").unwrap_err(),
+            MathError::ParseError(_)
+        ));
+    }
+
+    #[test]
+    fn a_simplified_result_carries_a_replayable_trace() {
+        let mut solver = LemmaSolver::new();
+        let result = solver.simplify("2 + 3").unwrap();
+
+        assert_eq!(result.result.canonicalize(), Expr::int(5));
+        assert!(
+            result.status.replays(),
+            "status must reflect the recorded trace, got {}",
+            result.status
+        );
     }
 }

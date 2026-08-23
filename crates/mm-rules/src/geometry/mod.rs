@@ -14,7 +14,7 @@
 //! Note: These rules focus on *detection* of geometric patterns.
 //! Full transformation requires a FactBank with geometric context.
 
-use crate::{Domain, Feature, Rule, RuleApplication, RuleCategory, RuleContext, RuleId};
+use crate::{Domain, Feature, Rule, RuleApplication, RuleCategory, RuleId};
 use mm_core::Expr;
 
 /// Create all geometry rules.
@@ -719,14 +719,16 @@ fn is_squared(expr: &Expr) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::rule::RuleSet;
+    use crate::rule::{RuleContext, RuleSet};
     use mm_core::SymbolTable;
 
     fn setup() -> (SymbolTable, RuleSet) {
         let symbols = SymbolTable::new();
         let mut rules = RuleSet::new();
         for rule in geometry_rules() {
-            rules.add(rule);
+            rules
+                .try_add("geometry", rule)
+                .expect("geometry test rules are unique");
         }
         (symbols, rules)
     }

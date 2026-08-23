@@ -1,7 +1,7 @@
 // LEMMA Real IMO-Level Problems
 // These are actual competition-level problems requiring multi-step reasoning
 
-use mm_core::{Expr, Rational, SymbolTable};
+use mm_core::{Expr, SymbolTable};
 use mm_rules::rule::standard_rules;
 use mm_search::{MCTSConfig, NeuralMCTS};
 use mm_verifier::Verifier;
@@ -29,7 +29,7 @@ fn main() {
         simulations: 1000, // Maximum simulations for hard problems
         exploration_weight: 1.41,
         max_depth: 100, // Very deep search
-        temperature: 0.8,
+        ..Default::default()
     };
     let mcts = NeuralMCTS::with_config(rules, verifier, config);
 

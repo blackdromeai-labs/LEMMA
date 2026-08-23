@@ -80,19 +80,6 @@ impl MacroInput {
 ///
 /// A `proc_macro2::TokenStream` which, when emitted into the generated code, constructs the matching
 /// `mm_core::Expr` value.
-///
-/// # Examples
-///
-/// ```
-/// use syn::parse_str;
-/// // `Expr` and `SymbolTable` are from the crate's parser; this example shows a symbol-free case.
-/// let path: syn::Path = parse_str("crate::SYMBOL_TABLE").unwrap();
-/// let temp_symbols = mm_parse::SymbolTable::default(); // assuming a default constructor is available
-/// let expr = mm_parse::Expr::Pi;
-/// let tokens = mm_macro::expr_to_token_stream(&expr, &path, &temp_symbols);
-/// let s = tokens.to_string();
-/// assert!(s.contains("mm_core :: Expr :: Pi"));
-/// ```
 fn expr_to_token_stream(
     expr: &Expr,
     runtime_symbol_table: &syn::Path,

@@ -4,13 +4,11 @@
 //!
 //! Usage: cargo run --example imo_solver --release -p mm-solver
 
-use mm_brain::MathBertModel;
 use mm_core::{Expr, Rational, SymbolTable};
 use mm_rules::rule::standard_rules;
-use mm_rules::{RuleApplication, RuleContext};
+use mm_rules::RuleContext;
 use mm_search::{DeepMCTS, DeepMCTSConfig};
 use mm_verifier::Verifier;
-use std::path::Path;
 use std::time::Instant;
 
 fn main() {
@@ -178,6 +176,7 @@ fn main() {
         exploration_weight: 1.41,
         virtual_loss: 3.0,
         progress_interval: 100,
+        ..Default::default()
     };
 
     let mcts = DeepMCTS::with_config(standard_rules(), verifier, config);

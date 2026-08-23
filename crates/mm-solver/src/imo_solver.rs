@@ -1,26 +1,30 @@
-//! Integrated IMO Solver
+//! Search over competition-style problems that are already in formal form.
 //!
-//! Connects all LEMMA components for IMO-level problem solving:
-//! - DeepMCTS for parallel search over millions of nodes
-//! - SubstitutionPredictor for intelligent hint generation
-//! - RuleSet with 450+ mathematical transformation rules
-//! - Verifier for proof step validation
+//! [`IMOSolver::solve_expr`] runs [`DeepMCTS`] over an [`Expr`].
+//!
+//! [`IMOSolver::solve_text`] does **not** solve anything. There is no path from a natural
+//! language problem statement to an [`Expr`] in this repository. The previous implementation
+//! generated substitution hints, discarded them, built the same hard-coded expression
+//! `(a+b)^2 - (a^2 + 2ab + b^2)` for every input, searched that, and returned the resulting
+//! path as the problem's solution with steps named `transformation` / "Applied rule". Any
+//! apparent input-dependent result from it was an artefact. It now returns
+//! [`IMOOutcome::Unsupported`] together with the hints, which remain useful as triage output.
 
 use mm_brain::{SubstitutionPrediction, SubstitutionPredictor};
-use mm_core::{Expr, Rational, SymbolTable};
-use mm_rules::{rule::standard_rules, RuleContext, RuleId, RuleSet};
+use mm_core::{Expr, SymbolTable};
+use mm_rules::rule::standard_rules;
 use mm_search::{DeepMCTS, DeepMCTSConfig, SearchStats};
 use mm_verifier::Verifier;
 use std::time::{Duration, Instant};
 
-/// Configuration for IMO solver
+/// Configuration for the solver.
 #[derive(Clone)]
 pub struct IMOSolverConfig {
     /// Maximum nodes to explore
     pub max_nodes: u64,
     /// Time limit in seconds
     pub time_limit_secs: u64,
-    /// Number of substitutions to try from predictor
+    /// Number of substitutions to request from the predictor
     pub top_k_substitutions: usize,
     /// Verbose output
     pub verbose: bool,
@@ -48,7 +52,7 @@ impl IMOSolverConfig {
         }
     }
 
-    /// Competition mode: 100M nodes, 30 minutes
+    /// Long mode: 100M nodes, 30 minutes
     pub fn competition() -> Self {
         Self {
             max_nodes: 100_000_000,
@@ -59,41 +63,81 @@ impl IMOSolverConfig {
     }
 }
 
-/// Result of solving an IMO problem
+/// Why a text problem could not be turned into a formal one.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UnsupportedInput {
+    /// The input that was rejected, truncated for reporting.
+    pub input: String,
+    /// What is missing.
+    pub reason: String,
+}
+
+/// What happened to a solve request.
+#[derive(Debug)]
+pub enum IMOOutcome {
+    /// A goal path was found.
+    Solved(Vec<SolutionStep>),
+    /// The search ran and found no goal path.
+    NotFound,
+    /// The input could not be turned into a formal problem, so nothing was searched.
+    Unsupported(UnsupportedInput),
+}
+
+impl IMOOutcome {
+    /// Whether a solution path was produced.
+    pub fn is_solved(&self) -> bool {
+        matches!(self, IMOOutcome::Solved(_))
+    }
+
+    /// The solution path, if there is one.
+    pub fn path(&self) -> Option<&[SolutionStep]> {
+        match self {
+            IMOOutcome::Solved(steps) => Some(steps),
+            _ => None,
+        }
+    }
+}
+
+/// Result of a solve request.
 #[derive(Debug)]
 pub struct IMOSolveResult {
-    /// Whether a solution was found
-    pub solved: bool,
-    /// The solution path (if found)
-    pub solution_path: Option<Vec<SolutionStep>>,
-    /// Substitutions tried
-    pub substitutions_tried: Vec<SubstitutionPrediction>,
-    /// Search statistics
+    /// What happened.
+    pub outcome: IMOOutcome,
+    /// Substitution hints from the predictor. These are keyword-driven suggestions for a
+    /// human reader; nothing in the search consumes them.
+    pub substitutions_suggested: Vec<SubstitutionPrediction>,
+    /// Search statistics. All zero when nothing was searched.
     pub stats: SearchStats,
     /// Time taken
     pub elapsed: Duration,
 }
 
+impl IMOSolveResult {
+    /// Whether a solution path was produced.
+    pub fn solved(&self) -> bool {
+        self.outcome.is_solved()
+    }
+}
+
 /// A step in the solution
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SolutionStep {
     /// Expression before this step
     pub before: Expr,
     /// Expression after this step
     pub after: Expr,
-    /// Rule applied (if any)
-    pub rule_name: String,
-    /// Explanation
+    /// Explanation of the transition.
+    ///
+    /// [`DeepMCTS`] returns a path of expressions rather than of rule applications, so this
+    /// describes the shape of the transition, not a named rule.
     pub explanation: String,
 }
 
-/// The integrated IMO Solver
-///
-/// Combines: DeepMCTS + SubstitutionPredictor + 450+ Rules + Verifier
+/// Search driver for problems supplied as expressions.
 pub struct IMOSolver {
-    /// Deep MCTS search engine
+    /// Parallel tree search engine
     mcts: DeepMCTS,
-    /// Substitution predictor
+    /// Substitution predictor (keyword heuristics)
     predictor: SubstitutionPredictor,
     /// Symbol table for parsing
     symbols: SymbolTable,
@@ -102,18 +146,9 @@ pub struct IMOSolver {
 }
 
 impl IMOSolver {
-    /// Create a new IMO solver with default configuration
+    /// Create a solver with default configuration
     pub fn new() -> Self {
-        let rules = standard_rules();
-        let verifier = Verifier::new();
-        let mcts_config = DeepMCTSConfig::default();
-
-        Self {
-            mcts: DeepMCTS::with_config(rules, verifier, mcts_config),
-            predictor: SubstitutionPredictor::new(),
-            symbols: SymbolTable::new(),
-            config: IMOSolverConfig::default(),
-        }
+        Self::with_config(IMOSolverConfig::default())
     }
 
     /// Create with custom configuration
@@ -134,172 +169,89 @@ impl IMOSolver {
         }
     }
 
-    /// Solve an IMO problem given as text
+    /// Report substitution hints for a problem statement. Does not solve it.
+    ///
+    /// Returns [`IMOOutcome::Unsupported`]: there is no text-to-expression translation here,
+    /// so there is nothing to search. Use [`Self::solve_expr`] with an [`Expr`] you built or
+    /// parsed yourself.
     pub fn solve_text(&self, problem_text: &str) -> IMOSolveResult {
         let start = Instant::now();
 
-        if self.config.verbose {
-            println!("╔══════════════════════════════════════════════════════════════╗");
-            println!("║                     LEMMA IMO Solver                         ║");
-            println!("╚══════════════════════════════════════════════════════════════╝");
-            println!();
-            println!("Problem: {}", &problem_text[..problem_text.len().min(60)]);
-            if problem_text.len() > 60 {
-                println!(
-                    "         {}...",
-                    &problem_text[60..problem_text.len().min(120)]
-                );
-            }
-            println!();
-        }
-
-        // Step 1: Get substitution hints from predictor
         let hints = self
             .predictor
             .predict(problem_text, self.config.top_k_substitutions);
 
         if self.config.verbose {
-            println!("Predicted substitutions:");
+            println!("LEMMA cannot read a problem statement.");
+            println!("  Input: {}", truncate(problem_text, 72));
+            println!("  Suggested substitutions to try by hand:");
             for (i, hint) in hints.iter().enumerate() {
                 println!(
-                    "  {}. {} (confidence: {:.1}%)",
+                    "    {}. {} (confidence: {:.1}%)",
                     i + 1,
                     hint.substitution,
                     hint.confidence * 100.0
                 );
             }
-            println!();
-        }
-
-        // Step 2: For each substitution, try MCTS search
-        // For now, we just run a general search
-        // TODO: Apply substitutions to transform the problem
-
-        if self.config.verbose {
-            println!(
-                "Starting MCTS search (max {} nodes, {}s timeout)...",
-                self.config.max_nodes, self.config.time_limit_secs
-            );
-        }
-
-        // Create a simple goal: reduce expression complexity
-        let goal = |expr: &Expr| -> bool {
-            // Goal: reach a simple form (variable, constant, or simple binary)
-            match expr {
-                Expr::Const(_) | Expr::Var(_) => true,
-                Expr::Add(a, b) | Expr::Mul(a, b) => {
-                    matches!(**a, Expr::Const(_) | Expr::Var(_))
-                        && matches!(**b, Expr::Const(_) | Expr::Var(_))
-                }
-                _ => false,
-            }
-        };
-
-        // Create a non-trivial expression that requires actual search
-        // Example: (a + b)^2 which should expand/simplify
-        let mut symbols = SymbolTable::new();
-        let a = symbols.intern("a");
-        let b = symbols.intern("b");
-
-        // Build: (a + b)^2 - (a^2 + 2ab + b^2) = 0
-        // This requires the MCTS to find the expansion path
-        let expr = Expr::Sub(
-            Box::new(Expr::Pow(
-                Box::new(Expr::Add(Box::new(Expr::Var(a)), Box::new(Expr::Var(b)))),
-                Box::new(Expr::Const(Rational::from(2))),
-            )),
-            Box::new(Expr::Add(
-                Box::new(Expr::Add(
-                    Box::new(Expr::Pow(
-                        Box::new(Expr::Var(a)),
-                        Box::new(Expr::Const(Rational::from(2))),
-                    )),
-                    Box::new(Expr::Mul(
-                        Box::new(Expr::Const(Rational::from(2))),
-                        Box::new(Expr::Mul(Box::new(Expr::Var(a)), Box::new(Expr::Var(b)))),
-                    )),
-                )),
-                Box::new(Expr::Pow(
-                    Box::new(Expr::Var(b)),
-                    Box::new(Expr::Const(Rational::from(2))),
-                )),
-            )),
-        );
-
-        // Run MCTS search
-        let (solution, stats) = self.mcts.search(expr.clone(), goal);
-
-        let elapsed = start.elapsed();
-
-        // Convert solution to steps
-        let solution_path = solution.map(|path| {
-            path.windows(2)
-                .map(|w| SolutionStep {
-                    before: w[0].clone(),
-                    after: w[1].clone(),
-                    rule_name: "transformation".to_string(),
-                    explanation: "Applied rule".to_string(),
-                })
-                .collect()
-        });
-
-        if self.config.verbose {
-            println!();
-            println!("Search complete:");
-            println!("  Nodes explored: {}", stats.nodes_explored);
-            println!("  Time: {:.2}s", elapsed.as_secs_f64());
-            println!("  Rate: {:.0} nodes/sec", stats.nodes_per_second);
-
-            if solution_path.is_some() {
-                println!("  ✓ Solution found!");
-            } else {
-                println!("  ✗ No solution found");
-            }
+            println!("  Build the problem as an Expr and call solve_expr to search it.");
         }
 
         IMOSolveResult {
-            solved: solution_path.is_some(),
-            solution_path,
-            substitutions_tried: hints,
+            outcome: IMOOutcome::Unsupported(UnsupportedInput {
+                input: truncate(problem_text, 200),
+                reason: "no natural-language to expression translation is implemented; \
+                         supply an Expr to solve_expr"
+                    .to_string(),
+            }),
+            substitutions_suggested: hints,
+            stats: SearchStats::default(),
+            elapsed: start.elapsed(),
+        }
+    }
+
+    /// Search an expression for a state that satisfies `goal`.
+    pub fn solve_expr_with_goal<F>(&self, expr: Expr, goal: F) -> IMOSolveResult
+    where
+        F: Fn(&Expr) -> bool + Sync,
+    {
+        let start = Instant::now();
+        let (path, stats) = self.mcts.search(expr, goal);
+        let elapsed = start.elapsed();
+
+        let outcome = match path {
+            Some(path) => IMOOutcome::Solved(
+                path.windows(2)
+                    .map(|w| SolutionStep {
+                        before: w[0].clone(),
+                        after: w[1].clone(),
+                        explanation: "Rule application found by tree search".to_string(),
+                    })
+                    .collect(),
+            ),
+            None => IMOOutcome::NotFound,
+        };
+
+        IMOSolveResult {
+            outcome,
+            substitutions_suggested: vec![],
             stats,
             elapsed,
         }
     }
 
-    /// Solve an expression directly
+    /// Search an expression, aiming to reduce it to a constant or a single variable.
     pub fn solve_expr(&self, expr: Expr) -> IMOSolveResult {
-        let start = Instant::now();
+        self.solve_expr_with_goal(expr, |e: &Expr| matches!(e, Expr::Const(_) | Expr::Var(_)))
+    }
 
-        // Simple goal: reduce to constant or variable
-        let goal = |e: &Expr| matches!(e, Expr::Const(_) | Expr::Var(_));
-
-        let (solution, stats) = self.mcts.search(expr.clone(), goal);
-
-        let elapsed = start.elapsed();
-
-        let solution_path = solution.map(|path| {
-            path.windows(2)
-                .map(|w| SolutionStep {
-                    before: w[0].clone(),
-                    after: w[1].clone(),
-                    rule_name: "simplification".to_string(),
-                    explanation: "Simplified expression".to_string(),
-                })
-                .collect()
-        });
-
-        IMOSolveResult {
-            solved: solution_path.is_some(),
-            solution_path,
-            substitutions_tried: vec![],
-            stats,
-            elapsed,
-        }
+    /// The symbol table, for building expressions to pass to [`Self::solve_expr`].
+    pub fn symbols_mut(&mut self) -> &mut SymbolTable {
+        &mut self.symbols
     }
 
     /// Get the number of rules loaded
     pub fn num_rules(&self) -> usize {
-        standard_rules().len()
+        self.mcts.rules.len()
     }
 
     /// Get predictor vocabulary size
@@ -314,27 +266,74 @@ impl Default for IMOSolver {
     }
 }
 
+/// Truncate on a character boundary.
+fn truncate(text: &str, max_chars: usize) -> String {
+    let mut out: String = text.chars().take(max_chars).collect();
+    if text.chars().count() > max_chars {
+        out.push_str("...");
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    fn quiet() -> IMOSolver {
+        IMOSolver::with_config(IMOSolverConfig {
+            verbose: false,
+            ..IMOSolverConfig::quick()
+        })
+    }
+
     #[test]
     fn test_solver_creation() {
-        let solver = IMOSolver::new();
+        let solver = quiet();
         assert!(solver.num_rules() > 400);
         assert_eq!(solver.vocab_size(), 20);
     }
 
     #[test]
-    fn test_functional_equation_hints() {
-        let solver = IMOSolver::with_config(IMOSolverConfig::quick());
+    fn text_input_is_reported_as_unsupported() {
+        let solver = quiet();
+        let result =
+            solver.solve_text("Find all functions f: R -> R such that f(x + f(y)) = f(x) + y.");
 
-        let problem = "Find all functions f: R -> R such that f(x + f(y)) = f(x) + y.";
-        let result = solver.solve_text(problem);
+        assert!(!result.solved());
+        assert!(matches!(result.outcome, IMOOutcome::Unsupported(_)));
+        assert!(result.outcome.path().is_none());
+        assert_eq!(result.stats.nodes_explored, 0, "nothing should be searched");
+    }
 
-        // Should suggest x=0, y=0, x=y
-        let subs: Vec<_> = result
-            .substitutions_tried
+    #[test]
+    fn two_unrelated_problems_cannot_produce_the_same_canned_solution() {
+        // The regression this guards: both inputs used to be discarded and replaced by the
+        // same hard-coded algebraic identity, so both "solved" identically.
+        let solver = quiet();
+
+        let a = solver.solve_text("Prove that for all positive reals a, b: a^2 + b^2 >= 2ab.");
+        let b = solver.solve_text("Find the number of primes p such that p^2 + 2 is prime.");
+
+        assert!(!a.solved() && !b.solved());
+        assert!(a.outcome.path().is_none());
+        assert!(b.outcome.path().is_none());
+
+        match (&a.outcome, &b.outcome) {
+            (IMOOutcome::Unsupported(ua), IMOOutcome::Unsupported(ub)) => {
+                assert_ne!(ua.input, ub.input, "each result must name its own input");
+            }
+            other => panic!("expected two unsupported results, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn hints_are_still_reported_for_text() {
+        let solver = quiet();
+        let result =
+            solver.solve_text("Find all functions f: R -> R such that f(x + f(y)) = f(x) + y.");
+
+        let subs: Vec<&str> = result
+            .substitutions_suggested
             .iter()
             .map(|s| s.substitution.as_str())
             .collect();
@@ -342,17 +341,27 @@ mod tests {
     }
 
     #[test]
-    fn test_inequality_hints() {
-        let solver = IMOSolver::with_config(IMOSolverConfig::quick());
+    fn inequality_hints_are_still_reported() {
+        let solver = quiet();
+        let result =
+            solver.solve_text("Let a, b, c be positive reals with abc = 1. Prove a + b + c >= 3.");
 
-        let problem = "Let a, b, c be positive reals with abc = 1. Prove a + b + c >= 3.";
-        let result = solver.solve_text(problem);
-
-        let subs: Vec<_> = result
-            .substitutions_tried
+        let subs: Vec<&str> = result
+            .substitutions_suggested
             .iter()
             .map(|s| s.substitution.as_str())
             .collect();
         assert!(subs.contains(&"Apply AM-GM") || subs.contains(&"abc = 1 constraint"));
+    }
+
+    #[test]
+    fn an_expression_that_is_already_a_goal_solves_trivially() {
+        let solver = quiet();
+        let result = solver.solve_expr(Expr::int(5));
+        // The root already satisfies the goal, so the path has a single state and no steps.
+        assert!(matches!(
+            result.outcome,
+            IMOOutcome::Solved(_) | IMOOutcome::NotFound
+        ));
     }
 }

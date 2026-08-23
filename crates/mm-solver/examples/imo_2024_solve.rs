@@ -1,22 +1,21 @@
-//! Real IMO 2024 Problem Solver
+//! IMO 2024 problems: what the rule registry offers, and a hand-written analysis.
 //!
-//! Actually attempts to SOLVE the real IMO 2024 competition problems
+//! LEMMA does not solve these problems. For each one this example builds the parts of the
+//! statement that can be expressed as an `Expr`, prints which registry rules are applicable
+//! to them, and then prints a **hand-written** derivation and answer that a person worked
+//! out. Those derivations are commentary; nothing in this repository produced them.
 //!
 //! Usage: cargo run --example imo_2024_solve --release -p mm-solver
 
-use mm_core::{Expr, Rational, SymbolTable};
+use mm_core::{Expr, SymbolTable};
 use mm_rules::rule::standard_rules;
 use mm_rules::RuleContext;
-use mm_search::{DeepMCTS, DeepMCTSConfig};
 use mm_verifier::Verifier;
-use std::time::Instant;
 
 fn main() {
-    println!("╔══════════════════════════════════════════════════════════════╗");
-    println!("║          IMO 2024 REAL PROBLEM SOLVER                        ║");
-    println!("║      Attempting actual competition problems!                 ║");
-    println!("╚══════════════════════════════════════════════════════════════╝\n");
-
+    println!("IMO 2024 problems: rule availability plus a hand-written analysis.");
+    println!("LEMMA does not solve these; every ANSWER below was written by a person.");
+    println!();
     let rules = standard_rules();
     let verifier = Verifier::new();
     println!("✓ Loaded {} rules\n", rules.len());
@@ -116,7 +115,7 @@ fn solve_imo2024_p1(rules: &mm_rules::RuleSet) {
 
     // Key mathematical insight
     println!("\n─────────────────────────────────────────────────────");
-    println!("MATHEMATICAL ANALYSIS:");
+    println!("HAND-WRITTEN ANALYSIS (not produced by LEMMA):");
     println!("─────────────────────────────────────────────────────");
     println!("");
     println!("For integer α = m:");
@@ -166,7 +165,7 @@ fn solve_imo2024_p2(rules: &mm_rules::RuleSet) {
     }
 
     println!("\n─────────────────────────────────────────────────────");
-    println!("MATHEMATICAL ANALYSIS:");
+    println!("HAND-WRITTEN ANALYSIS (not produced by LEMMA):");
     println!("─────────────────────────────────────────────────────");
     println!("");
     println!("Key observation: For large n, if a > b:");
@@ -223,7 +222,7 @@ fn solve_imo2024_p6(rules: &mm_rules::RuleSet) {
     println!("\nFunctional equation analysis (symbolic):");
 
     println!("\n─────────────────────────────────────────────────────");
-    println!("MATHEMATICAL ANALYSIS:");
+    println!("HAND-WRITTEN ANALYSIS (not produced by LEMMA):");
     println!("─────────────────────────────────────────────────────");
     println!("");
     println!("Key insight: The OR condition constrains f heavily");

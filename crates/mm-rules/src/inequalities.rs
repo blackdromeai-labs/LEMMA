@@ -14,13 +14,6 @@ use mm_core::{Expr, Rational};
 ///
 /// The returned list includes AM-GM, Cauchy–Schwarz, triangle inequality,
 /// absolute value, square non-negativity, and advanced inequality rules.
-///
-/// # Examples
-///
-/// ```
-/// let rules = inequality_rules();
-/// assert!(!rules.is_empty());
-/// ```
 pub fn inequality_rules() -> Vec<Rule> {
     let mut rules = Vec::new();
 
@@ -44,7 +37,7 @@ fn am_gm_rules() -> Vec<Rule> {
     vec![
         // (a + b)/2 >= sqrt(ab) can be rewritten
         Rule {
-            id: RuleId(300),
+            id: RuleId(25000),
             name: "am_gm_2",
             category: RuleCategory::AlgebraicSolving,
             description: "AM-GM: (a+b)/2 ≥ √(ab), so a+b ≥ 2√(ab)",
@@ -104,7 +97,7 @@ fn am_gm_rules() -> Vec<Rule> {
         },
         // a^2 + b^2 >= 2ab (derived from AM-GM)
         Rule {
-            id: RuleId(301),
+            id: RuleId(25001),
             name: "sum_squares_ge_product",
             category: RuleCategory::AlgebraicSolving,
             description: "a² + b² ≥ 2ab (from (a-b)² ≥ 0)",
@@ -139,7 +132,7 @@ fn am_gm_rules() -> Vec<Rule> {
         },
         // a² + b² + c² >= ab + bc + ca
         Rule {
-            id: RuleId(302),
+            id: RuleId(25002),
             name: "sum_three_squares",
             category: RuleCategory::AlgebraicSolving,
             description: "a² + b² + c² ≥ ab + bc + ca",
@@ -204,7 +197,7 @@ fn am_gm_rules() -> Vec<Rule> {
         },
         // For positive reals: a/b + b/a >= 2
         Rule {
-            id: RuleId(303),
+            id: RuleId(25003),
             name: "reciprocal_sum_ge_2",
             category: RuleCategory::AlgebraicSolving,
             description: "a/b + b/a ≥ 2 for positive a,b",
@@ -238,7 +231,7 @@ fn am_gm_rules() -> Vec<Rule> {
         },
         // (a+b+c)/3 >= cbrt(abc) - AM-GM for 3 terms
         Rule {
-            id: RuleId(304),
+            id: RuleId(25004),
             name: "am_gm_3",
             category: RuleCategory::AlgebraicSolving,
             description: "AM-GM for 3 terms: (a+b+c)/3 ≥ ∛(abc)",
@@ -302,7 +295,7 @@ fn cauchy_schwarz_rules() -> Vec<Rule> {
     vec![
         // (a² + b²)(c² + d²) >= (ac + bd)²
         Rule {
-            id: RuleId(320),
+            id: RuleId(25005),
             name: "cauchy_schwarz_2",
             category: RuleCategory::AlgebraicSolving,
             description: "Cauchy-Schwarz: (a²+b²)(c²+d²) ≥ (ac+bd)²",
@@ -327,7 +320,7 @@ fn cauchy_schwarz_rules() -> Vec<Rule> {
         },
         // Engel form / Titu's Lemma: a²/x + b²/y >= (a+b)²/(x+y)
         Rule {
-            id: RuleId(321),
+            id: RuleId(25006),
             name: "titus_lemma",
             category: RuleCategory::AlgebraicSolving,
             description: "Titu's Lemma: a²/x + b²/y ≥ (a+b)²/(x+y)",
@@ -384,7 +377,7 @@ fn triangle_inequality_rules() -> Vec<Rule> {
     vec![
         // |a + b| <= |a| + |b|
         Rule {
-            id: RuleId(340),
+            id: RuleId(25007),
             name: "triangle_ineq",
             category: RuleCategory::AlgebraicSolving,
             description: "|a + b| ≤ |a| + |b|",
@@ -415,7 +408,7 @@ fn triangle_inequality_rules() -> Vec<Rule> {
         },
         // |a - b| >= ||a| - |b||
         Rule {
-            id: RuleId(341),
+            id: RuleId(25008),
             name: "reverse_triangle",
             category: RuleCategory::AlgebraicSolving,
             description: "|a - b| ≥ ||a| - |b||",
@@ -455,7 +448,7 @@ fn absolute_value_rules() -> Vec<Rule> {
     vec![
         // |a| >= 0
         Rule {
-            id: RuleId(360),
+            id: RuleId(25009),
             name: "abs_nonneg",
             category: RuleCategory::Simplification,
             description: "|a| ≥ 0 for all a",
@@ -476,7 +469,7 @@ fn absolute_value_rules() -> Vec<Rule> {
         },
         // |a*b| = |a|*|b|
         Rule {
-            id: RuleId(361),
+            id: RuleId(25010),
             name: "abs_product",
             category: RuleCategory::Simplification,
             description: "|a·b| = |a|·|b|",
@@ -507,7 +500,7 @@ fn absolute_value_rules() -> Vec<Rule> {
         },
         // |a/b| = |a|/|b|
         Rule {
-            id: RuleId(362),
+            id: RuleId(25011),
             name: "abs_quotient",
             category: RuleCategory::Simplification,
             description: "|a/b| = |a|/|b|",
@@ -538,7 +531,7 @@ fn absolute_value_rules() -> Vec<Rule> {
         },
         // |-a| = |a|
         Rule {
-            id: RuleId(363),
+            id: RuleId(25012),
             name: "abs_neg",
             category: RuleCategory::Simplification,
             description: "|-a| = |a|",
@@ -566,7 +559,7 @@ fn absolute_value_rules() -> Vec<Rule> {
         },
         // ||a|| = |a|
         Rule {
-            id: RuleId(364),
+            id: RuleId(25013),
             name: "abs_abs",
             category: RuleCategory::Simplification,
             description: "||a|| = |a|",
@@ -594,7 +587,7 @@ fn absolute_value_rules() -> Vec<Rule> {
         },
         // |a|² = a²
         Rule {
-            id: RuleId(365),
+            id: RuleId(25014),
             name: "abs_squared",
             category: RuleCategory::Simplification,
             description: "|a|² = a²",
@@ -741,13 +734,6 @@ fn square_inequality_rules() -> Vec<Rule> {
 /// absolute-value/power identities, and a suite of advanced inequalities with
 /// IDs in the 500–525 range such as Holder, Jensen, Chebyshev, Muirhead, Schur,
 /// Nesbitt, Young, and Minkowski).
-///
-/// # Examples
-///
-/// ```
-/// let rules = advanced_inequality_rules();
-/// assert!(!rules.is_empty());
-/// ```
 pub fn advanced_inequality_rules() -> Vec<Rule> {
     vec![
         // Bernoulli's inequality
@@ -759,8 +745,6 @@ pub fn advanced_inequality_rules() -> Vec<Rule> {
         positive_square_root(),
         exp_positivity(),
         // More absolute value rules
-        abs_product(),
-        abs_quotient(),
         abs_power(),
         // Inequality manipulations
         add_to_both_sides(),
@@ -790,7 +774,7 @@ pub fn advanced_inequality_rules() -> Vec<Rule> {
 // (1+x)^n >= 1 + nx for x >= -1, n >= 1
 fn bernoulli_inequality() -> Rule {
     Rule {
-        id: RuleId(500),
+        id: RuleId(25015),
         name: "bernoulli_inequality",
         category: RuleCategory::AlgebraicSolving,
         description: "(1+x)^n >= 1 + nx for x >= -1, n >= 1",
@@ -829,7 +813,7 @@ fn bernoulli_inequality() -> Rule {
 // QM >= AM: sqrt((a² + b²)/2) >= (a + b)/2
 fn qm_am_inequality() -> Rule {
     Rule {
-        id: RuleId(501),
+        id: RuleId(25016),
         name: "qm_am_inequality",
         category: RuleCategory::AlgebraicSolving,
         description: "QM >= AM: √((a²+b²)/2) >= (a+b)/2",
@@ -887,7 +871,7 @@ fn qm_am_inequality() -> Rule {
 // HM <= GM: 2ab/(a+b) <= sqrt(ab)
 fn hm_gm_inequality() -> Rule {
     Rule {
-        id: RuleId(502),
+        id: RuleId(25017),
         name: "hm_gm_inequality",
         category: RuleCategory::AlgebraicSolving,
         description: "HM <= GM: 2ab/(a+b) <= √(ab)",
@@ -930,7 +914,7 @@ fn hm_gm_inequality() -> Rule {
 // sqrt(a) is real for a >= 0
 fn positive_square_root() -> Rule {
     Rule {
-        id: RuleId(503),
+        id: RuleId(25018),
         name: "positive_square_root",
         category: RuleCategory::Simplification,
         description: "√a >= 0 for a >= 0",
@@ -946,7 +930,7 @@ fn positive_square_root() -> Rule {
 // e^x > 0 for all x
 fn exp_positivity() -> Rule {
     Rule {
-        id: RuleId(504),
+        id: RuleId(25019),
         name: "exp_positivity",
         category: RuleCategory::Simplification,
         description: "e^x > 0 for all x",
@@ -959,78 +943,10 @@ fn exp_positivity() -> Rule {
     }
 }
 
-// |ab| = |a||b|
-fn abs_product() -> Rule {
-    Rule {
-        id: RuleId(505),
-        name: "abs_product",
-        category: RuleCategory::Simplification,
-        description: "|ab| = |a||b|",
-        domains: &[Domain::Inequalities],
-        requires: &[Feature::Inequality],
-        is_applicable: |expr, _ctx| {
-            if let Expr::Abs(inner) = expr {
-                return matches!(inner.as_ref(), Expr::Mul(_, _));
-            }
-            false
-        },
-        apply: |expr, _ctx| {
-            if let Expr::Abs(inner) = expr {
-                if let Expr::Mul(a, b) = inner.as_ref() {
-                    return vec![RuleApplication {
-                        result: Expr::Mul(
-                            Box::new(Expr::Abs(a.clone())),
-                            Box::new(Expr::Abs(b.clone())),
-                        ),
-                        justification: "|ab| = |a||b|".to_string(),
-                    }];
-                }
-            }
-            vec![]
-        },
-        reversible: true,
-        cost: 1,
-    }
-}
-
-// |a/b| = |a|/|b|
-fn abs_quotient() -> Rule {
-    Rule {
-        id: RuleId(506),
-        name: "abs_quotient",
-        category: RuleCategory::Simplification,
-        description: "|a/b| = |a|/|b|",
-        domains: &[Domain::Inequalities],
-        requires: &[Feature::Inequality],
-        is_applicable: |expr, _ctx| {
-            if let Expr::Abs(inner) = expr {
-                return matches!(inner.as_ref(), Expr::Div(_, _));
-            }
-            false
-        },
-        apply: |expr, _ctx| {
-            if let Expr::Abs(inner) = expr {
-                if let Expr::Div(a, b) = inner.as_ref() {
-                    return vec![RuleApplication {
-                        result: Expr::Div(
-                            Box::new(Expr::Abs(a.clone())),
-                            Box::new(Expr::Abs(b.clone())),
-                        ),
-                        justification: "|a/b| = |a|/|b|".to_string(),
-                    }];
-                }
-            }
-            vec![]
-        },
-        reversible: true,
-        cost: 1,
-    }
-}
-
 // |a^n| = |a|^n for integer n
 fn abs_power() -> Rule {
     Rule {
-        id: RuleId(507),
+        id: RuleId(25020),
         name: "abs_power",
         category: RuleCategory::Simplification,
         description: "|a^n| = |a|^n",
@@ -1061,7 +977,7 @@ fn abs_power() -> Rule {
 // a = b => a + c = b + c
 fn add_to_both_sides() -> Rule {
     Rule {
-        id: RuleId(508),
+        id: RuleId(25021),
         name: "add_to_both_sides",
         category: RuleCategory::EquationSolving,
         description: "Add same expression to both sides of equation",
@@ -1077,7 +993,7 @@ fn add_to_both_sides() -> Rule {
 // a = b => ac = bc (for c > 0)
 fn mul_positive_both_sides() -> Rule {
     Rule {
-        id: RuleId(509),
+        id: RuleId(25022),
         name: "mul_positive_both_sides",
         category: RuleCategory::EquationSolving,
         description: "Multiply both sides by positive expression",
@@ -1093,7 +1009,7 @@ fn mul_positive_both_sides() -> Rule {
 // a >= b >= 0 => sqrt(a) >= sqrt(b)
 fn sqrt_comparison() -> Rule {
     Rule {
-        id: RuleId(510),
+        id: RuleId(25023),
         name: "sqrt_comparison",
         category: RuleCategory::AlgebraicSolving,
         description: "For a,b >= 0: a >= b => √a >= √b",
@@ -1123,7 +1039,7 @@ fn sqrt_comparison() -> Rule {
 // a > b > 0 => ln(a) > ln(b)
 fn ln_comparison() -> Rule {
     Rule {
-        id: RuleId(511),
+        id: RuleId(25024),
         name: "ln_comparison",
         category: RuleCategory::AlgebraicSolving,
         description: "For a,b > 0: a > b => ln(a) > ln(b)",
@@ -1177,19 +1093,6 @@ fn exp_monotonic() -> Rule {
 /// Constructs a rule encoding the monotonicity of the natural logarithm on R+.
 ///
 /// When applied to an expression `a > b` (with `a, b > 0` implied), the rule produces the inequality `ln(a) > ln(b)`.
-///
-/// # Examples
-///
-/// ```
-/// let rule = ln_monotonic();
-/// let expr = Expr::Gt(
-///     Box::new(Expr::Var("a".into())),
-///     Box::new(Expr::Var("b".into())),
-/// );
-/// // `apply` takes the expression and a context (ignored by this rule).
-/// let apps = (rule.apply)(expr, &());
-/// assert!(matches!(apps[0].result, Expr::Gt(_, _)));
-/// ```
 fn ln_monotonic() -> Rule {
     Rule {
         id: RuleId(513),
@@ -1224,14 +1127,6 @@ fn ln_monotonic() -> Rule {
 /// Constructs a Rule that represents Hölder's inequality for conjugate exponents.
 ///
 /// The rule encodes the inequality (Σ|ab|)^p ≤ (Σ|a|^p)(Σ|b|^q) with 1/p + 1/q = 1 and is intended for expressions involving products or powers; when applied it produces a RuleApplication preserving the input expression and a textual justification.
-///
-/// # Examples
-///
-/// ```
-/// let r = holder_inequality();
-/// assert_eq!(r.id.0, 514);
-/// assert_eq!(r.name, "holder_inequality");
-/// ```
 fn holder_inequality() -> Rule {
     Rule {
         id: RuleId(514),
@@ -1259,14 +1154,6 @@ fn holder_inequality() -> Rule {
 /// The returned `Rule` detects average-like expressions (addition or division)
 /// and produces an application asserting that for a convex function `f`:
 /// f((x + y) / 2) ≤ (f(x) + f(y)) / 2.
-///
-/// # Examples
-///
-/// ```
-/// let r = jensen_convex();
-/// assert_eq!(r.id.0, 515);
-/// assert_eq!(r.name, "jensen_convex");
-/// ```
 fn jensen_convex() -> Rule {
     Rule {
         id: RuleId(515),
@@ -1292,14 +1179,6 @@ fn jensen_convex() -> Rule {
 /// Produces a rule encoding Jensen's inequality for concave functions: f((x + y)/2) >= (f(x) + f(y))/2.
 ///
 /// The rule is applicable to expressions that are additions or divisions and, when applied, returns a single RuleApplication that preserves the input expression and includes a justification referencing Jensen's inequality for concave f.
-///
-/// # Examples
-///
-/// ```
-/// let rule = jensen_concave();
-/// assert_eq!(rule.id, RuleId(516));
-/// assert_eq!(rule.name, "jensen_concave");
-/// ```
 fn jensen_concave() -> Rule {
     Rule {
         id: RuleId(516),
@@ -1325,14 +1204,6 @@ fn jensen_concave() -> Rule {
 /// Constructs the Weighted Jensen inequality rule for convex functions.
 ///
 /// The rule represents the inequality f(Σ w_i · x_i) ≤ Σ w_i · f(x_i) for convex f with weights w_i summing to 1; it matches expressions that look like weighted sums and returns a placeholder RuleApplication preserving the original expression with a justification.
-///
-/// # Examples
-///
-/// ```
-/// let r = jensen_weighted();
-/// assert_eq!(r.id.0, 517);
-/// assert!(r.description.contains("Weighted Jensen"));
-/// ```
 fn jensen_weighted() -> Rule {
     Rule {
         id: RuleId(517),
@@ -1362,14 +1233,6 @@ fn jensen_weighted() -> Rule {
 /// for sequences that are similarly ordered; it matches sum or product expressions
 /// and produces a RuleApplication that preserves the original expression with a
 /// justification referencing Chebyshev's inequality.
-///
-/// # Examples
-///
-/// ```
-/// let rule = chebyshev_sum();
-/// assert_eq!(rule.id, RuleId(518));
-/// assert_eq!(rule.name, "chebyshev_sum");
-/// ```
 fn chebyshev_sum() -> Rule {
     Rule {
         id: RuleId(518),
@@ -1396,14 +1259,6 @@ fn chebyshev_sum() -> Rule {
 /// Constructs the power mean inequality rule which encodes that the power mean M_p is less than or equal to M_q when p ≤ q.
 ///
 /// This rule matches expressions that are powers or divisions and, when applied, returns a RuleApplication preserving the input expression and providing a justification referencing the power mean inequality.
-///
-/// # Examples
-///
-/// ```
-/// let rule = power_mean_inequality();
-/// assert_eq!(rule.id.0, 519);
-/// assert_eq!(rule.name, "power_mean_inequality");
-/// ```
 fn power_mean_inequality() -> Rule {
     Rule {
         id: RuleId(519),
@@ -1429,13 +1284,6 @@ fn power_mean_inequality() -> Rule {
 /// Constructs the Muirhead inequality rule for reasoning about symmetric sums when one exponent vector majorizes another.
 ///
 /// The rule is applicable to additive or multiplicative expressions and, upon application, produces the original expression together with a justification referencing Muirhead's majorization condition.
-///
-/// # Examples
-///
-/// ```
-/// let rule = muirhead_inequality();
-/// assert_eq!(rule.id.0, 520);
-/// ```
 fn muirhead_inequality() -> Rule {
     Rule {
         id: RuleId(520),
@@ -1478,22 +1326,6 @@ fn muirhead_inequality() -> Rule {
 /// heuristic for additive or multiplicative expressions and a justification
 
 /// string produced on application.
-
-///
-
-/// # Examples
-
-///
-
-/// ```
-
-/// let rule = schur_inequality();
-
-/// assert_eq!(rule.id, RuleId(521));
-
-/// assert_eq!(rule.name, "schur_inequality");
-
-/// ```
 fn schur_inequality() -> Rule {
     Rule {
         id: RuleId(521),
@@ -1520,14 +1352,6 @@ fn schur_inequality() -> Rule {
 ///
 /// When applied to expressions of the form a/(b+c) + b/(a+c) + c/(a+b), this rule produces
 /// an application with result 3/2 and a justification string referencing Nesbitt's inequality.
-///
-/// # Examples
-///
-/// ```
-/// let rule = nesbitt_inequality();
-/// // rule.id is 522
-/// assert_eq!(rule.id.0, 522);
-/// ```
 fn nesbitt_inequality() -> Rule {
     Rule {
         id: RuleId(522),
@@ -1537,7 +1361,7 @@ fn nesbitt_inequality() -> Rule {
         domains: &[Domain::Inequalities],
         requires: &[Feature::Inequality],
         is_applicable: |expr, _ctx| matches!(expr, Expr::Add(_, _) | Expr::Div(_, _)),
-        apply: |expr, _ctx| {
+        apply: |_expr, _ctx| {
             vec![RuleApplication {
                 result: Expr::Div(Box::new(Expr::int(3)), Box::new(Expr::int(2))),
                 justification: "Nesbitt's inequality: a/(b+c) + b/(a+c) + c/(a+b) >= 3/2"
@@ -1556,13 +1380,6 @@ fn nesbitt_inequality() -> Rule {
 /// when applied, yields the same expression with a justification stating that
 /// the sum of pairwise products is maximized when the two sequences are sorted
 /// in the same order.
-///
-/// # Examples
-///
-/// ```
-/// let rule = rearrangement_inequality();
-/// assert_eq!(rule.id, RuleId(523));
-/// ```
 fn rearrangement_inequality() -> Rule {
     Rule {
         id: RuleId(523),
@@ -1590,18 +1407,6 @@ fn rearrangement_inequality() -> Rule {
 /// The produced Rule is categorized as an inequality, matches product or sum expressions
 /// (Expr::Mul or Expr::Add) as applicable, and when applied returns the original expression
 /// together with a justification string referencing Young's inequality. The rule is not reversible.
-///
-/// # Examples
-///
-/// ```
-/// let r = young_inequality();
-/// assert_eq!(r.id, RuleId(524));
-/// assert_eq!(r.name, "young_inequality");
-/// let expr = Expr::Mul(Box::new(Expr::Var("a".into())), Box::new(Expr::Var("b".into())));
-/// let apps = (r.apply)(&expr, &Default::default());
-/// assert_eq!(apps[0].result, expr);
-/// assert!(apps[0].justification.contains("Young"));
-/// ```
 fn young_inequality() -> Rule {
     Rule {
         id: RuleId(524),
@@ -1627,16 +1432,6 @@ fn young_inequality() -> Rule {
 /// Constructs the Minkowski inequality rule for p ≥ 1.
 ///
 /// The returned rule represents the inequality ||a + b||_p ≤ ||a||_p + ||b||_p and is intended to match expressions involving vector sums or p-norm-like powers; its application produces a justification string asserting Minkowski's inequality for p ≥ 1.
-///
-/// # Examples
-///
-/// ```
-/// let rule = minkowski_inequality();
-/// // rule id and a sample justification produced by `apply`
-/// assert_eq!(rule.id, RuleId(525));
-/// let apps = (rule.apply)(&Expr::Add(Box::new(Expr::Var("a".into())), Box::new(Expr::Var("b".into()))), &Default::default());
-/// assert!(apps.iter().any(|app| app.justification.contains("Minkowski")));
-/// ```
 fn minkowski_inequality() -> Rule {
     Rule {
         id: RuleId(525),

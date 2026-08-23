@@ -4,19 +4,53 @@
 //
 // Author: Pushp Kharat
 
-//! Monte Carlo Tree Search with neural network guidance.
+//! Monte Carlo Tree Search over rule applications.
 //!
-//! Implements AlphaZero-style MCTS where:
-//! - Policy network provides action priors
-//! - Value network evaluates leaf nodes
-//! - UCB formula balances exploration/exploitation
+//! Structure follows AlphaZero-style MCTS: a policy supplies action priors, a value head
+//! scores leaves, and PUCT balances exploration against exploitation. What the search
+//! guarantees, and what it does not:
+//!
+//! - Children are keyed by [`ActionKey`], which is a rule *and* which of that rule's outputs
+//!   was taken. Keying by rule identifier alone silently discarded every application after
+//!   the first.
+//! - Reaching the goal backs up through the terminal node, so a goal node cannot stay at zero
+//!   visits and lose the final extraction to an unrelated sibling.
+//! - [`NeuralMCTS::search`] returns a solution only when a goal node was actually reached;
+//!   [`NeuralMCTS::search_best_effort`] returns the partial path separately and labels it.
+//! - Every expansion is checked by the verifier, and each child records the evidence, so a
+//!   returned trace can be replayed by [`crate::assess_trace`].
+//! - Ties in selection and extraction break towards the lower child index, and children are
+//!   held in an ordered vector, so two runs of the same search visit the same nodes.
+//!
+//! The default policy network is untrained. [`NeuralMCTS::provenance`] reports that, and the
+//! search does not consult it: randomly initialised weights carry no signal, and reading them
+//! would make results differ from process to process for no gain. With an untrained model the
+//! search uses uniform priors and a constant leaf value, which is what it actually has.
 
-use crate::{SearchConfig, Solution, Step};
-use mm_brain::PolicyNetwork;
+use crate::{Solution, Step};
+use mm_brain::{ModelProvenance, PolicyNetwork};
 use mm_core::{Expr, Rational};
-use mm_rules::{RuleCategory, RuleContext, RuleId, RuleSet};
-use mm_verifier::Verifier;
-use std::collections::HashMap;
+use mm_rules::{ActionVocabulary, RuleCategory, RuleContext, RuleId, RuleSet};
+use mm_verifier::{StepEvidence, VerificationMethod, VerificationStatus, Verifier};
+use std::collections::HashSet;
+
+/// The weakest evidence in a set, or symbolic equivalence if the set is empty.
+///
+/// A phase is only as well established as its least well established transition.
+fn weakest_evidence(evidence: &[StepEvidence]) -> StepEvidence {
+    let mut weakest = VerificationMethod::SymbolicEquivalence;
+    for e in evidence {
+        match e.method() {
+            Some(m) => {
+                if m > weakest {
+                    weakest = m;
+                }
+            }
+            None => return StepEvidence::Unchecked,
+        }
+    }
+    StepEvidence::Checked(weakest)
+}
 
 /// Compute GCD using Euclidean algorithm.
 fn gcd(mut a: i64, mut b: i64) -> i64 {
@@ -35,6 +69,18 @@ fn factorial(n: u64) -> u64 {
     (1..=n).product()
 }
 
+/// Identity of an edge in the search tree.
+///
+/// A rule can produce several distinct applications for one expression; each is its own
+/// action. Keying children by `rule_id` alone made later applications overwrite earlier ones.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct ActionKey {
+    /// The rule that was applied.
+    pub rule_id: RuleId,
+    /// Index of the application within that rule's output for the parent state.
+    pub application: usize,
+}
+
 /// A node in the MCTS tree.
 pub struct MCTSNode {
     /// The expression at this node.
@@ -43,43 +89,58 @@ pub struct MCTSNode {
     pub visits: u32,
     /// Sum of values from rollouts through this node.
     pub value_sum: f64,
-    /// Prior probability from neural network.
+    /// Prior probability from the policy network.
     pub prior: f64,
-    /// Rule that led to this state (None for root).
-    pub rule_id: Option<RuleId>,
+    /// Action that led to this state (None for root).
+    pub action: Option<ActionKey>,
     /// Rule name for step recording.
     pub rule_name: Option<&'static str>,
-    /// Child nodes indexed by rule ID.
-    pub children: HashMap<u32, Box<MCTSNode>>,
+    /// Justification recorded by the rule application.
+    pub justification: String,
+    /// Evidence the verifier produced for the transition into this node.
+    pub evidence: StepEvidence,
+    /// Child nodes, in insertion order.
+    pub children: Vec<Box<MCTSNode>>,
     /// Whether this node has been expanded.
     pub expanded: bool,
 }
 
 impl MCTSNode {
-    /// Create a new MCTS node.
+    /// Create a new root node.
     pub fn new(state: Expr, prior: f64) -> Self {
         Self {
             state,
             visits: 0,
             value_sum: 0.0,
             prior,
-            rule_id: None,
+            action: None,
             rule_name: None,
-            children: HashMap::new(),
+            justification: String::new(),
+            evidence: StepEvidence::Unchecked,
+            children: Vec::new(),
             expanded: false,
         }
     }
 
-    /// Create a node with rule information.
-    pub fn with_rule(state: Expr, prior: f64, rule_id: RuleId, rule_name: &'static str) -> Self {
+    /// Create a child node reached by an action.
+    pub fn with_action(
+        state: Expr,
+        prior: f64,
+        action: ActionKey,
+        rule_name: &'static str,
+        justification: String,
+        evidence: StepEvidence,
+    ) -> Self {
         Self {
             state,
             visits: 0,
             value_sum: 0.0,
             prior,
-            rule_id: Some(rule_id),
+            action: Some(action),
             rule_name: Some(rule_name),
-            children: HashMap::new(),
+            justification,
+            evidence,
+            children: Vec::new(),
             expanded: false,
         }
     }
@@ -106,6 +167,26 @@ impl MCTSNode {
                     * ((parent_visits as f64).sqrt() / (1.0 + self.visits as f64))
         }
     }
+
+    /// Record a rollout result at this node.
+    fn back_up(&mut self, value: f64) {
+        self.visits += 1;
+        self.value_sum += value;
+    }
+
+    /// Step describing the transition into this node from `before`.
+    fn to_step(&self, before: Expr) -> Option<Step> {
+        let action = self.action?;
+        let name = self.rule_name?;
+        Some(Step::rule(
+            before,
+            self.state.clone(),
+            action.rule_id,
+            name,
+            self.justification.clone(),
+            self.evidence,
+        ))
+    }
 }
 
 /// Neural-guided Monte Carlo Tree Search solver.
@@ -113,6 +194,7 @@ pub struct NeuralMCTS {
     rules: RuleSet,
     verifier: Verifier,
     policy: PolicyNetwork,
+    vocabulary: ActionVocabulary,
     config: MCTSConfig,
 }
 
@@ -125,8 +207,8 @@ pub struct MCTSConfig {
     pub exploration_weight: f64,
     /// Maximum search depth.
     pub max_depth: usize,
-    /// Temperature for action selection (higher = more exploration).
-    pub temperature: f64,
+    /// Maximum number of iterations [`NeuralMCTS::simplify`] will chain.
+    pub max_simplify_iterations: usize,
 }
 
 impl Default for MCTSConfig {
@@ -135,65 +217,90 @@ impl Default for MCTSConfig {
             simulations: 100,
             exploration_weight: 1.41,
             max_depth: 20,
-            temperature: 1.0,
+            max_simplify_iterations: 50,
         }
     }
 }
 
+/// Outcome of a search, distinguishing a reached goal from a partial path.
+#[derive(Debug, Clone)]
+pub struct SearchOutcome {
+    /// The best path found, as a solution with its derived status.
+    pub solution: Solution,
+    /// Whether the final state satisfies the goal predicate.
+    pub reached_goal: bool,
+}
+
 impl NeuralMCTS {
-    /// Create a new neural MCTS solver.
+    /// Create a solver backed by an untrained policy network.
+    ///
+    /// The priors are random. [`Self::provenance`] says so, and callers must not present
+    /// results from this constructor as neural guidance.
     pub fn new(rules: RuleSet, verifier: Verifier) -> Self {
-        let policy = PolicyNetwork::new().expect("Failed to create policy network");
-        Self {
-            rules,
-            verifier,
-            policy,
-            config: MCTSConfig::default(),
-        }
+        Self::with_config(rules, verifier, MCTSConfig::default())
     }
 
-    /// Create with custom configuration.
+    /// Create with custom configuration and an untrained policy network.
     pub fn with_config(rules: RuleSet, verifier: Verifier, config: MCTSConfig) -> Self {
-        let policy = PolicyNetwork::new().expect("Failed to create policy network");
+        let vocabulary = ActionVocabulary::from_rule_set(&rules);
+        let policy = PolicyNetwork::untrained_for(vocabulary.clone(), candle_core::Device::Cpu)
+            .expect("failed to create policy network");
         Self {
             rules,
             verifier,
             policy,
+            vocabulary,
             config,
         }
     }
 
-    /// Set a custom policy network (e.g., trained).
-    pub fn with_policy(mut self, policy: PolicyNetwork) -> Self {
+    /// Use a specific policy network.
+    ///
+    /// The network's vocabulary must match this solver's rule set, otherwise its columns do
+    /// not stand for these rules.
+    pub fn with_policy(mut self, policy: PolicyNetwork) -> Result<Self, mm_rules::ActionError> {
+        self.vocabulary.check_digest(policy.vocabulary().digest())?;
         self.policy = policy;
-        self
+        Ok(self)
     }
 
-    /// Search for a solution using neural MCTS.
+    /// Where the policy weights came from.
+    pub fn provenance(&self) -> &ModelProvenance {
+        self.policy.provenance()
+    }
+
+    /// The action vocabulary this search reads priors through.
+    pub fn vocabulary(&self) -> &ActionVocabulary {
+        &self.vocabulary
+    }
+
+    /// Search for a solution, returning `Some` only if the goal was reached.
     pub fn search<F>(&self, start: Expr, goal: F) -> Option<Solution>
     where
         F: Fn(&Expr) -> bool,
     {
-        // Check if already at goal
+        let outcome = self.search_best_effort(start, goal);
+        outcome.reached_goal.then_some(outcome.solution)
+    }
+
+    /// Search and return the best path found, whether or not it reaches the goal.
+    pub fn search_best_effort<F>(&self, start: Expr, goal: F) -> SearchOutcome
+    where
+        F: Fn(&Expr) -> bool,
+    {
         if goal(&start) {
-            return Some(Solution {
-                problem: start.clone(),
-                result: start,
-                steps: vec![],
-                verified: true,
-            });
+            return SearchOutcome {
+                solution: Solution::assess(start.clone(), start, vec![]),
+                reached_goal: true,
+            };
         }
 
-        // Initialize root node
         let mut root = MCTSNode::new(start.clone(), 1.0);
-
-        // Run MCTS simulations
         for _ in 0..self.config.simulations {
             self.simulate(&mut root, &goal, 0);
         }
 
-        // Extract best path
-        self.extract_solution(&root, &start, &goal)
+        self.extract(&root, &start, &goal)
     }
 
     /// Run one MCTS simulation (SELECT, EXPAND, EVALUATE, BACKUP).
@@ -201,352 +308,515 @@ impl NeuralMCTS {
     where
         F: Fn(&Expr) -> bool,
     {
-        // Check terminal conditions
+        // Terminal: record the visit here too, otherwise a goal node stays at zero visits and
+        // loses the most-visited comparison during extraction.
         if goal(&node.state) {
-            return 1.0; // Goal reached
+            node.back_up(1.0);
+            return 1.0;
         }
 
         if depth >= self.config.max_depth {
-            return self.evaluate(&node.state);
+            let value = self.evaluate(&node.state);
+            node.back_up(value);
+            return value;
         }
 
-        // EXPAND if not yet expanded
         if !node.expanded {
             self.expand(node);
             node.expanded = true;
 
-            // Evaluate this node
             let value = self.evaluate(&node.state);
-            node.visits += 1;
-            node.value_sum += value;
+            node.back_up(value);
             return value;
         }
 
-        // SELECT best child using UCB
         if node.children.is_empty() {
-            // No valid moves - terminal state
-            return self.evaluate(&node.state);
+            // No valid moves: this is a leaf of the reachable space.
+            let value = self.evaluate(&node.state);
+            node.back_up(value);
+            return value;
         }
 
-        let best_child_id = self.select_child(node);
-
-        if let Some(child) = node.children.get_mut(&best_child_id) {
-            // RECURSE
-            let value = self.simulate(child, goal, depth + 1);
-
-            // BACKUP
-            node.visits += 1;
-            node.value_sum += value;
-
-            value
-        } else {
-            0.0
-        }
+        let best = self.select_child(node);
+        let value = self.simulate(&mut node.children[best], goal, depth + 1);
+        node.back_up(value);
+        value
     }
 
-    /// Expand a node by adding children for all valid actions.
-    /// Uses BOINK guardrail to filter rules by domain/features before expansion.
+    /// Expand a node by adding one child per verified rule application.
+    ///
+    /// Uses the BOINK guardrail to filter rules by domain and features first.
     fn expand(&self, node: &mut MCTSNode) {
         let ctx = RuleContext::default();
-
-        // BOINK: Enhanced domain analysis (detects all Expr types)
         let profile = mm_boink::analyze(&node.state);
-
-        // BOINK: Filter rules by domain - prevents NumberTheory on Calculus!
         let valid_rules = mm_boink::filter_rules(self.rules.all(), &profile);
 
-        // Get policy priors from neural network (for all rules)
-        let priors = self
-            .policy
-            .forward(&node.state)
-            .unwrap_or_else(|_| vec![1.0 / self.rules.len() as f32; self.rules.len()]);
+        // Priors are read through the action vocabulary. A rule the vocabulary does not know
+        // cannot be given a meaningful prior, so it falls back to a uniform value; that is
+        // recorded here rather than silently applied to almost every rule as it once was.
+        let uniform = 1.0 / self.vocabulary.len().max(1) as f32;
+        let priors = self.learned_priors(&node.state);
 
-        // Expand only using guardrail-filtered rules
         for rule in valid_rules {
+            // `verify_step` rejects anything the rule does not claim to handle, so skipping
+            // it here changes nothing except the work done.
+            if !rule.can_apply(&node.state, &ctx) {
+                continue;
+            }
+
             let applications = rule.apply(&node.state, &ctx);
 
-            for app in applications {
-                // Verify the transformation
-                let verify_result = self
+            for (application, app) in applications.into_iter().enumerate() {
+                // A rule that returns its input is a self-loop, not an action.
+                if app.result == node.state {
+                    continue;
+                }
+
+                let verify = self
                     .verifier
                     .verify_step(&node.state, &app.result, rule, &ctx);
-
-                if verify_result.is_valid() {
-                    let prior = priors.get(rule.id.0 as usize).copied().unwrap_or(0.01);
-                    let child = MCTSNode::with_rule(app.result, prior as f64, rule.id, rule.name);
-                    node.children.insert(rule.id.0, Box::new(child));
+                if !verify.is_valid() {
+                    continue;
                 }
+
+                let prior = priors
+                    .as_ref()
+                    .and_then(|p| self.vocabulary.prior_for_rule(p, rule.id).ok())
+                    .unwrap_or(uniform);
+
+                node.children.push(Box::new(MCTSNode::with_action(
+                    app.result,
+                    prior as f64,
+                    ActionKey {
+                        rule_id: rule.id,
+                        application,
+                    },
+                    rule.name,
+                    app.justification,
+                    verify.evidence(),
+                )));
             }
         }
     }
 
-    /// Select the best child using UCB.
-    fn select_child(&self, node: &MCTSNode) -> u32 {
+    /// Select the index of the best child by UCB, breaking ties towards the lower index.
+    fn select_child(&self, node: &MCTSNode) -> usize {
         let mut best_score = f64::NEG_INFINITY;
-        let mut best_id = 0;
+        let mut best = 0;
 
-        for (&id, child) in &node.children {
+        for (index, child) in node.children.iter().enumerate() {
             let score = child.ucb_score(node.visits, self.config.exploration_weight);
             if score > best_score {
                 best_score = score;
-                best_id = id;
+                best = index;
             }
         }
 
-        best_id
+        best
     }
 
-    /// Evaluate a state using the value network.
+    /// Policy priors, or `None` when there is no trained model to ask.
+    ///
+    /// An untrained head holds randomly initialised weights, so its output is noise that
+    /// differs between processes. Consulting it would make the search both unreproducible and
+    /// falsely "neural-guided", so the untrained case is answered with uniform priors instead.
+    fn learned_priors(&self, state: &Expr) -> Option<Vec<f32>> {
+        if !self.policy.provenance().is_trained() {
+            return None;
+        }
+        self.policy.rule_priors(state).ok()
+    }
+
+    /// Evaluate a state using the value head.
+    ///
+    /// Untrained weights give no information about a state, so they are not consulted; every
+    /// leaf scores 0.0 and selection is driven by priors and visit counts alone.
     fn evaluate(&self, state: &Expr) -> f64 {
+        if !self.policy.provenance().is_trained() {
+            return 0.0;
+        }
         self.policy.get_value(state).unwrap_or(0.0) as f64
     }
 
-    /// Extract the best solution path from the tree.
-    fn extract_solution<F>(&self, root: &MCTSNode, start: &Expr, goal: &F) -> Option<Solution>
+    /// Extract the best path from the tree.
+    ///
+    /// A goal path always wins over a non-goal path, whatever the visit counts say. Among
+    /// goal paths the shortest is taken; among non-goal paths the most-visited child is
+    /// followed, with ties broken towards the lower index.
+    fn extract<F>(&self, root: &MCTSNode, start: &Expr, goal: &F) -> SearchOutcome
     where
         F: Fn(&Expr) -> bool,
     {
-        let mut steps = Vec::new();
-        let mut current = root;
-        let mut prev_state = start.clone();
-
-        // Follow the most-visited path
-        while !current.children.is_empty() {
-            // Find most-visited child
-            let (best_id, best_child) = current
-                .children
-                .iter()
-                .max_by_key(|(_, child)| child.visits)?;
-
-            // Record step
-            if let (Some(rule_id), Some(rule_name)) = (best_child.rule_id, best_child.rule_name) {
-                steps.push(Step {
-                    before: prev_state.clone(),
-                    after: best_child.state.clone(),
-                    rule_id,
-                    rule_name,
-                    justification: format!("Applied {} (visits: {})", rule_name, best_child.visits),
-                });
-            }
-
-            prev_state = best_child.state.clone();
-
-            // Check if goal reached
-            if goal(&best_child.state) {
-                return Some(Solution {
-                    problem: start.clone(),
-                    result: best_child.state.clone(),
-                    steps,
-                    verified: true,
-                });
-            }
-
-            current = best_child;
-        }
-
-        // If we have steps but didn't reach goal, still return partial result
-        if !steps.is_empty() {
-            Some(Solution {
-                problem: start.clone(),
-                result: prev_state,
-                steps,
-                verified: false,
-            })
-        } else {
-            None
-        }
-    }
-
-    /// Simplify an expression using neural MCTS with multi-step chaining.
-    /// Continues applying rules until no more simplifications are possible.
-    pub fn simplify(&self, expr: Expr) -> Solution {
-        const MAX_ITERATIONS: usize = 50;
-
-        let mut current = expr.clone();
-        let mut all_steps: Vec<Step> = Vec::new();
-        let ctx = RuleContext::default();
-
-        // Track seen expressions to prevent infinite loops (e.g., distribute <-> factor_common)
-        let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
-        seen.insert(format!("{:?}", current));
-
-        // BOINK: Enhanced domain analysis once to get domains/features
-        let profile = mm_boink::analyze(&expr);
-
-        for _iteration in 0..MAX_ITERATIONS {
-            // BOINK: Filter rules by domain - prevents wrong-domain matches!
-            let applicable = mm_boink::filter_rules(self.rules.all(), &profile);
-            if applicable.is_empty() {
-                break; // No more rules - we're done
-            }
-
-            // Define goal for this iteration: any simplification
-            let current_complexity = current.complexity();
-            let goal = |e: &Expr| {
-                let ctx = RuleContext::default();
-                let applicable = self.rules.applicable(e, &ctx);
-
-                // For equations: if LHS is just a variable, we're done!
-                if let Expr::Equation { lhs, .. } = e {
-                    if matches!(lhs.as_ref(), Expr::Var(_)) {
-                        return true;
-                    }
-                }
-
-                // Stop when simpler OR no rules apply OR different structure (progress)
-                applicable.is_empty() || e.complexity() < current_complexity || e != &current
+        if let Some(steps) = self.find_goal_path(root, goal) {
+            let result = steps
+                .last()
+                .map(|s: &Step| s.after.clone())
+                .unwrap_or_else(|| start.clone());
+            return SearchOutcome {
+                solution: Solution::assess(start.clone(), result, steps),
+                reached_goal: true,
             };
-
-            // Run MCTS to find best next step
-            if let Some(solution) = self.search(current.clone(), goal) {
-                if solution.steps.is_empty() {
-                    // MCTS didn't find path - try direct rule application as fallback
-                    let mut found_rule = false;
-                    for rule in &applicable {
-                        let applications = rule.apply(&current, &ctx);
-                        if let Some(app) = applications.first() {
-                            // Skip if this leads to a seen state (prevents infinite loops)
-                            let result_key = format!("{:?}", app.result);
-                            if seen.contains(&result_key) {
-                                continue;
-                            }
-                            seen.insert(result_key);
-
-                            all_steps.push(Step {
-                                before: current.clone(),
-                                after: app.result.clone(),
-                                rule_id: rule.id,
-                                rule_name: rule.name,
-                                justification: app.justification.clone(),
-                            });
-                            current = app.result.clone();
-                            found_rule = true;
-                            break;
-                        }
-                    }
-                    if !found_rule {
-                        break;
-                    }
-                    continue; // Try another iteration with new expression
-                }
-
-                // Collect steps from this iteration
-                all_steps.extend(solution.steps);
-
-                // Check if result is in seen set (loop detection)
-                let result_key = format!("{:?}", solution.result);
-                if seen.contains(&result_key) {
-                    break; // Would loop - stop here
-                }
-                seen.insert(result_key);
-
-                // Update current expression
-                if solution.result == current {
-                    break; // No progress made
-                }
-                current = solution.result;
-            } else {
-                // search() returned None - try direct fallback
-                let mut found_rule = false;
-                for rule in &applicable {
-                    let applications = rule.apply(&current, &ctx);
-                    if let Some(app) = applications.first() {
-                        // Skip if this leads to a seen state
-                        let result_key = format!("{:?}", app.result);
-                        if seen.contains(&result_key) {
-                            continue;
-                        }
-                        seen.insert(result_key);
-
-                        all_steps.push(Step {
-                            before: current.clone(),
-                            after: app.result.clone(),
-                            rule_id: rule.id,
-                            rule_name: rule.name,
-                            justification: app.justification.clone(),
-                        });
-                        current = app.result.clone();
-                        found_rule = true;
-                        break;
-                    }
-                }
-                if !found_rule {
-                    break;
-                }
-            }
         }
 
-        // Recursively simplify sub-expressions (for nested derivatives, etc.)
-        let mut simplified = self.simplify_subexpressions(&current);
+        // No goal anywhere in the tree: report the most-visited path as an explicitly
+        // incomplete result rather than as a solution.
+        let mut steps: Vec<Step> = Vec::new();
+        let mut current = root;
+        let mut prev = start.clone();
 
-        // Keep applying SIMPLIFICATION rules until stable (handles chained patterns like x^2 * x^3 * x^4)
-        // Skip expansion rules (distribute) to avoid undoing collect_like_terms
-        let ctx = RuleContext::default();
-        for _ in 0..10 {
-            let applicable = self.rules.applicable(&simplified, &ctx);
-            if applicable.is_empty() {
+        while !current.children.is_empty() {
+            let mut best = 0;
+            for (index, child) in current.children.iter().enumerate() {
+                if child.visits > current.children[best].visits {
+                    best = index;
+                }
+            }
+            let child = &current.children[best];
+            if child.visits == 0 {
                 break;
             }
-            // Only apply simplification rules, skip expansion (distribute)
-            let simplification_rules: Vec<_> = applicable
-                .iter()
-                .filter(|r| r.category != RuleCategory::Expansion)
-                .collect();
-
-            if let Some(rule) = simplification_rules.first() {
-                let results = (rule.apply)(&simplified, &ctx);
-                if let Some(app) = results.first() {
-                    // Only apply if result is simpler or same complexity
-                    if app.result.complexity() <= simplified.complexity() {
-                        simplified = app.result.clone();
-                        continue;
-                    }
-                }
+            if let Some(step) = child.to_step(prev.clone()) {
+                steps.push(step);
             }
-            break;
+            prev = child.state.clone();
+            current = child;
         }
 
-        // Apply constant folding to final result if possible
-        let final_result = self.try_const_fold(&simplified);
-
-        Solution {
-            problem: expr,
-            result: final_result,
-            steps: all_steps,
-            verified: true,
+        let solution = Solution::assess_at_most(
+            start.clone(),
+            prev,
+            steps,
+            VerificationStatus::Partial {
+                reason: "search did not reach the goal; this is a partial path".to_string(),
+            },
+        );
+        SearchOutcome {
+            solution,
+            reached_goal: false,
         }
     }
 
-    /// Progressive solve: pattern match → decompose → solve easiest first → recombine.
-    ///
-    /// This is the main entry point for solving problems like integrals of sums.
-    pub fn progressive_solve(&self, expr: Expr) -> Solution {
-        // 1. Try pattern match first (fast path for known forms)
-        /* TODO: Re-enable once patterns.rs returns solved Expression
-        if let Some(result) = mm_rules::match_integral_pattern(&expr) {
-            return Solution {
-                problem: expr.clone(),
-                result,
-                steps: vec![Step {
-                    before: expr.clone(),
-                    after: expr.clone(),
-                    rule_id: RuleId(0),
-                    rule_name: "pattern_match",
-                    justification: "Matched known integral pattern".to_string(),
-                }],
-                verified: true,
-            };
-        }
-        */
+    /// Depth-first search for the shortest recorded path to a goal node.
+    fn find_goal_path<F>(&self, root: &MCTSNode, goal: &F) -> Option<Vec<Step>>
+    where
+        F: Fn(&Expr) -> bool,
+    {
+        // Breadth-first over the tree so the first goal found is the shortest path to one.
+        let mut frontier: Vec<(&MCTSNode, Vec<Step>)> = vec![(root, Vec::new())];
 
-        // 2. Check if this is an integral of a sum - decompose and solve each term
+        while !frontier.is_empty() {
+            let mut next: Vec<(&MCTSNode, Vec<Step>)> = Vec::new();
+
+            for (node, path) in frontier {
+                for child in &node.children {
+                    let mut child_path = path.clone();
+                    if let Some(step) = child.to_step(node.state.clone()) {
+                        child_path.push(step);
+                    }
+                    if goal(&child.state) {
+                        return Some(child_path);
+                    }
+                    next.push((child, child_path));
+                }
+            }
+
+            frontier = next;
+        }
+
+        None
+    }
+
+    /// Simplify an expression, chaining searches until no further progress is possible.
+    ///
+    /// Every recorded step carries the verifier's evidence, and the post-processing phases
+    /// record their own steps, so the returned [`Solution`] replays from `expr` to the
+    /// reported result and its status reflects what was actually checked.
+    pub fn simplify(&self, expr: Expr) -> Solution {
+        let ctx = RuleContext::default();
+        let mut current = expr.clone();
+        let mut steps: Vec<Step> = Vec::new();
+
+        // Track visited states so a rule pair such as distribute/factor_common cannot loop.
+        let mut seen: HashSet<Expr> = HashSet::new();
+        seen.insert(current.clone());
+
+        for _ in 0..self.config.max_simplify_iterations {
+            // Nothing applies here, so neither the search nor the fallback can move. Checking
+            // first avoids running a full simulation budget against a dead end.
+            if !self.has_applicable_rule(&current, &ctx) {
+                break;
+            }
+
+            let complexity = current.complexity();
+            let goal = |candidate: &Expr| self.is_iteration_goal(candidate, complexity);
+
+            let progressed = match self.search(current.clone(), goal) {
+                Some(solution) if !solution.steps.is_empty() => {
+                    let next = solution.result.clone();
+                    if seen.contains(&next) {
+                        break;
+                    }
+                    seen.insert(next.clone());
+                    steps.extend(solution.steps);
+                    current = next;
+                    true
+                }
+                // The search found nothing, or found the goal without moving. Fall back to the
+                // first verified rule application that reaches an unseen state.
+                _ => match self.first_verified_step(&current, &ctx, &seen) {
+                    Some(step) => {
+                        let next = step.after.clone();
+                        seen.insert(next.clone());
+                        steps.push(step);
+                        current = next;
+                        true
+                    }
+                    None => false,
+                },
+            };
+
+            if !progressed {
+                break;
+            }
+        }
+
+        // Post-processing. Each phase records a step describing what it changed, so a change
+        // it cannot justify shows up in the status instead of vanishing.
+        self.apply_subterm_rules(&mut current, &mut steps);
+        self.apply_simplification_rules(&mut current, &mut steps);
+        self.apply_constant_folding(&mut current, &mut steps);
+
+        Solution::assess(expr, current, steps)
+    }
+
+    /// Whether a candidate counts as progress for one `simplify` iteration.
+    ///
+    /// Deliberately not "any structural change": that made every single rule application a
+    /// goal, so the tree search never looked more than one move ahead and the procedural
+    /// fallbacks did most of the work.
+    ///
+    /// A state with no applicable rules is not treated as a goal here. It is a dead end, and
+    /// the search will simply fail to find a goal, which the caller already handles. Testing
+    /// for it would mean scanning the whole registry at every visited node.
+    fn is_iteration_goal(&self, candidate: &Expr, start_complexity: usize) -> bool {
+        if let Expr::Equation { lhs, .. } = candidate {
+            if matches!(lhs.as_ref(), Expr::Var(_)) {
+                return true;
+            }
+        }
+
+        candidate.complexity() < start_complexity
+    }
+
+    /// Whether any guardrail-permitted rule applies to this expression.
+    fn has_applicable_rule(&self, expr: &Expr, ctx: &RuleContext) -> bool {
+        let profile = mm_boink::analyze(expr);
+        mm_boink::filter_rules(self.rules.all(), &profile)
+            .into_iter()
+            .any(|rule| rule.can_apply(expr, ctx))
+    }
+
+    /// First verified rule application that leads to an unseen state.
+    fn first_verified_step(
+        &self,
+        current: &Expr,
+        ctx: &RuleContext,
+        seen: &HashSet<Expr>,
+    ) -> Option<Step> {
+        let profile = mm_boink::analyze(current);
+        for rule in mm_boink::filter_rules(self.rules.all(), &profile) {
+            if !rule.can_apply(current, ctx) {
+                continue;
+            }
+            for app in rule.apply(current, ctx) {
+                if app.result == *current || seen.contains(&app.result) {
+                    continue;
+                }
+                let verify = self.verifier.verify_step(current, &app.result, rule, ctx);
+                if !verify.is_valid() {
+                    continue;
+                }
+                return Some(Step::rule(
+                    current.clone(),
+                    app.result,
+                    rule.id,
+                    rule.name,
+                    app.justification,
+                    verify.evidence(),
+                ));
+            }
+        }
+        None
+    }
+
+    /// Apply rules to sub-expressions, recording one step for the whole phase.
+    ///
+    /// Each individual sub-rewrite is verified against the sub-expression it touches; the
+    /// step for the whole expression is justified by replacing a sub-term with a verified
+    /// equal, and carries the weakest evidence any of those rewrites produced.
+    fn apply_subterm_rules(&self, current: &mut Expr, steps: &mut Vec<Step>) {
+        let mut evidence: Vec<StepEvidence> = Vec::new();
+        let rewritten = self.rewrite_subterms(current, &mut evidence);
+
+        if rewritten == *current {
+            return;
+        }
+
+        steps.push(Step::normalization(
+            current.clone(),
+            rewritten.clone(),
+            "subterm_rules",
+            format!(
+                "Applied {} verified rule(s) to sub-expressions",
+                evidence.len()
+            ),
+            weakest_evidence(&evidence),
+        ));
+        *current = rewritten;
+    }
+
+    /// Repeatedly apply non-expanding simplification rules at the root until stable.
+    fn apply_simplification_rules(&self, current: &mut Expr, steps: &mut Vec<Step>) {
+        let ctx = RuleContext::default();
+        let before = current.clone();
+        let mut evidence: Vec<StepEvidence> = Vec::new();
+
+        for _ in 0..10 {
+            let applicable = self.rules.applicable(current, &ctx);
+            // Skip expansion rules so distribute cannot undo collect_like_terms.
+            let Some(rule) = applicable
+                .iter()
+                .find(|r| r.category != RuleCategory::Expansion)
+            else {
+                break;
+            };
+
+            let Some(app) = rule.apply(current, &ctx).into_iter().next() else {
+                break;
+            };
+            if app.result.complexity() > current.complexity() || app.result == *current {
+                break;
+            }
+
+            let verify = self.verifier.verify_step(current, &app.result, rule, &ctx);
+            if !verify.is_valid() {
+                break;
+            }
+
+            evidence.push(verify.evidence());
+            *current = app.result;
+        }
+
+        if evidence.is_empty() {
+            return;
+        }
+
+        steps.push(Step::normalization(
+            before,
+            current.clone(),
+            "simplification_rules",
+            format!("Applied {} verified simplification rule(s)", evidence.len()),
+            weakest_evidence(&evidence),
+        ));
+    }
+
+    /// Fold constants in the final result, recording the change as a checked step.
+    ///
+    /// The fold is an arithmetic normalisation rather than a registry rule, so it is checked
+    /// by an independent equivalence check. If that check cannot establish equivalence, the
+    /// step is still recorded — as unchecked — and the solution's status says so rather than
+    /// the change happening invisibly.
+    fn apply_constant_folding(&self, current: &mut Expr, steps: &mut Vec<Step>) {
+        let folded = self.try_const_fold(current);
+        if folded == *current {
+            return;
+        }
+
+        let verify = self.verifier.verify_equivalence(current, &folded);
+        steps.push(Step::normalization(
+            current.clone(),
+            folded.clone(),
+            "const_fold",
+            "Evaluated constant sub-expressions".to_string(),
+            verify.evidence(),
+        ));
+        *current = folded;
+    }
+
+    /// Rewrite sub-terms with verified rule applications, innermost first.
+    fn rewrite_subterms(&self, expr: &Expr, evidence: &mut Vec<StepEvidence>) -> Expr {
+        let ctx = RuleContext::default();
+
+        let rebuilt = match expr {
+            Expr::Add(a, b) => Expr::Add(
+                Box::new(self.rewrite_subterms(a, evidence)),
+                Box::new(self.rewrite_subterms(b, evidence)),
+            ),
+            Expr::Sub(a, b) => Expr::Sub(
+                Box::new(self.rewrite_subterms(a, evidence)),
+                Box::new(self.rewrite_subterms(b, evidence)),
+            ),
+            Expr::Mul(a, b) => Expr::Mul(
+                Box::new(self.rewrite_subterms(a, evidence)),
+                Box::new(self.rewrite_subterms(b, evidence)),
+            ),
+            Expr::Div(a, b) => Expr::Div(
+                Box::new(self.rewrite_subterms(a, evidence)),
+                Box::new(self.rewrite_subterms(b, evidence)),
+            ),
+            Expr::Neg(a) => Expr::Neg(Box::new(self.rewrite_subterms(a, evidence))),
+            other => other.clone(),
+        };
+
+        // Then try to rewrite this node itself. Derivative and integral nodes are the reason
+        // this phase exists: the root-level search leaves them untouched when they sit inside
+        // an addition or product.
+        if matches!(
+            rebuilt,
+            Expr::Derivative { .. } | Expr::Integral { .. } | Expr::Add(_, _) | Expr::Sub(_, _)
+        ) {
+            if let Some((result, ev)) = self.first_verified_application(&rebuilt, &ctx) {
+                evidence.push(ev);
+                // The result may itself contain a reducible sub-term.
+                return self.rewrite_subterms(&result, evidence);
+            }
+        }
+
+        rebuilt
+    }
+
+    /// First verified application of any applicable rule at this node.
+    fn first_verified_application(
+        &self,
+        expr: &Expr,
+        ctx: &RuleContext,
+    ) -> Option<(Expr, StepEvidence)> {
+        for rule in self.rules.applicable(expr, ctx) {
+            for app in rule.apply(expr, ctx) {
+                if app.result == *expr {
+                    continue;
+                }
+                let verify = self.verifier.verify_step(expr, &app.result, rule, ctx);
+                if verify.is_valid() {
+                    return Some((app.result, verify.evidence()));
+                }
+            }
+        }
+        None
+    }
+
+    /// Decompose an integral of a sum, solve each term, and recombine.
+    ///
+    /// The recombination joins traces that were produced for different expressions, so the
+    /// result does not replay from the original problem and [`Solution::assess`] reports it as
+    /// unverified. That is accurate: nothing here checks the recombined answer.
+    pub fn progressive_solve(&self, expr: Expr) -> Solution {
         if let Expr::Integral { expr: inner, var } = &expr {
             if matches!(inner.as_ref(), Expr::Add(_, _) | Expr::Sub(_, _)) {
-                // Decompose into individual terms
                 let terms = mm_rules::decompose_additive(inner);
 
                 if terms.len() > 1 {
-                    // Score and sort by solvability (easiest first)
+                    // Solve the easiest terms first.
                     let mut scored: Vec<_> = terms
                         .iter()
                         .map(|t| (t.clone(), mm_rules::solvability_score(t)))
@@ -554,7 +824,6 @@ impl NeuralMCTS {
                     scored
                         .sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
 
-                    // Solve each term as a separate integral
                     let mut all_steps = Vec::new();
                     let mut partial_results = Vec::new();
 
@@ -563,120 +832,22 @@ impl NeuralMCTS {
                             expr: Box::new(term.clone()),
                             var: *var,
                         };
-
-                        // Try pattern match on this term
-                        /* TODO: Re-enable
-                        if let Some(result) = mm_rules::match_integral_pattern(&term_integral) {
-                            all_steps.push(Step {
-                                before: term_integral.clone(),
-                                after: result.clone(),
-                                rule_id: RuleId(0),
-                                rule_name: "pattern_match",
-                                justification: format!("Pattern matched: {:?} -> {:?}", term, result),
-                            });
-                            partial_results.push(result);
-                        } else {
-                        */
-                        // Fall back to regular simplify
                         let term_solution = self.simplify(term_integral);
                         all_steps.extend(term_solution.steps);
                         partial_results.push(term_solution.result);
-                        // }
                     }
 
-                    // Recombine results by addition
                     let combined = partial_results
                         .into_iter()
                         .reduce(|acc, r| Expr::Add(Box::new(acc), Box::new(r)))
                         .unwrap_or(Expr::int(0));
 
-                    return Solution {
-                        problem: expr,
-                        result: combined,
-                        steps: all_steps,
-                        verified: true,
-                    };
+                    return Solution::assess(expr, combined, all_steps);
                 }
             }
         }
 
-        // 3. Fall back to regular simplify for non-decomposable expressions
         self.simplify(expr)
-    }
-
-    /// Recursively simplify sub-expressions by applying rules to inner parts.
-    fn simplify_subexpressions(&self, expr: &Expr) -> Expr {
-        let ctx = RuleContext::default();
-
-        match expr {
-            // For derivatives inside Add/Sub/Mul, simplify each side
-            Expr::Add(a, b) => {
-                let a_simp = self.simplify_single_step(a);
-                let b_simp = self.simplify_single_step(b);
-                Expr::Add(Box::new(a_simp), Box::new(b_simp))
-            }
-            Expr::Sub(a, b) => {
-                let a_simp = self.simplify_single_step(a);
-                let b_simp = self.simplify_single_step(b);
-                Expr::Sub(Box::new(a_simp), Box::new(b_simp))
-            }
-            Expr::Mul(a, b) => {
-                let a_simp = self.simplify_single_step(a);
-                let b_simp = self.simplify_single_step(b);
-                Expr::Mul(Box::new(a_simp), Box::new(b_simp))
-            }
-            _ => expr.clone(),
-        }
-    }
-
-    /// Apply first applicable rule to an expression (single step).
-    fn simplify_single_step(&self, expr: &Expr) -> Expr {
-        let ctx = RuleContext::default();
-
-        // First recursively handle sub-expressions
-        let processed = match expr {
-            Expr::Add(a, b) => {
-                let a_simp = self.simplify_single_step(a);
-                let b_simp = self.simplify_single_step(b);
-                Expr::Add(Box::new(a_simp), Box::new(b_simp))
-            }
-            Expr::Sub(a, b) => {
-                let a_simp = self.simplify_single_step(a);
-                let b_simp = self.simplify_single_step(b);
-                Expr::Sub(Box::new(a_simp), Box::new(b_simp))
-            }
-            Expr::Mul(a, b) => {
-                let a_simp = self.simplify_single_step(a);
-                let b_simp = self.simplify_single_step(b);
-                Expr::Mul(Box::new(a_simp), Box::new(b_simp))
-            }
-            Expr::Derivative {
-                expr: inner,
-                var: _,
-            } => {
-                // Apply derivative rules if possible
-                let applicable = self.rules.applicable(expr, &ctx);
-                if let Some(rule) = applicable.first() {
-                    let results = (rule.apply)(expr, &ctx);
-                    if let Some(app) = results.first() {
-                        return self.simplify_single_step(&app.result);
-                    }
-                }
-                expr.clone()
-            }
-            _ => expr.clone(),
-        };
-
-        // Now try to simplify the processed expression
-        let applicable = self.rules.applicable(&processed, &ctx);
-        if let Some(rule) = applicable.first() {
-            let results = (rule.apply)(&processed, &ctx);
-            if let Some(app) = results.first() {
-                return app.result.clone();
-            }
-        }
-
-        processed
     }
 
     /// Try to constant fold an expression if all parts are constants.
@@ -911,82 +1082,439 @@ impl NeuralMCTS {
     }
 }
 
-// Keep the old MCTS struct for backwards compatibility
-pub struct MCTS {
-    _rules: RuleSet,
-    _verifier: Verifier,
-    _config: SearchConfig,
-}
-
-impl MCTS {
-    pub fn new(rules: RuleSet, verifier: Verifier) -> Self {
-        Self {
-            _rules: rules,
-            _verifier: verifier,
-            _config: SearchConfig::default(),
-        }
-    }
-
-    pub fn search<F>(&self, start: Expr, goal: F) -> Option<Solution>
-    where
-        F: Fn(&Expr) -> bool,
-    {
-        // Delegate to NeuralMCTS
-        let neural = NeuralMCTS::new(
-            mm_rules::rule::standard_rules(),
-            mm_verifier::Verifier::new(),
-        );
-        neural.search(start, goal)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mm_rules::rule::standard_rules;
+    use mm_rules::rule::{standard_rules, Rule, RuleApplication, RuleSet};
+    use mm_rules::{Domain, Feature, RuleCategory};
+
+    fn small_config() -> MCTSConfig {
+        MCTSConfig {
+            simulations: 20,
+            ..Default::default()
+        }
+    }
+
+    fn var() -> (mm_core::SymbolTable, Expr) {
+        let mut symbols = mm_core::SymbolTable::new();
+        let x = symbols.intern("x");
+        (symbols, Expr::Var(x))
+    }
+
+    fn add_zero(e: &Expr) -> Expr {
+        Expr::Add(Box::new(e.clone()), Box::new(Expr::int(0)))
+    }
+
+    fn mul_one(e: &Expr) -> Expr {
+        Expr::Mul(Box::new(e.clone()), Box::new(Expr::int(1)))
+    }
+
+    fn test_rule(
+        id: u32,
+        name: &'static str,
+        is_applicable: fn(&Expr, &RuleContext) -> bool,
+        apply: fn(&Expr, &RuleContext) -> Vec<RuleApplication>,
+    ) -> Rule {
+        Rule {
+            id: RuleId(id),
+            name,
+            category: RuleCategory::Simplification,
+            description: "test rule",
+            domains: &[] as &[Domain],
+            requires: &[] as &[Feature],
+            is_applicable,
+            apply,
+            reversible: false,
+            cost: 1,
+        }
+    }
+
+    /// One rule with two distinct, equivalence-preserving applications on a bare variable.
+    fn two_application_rule() -> Rule {
+        test_rule(
+            1,
+            "expand_two_ways",
+            |e, _| matches!(e, Expr::Var(_)),
+            |e, _| {
+                if !matches!(e, Expr::Var(_)) {
+                    return vec![];
+                }
+                vec![
+                    RuleApplication {
+                        result: add_zero(e),
+                        justification: "x -> x + 0".to_string(),
+                    },
+                    RuleApplication {
+                        result: mul_one(e),
+                        justification: "x -> x * 1".to_string(),
+                    },
+                ]
+            },
+        )
+    }
 
     #[test]
-    fn test_mcts_node_creation() {
+    fn node_starts_unvisited() {
         let node = MCTSNode::new(Expr::int(0), 0.5);
         assert_eq!(node.visits, 0);
         assert_eq!(node.value(), 0.0);
     }
 
     #[test]
-    fn test_ucb_score() {
+    fn ucb_score_is_positive_for_a_visited_node() {
         let mut node = MCTSNode::new(Expr::int(0), 0.5);
         node.visits = 10;
         node.value_sum = 5.0;
-
-        let score = node.ucb_score(100, 1.41);
-        assert!(score > 0.0);
+        assert!(node.ucb_score(100, 1.41) > 0.0);
     }
 
     #[test]
-    fn test_neural_mcts_creation() {
-        let rules = standard_rules();
-        let verifier = Verifier::new();
-        let _mcts = NeuralMCTS::new(rules, verifier);
+    fn one_rule_with_two_applications_produces_two_children() {
+        let mut rules = RuleSet::new();
+        rules.try_add("test", two_application_rule()).unwrap();
+        let mcts = NeuralMCTS::with_config(rules, Verifier::new(), small_config());
+
+        let (_symbols, x) = var();
+        let mut root = MCTSNode::new(x.clone(), 1.0);
+        mcts.expand(&mut root);
+
+        assert_eq!(
+            root.children.len(),
+            2,
+            "the second application must not overwrite the first"
+        );
+        let states: Vec<&Expr> = root.children.iter().map(|c| &c.state).collect();
+        assert!(states.contains(&&add_zero(&x)));
+        assert!(states.contains(&&mul_one(&x)));
+
+        let actions: Vec<ActionKey> = root.children.iter().filter_map(|c| c.action).collect();
+        assert_eq!(actions[0].rule_id, actions[1].rule_id);
+        assert_ne!(
+            actions[0].application, actions[1].application,
+            "applications of one rule must be distinguishable"
+        );
     }
 
     #[test]
-    fn test_neural_mcts_simplify() {
-        let rules = standard_rules();
-        let verifier = Verifier::new();
+    fn two_different_rules_both_keep_their_children() {
+        // Before the registry enforced unique identifiers these two could have shared one,
+        // and the child map keyed by identifier would have kept only the second.
+        let mut rules = RuleSet::new();
+        rules
+            .try_add(
+                "test",
+                test_rule(
+                    1,
+                    "to_add_zero",
+                    |e, _| matches!(e, Expr::Var(_)),
+                    |e, _| {
+                        vec![RuleApplication {
+                            result: add_zero(e),
+                            justification: "x -> x + 0".to_string(),
+                        }]
+                    },
+                ),
+            )
+            .unwrap();
+        rules
+            .try_add(
+                "test",
+                test_rule(
+                    2,
+                    "to_mul_one",
+                    |e, _| matches!(e, Expr::Var(_)),
+                    |e, _| {
+                        vec![RuleApplication {
+                            result: mul_one(e),
+                            justification: "x -> x * 1".to_string(),
+                        }]
+                    },
+                ),
+            )
+            .unwrap();
+
+        let mcts = NeuralMCTS::with_config(rules, Verifier::new(), small_config());
+        let (_symbols, x) = var();
+        let mut root = MCTSNode::new(x, 1.0);
+        mcts.expand(&mut root);
+
+        assert_eq!(root.children.len(), 2);
+        let names: Vec<&str> = root.children.iter().filter_map(|c| c.rule_name).collect();
+        assert!(names.contains(&"to_add_zero"));
+        assert!(names.contains(&"to_mul_one"));
+    }
+
+    #[test]
+    fn reaching_the_goal_backs_up_through_the_terminal_node() {
+        let mut rules = RuleSet::new();
+        rules.try_add("test", two_application_rule()).unwrap();
+        let mcts = NeuralMCTS::with_config(rules, Verifier::new(), small_config());
+
+        let (_symbols, x) = var();
+        let target = mul_one(&x);
+        let mut root = MCTSNode::new(x, 1.0);
+        let goal = |e: &Expr| *e == target;
+
+        mcts.expand(&mut root);
+        root.expanded = true;
+
+        // Drive a simulation straight at the goal child, rather than relying on selection to
+        // pick it: the invariant under test is the terminal backup, not the choice.
+        let index = root
+            .children
+            .iter()
+            .position(|c| goal(&c.state))
+            .expect("goal child must exist");
+        let value = mcts.simulate(&mut root.children[index], &goal, 0);
+
+        assert_eq!(value, 1.0, "reaching the goal must be worth 1.0");
+        let goal_child = &root.children[index];
+        assert_eq!(
+            goal_child.visits, 1,
+            "a goal node must record its own visit"
+        );
+        assert!(
+            goal_child.value() > 0.0,
+            "a goal node must back up its value"
+        );
+    }
+
+    #[test]
+    fn a_goal_is_extracted_even_when_it_is_not_the_most_visited_child() {
+        let mut rules = RuleSet::new();
+        rules.try_add("test", two_application_rule()).unwrap();
+        let mcts = NeuralMCTS::with_config(rules, Verifier::new(), small_config());
+
+        let (_symbols, x) = var();
+        let target = mul_one(&x);
+        let decoy = add_zero(&x);
+        let mut root = MCTSNode::new(x.clone(), 1.0);
+        mcts.expand(&mut root);
+        root.expanded = true;
+        root.visits = 5;
+
+        // Give the non-goal child all the visits and leave the goal child at zero.
+        for child in root.children.iter_mut() {
+            if child.state == decoy {
+                child.visits = 100;
+                child.value_sum = 100.0;
+            }
+        }
+
+        let goal = |e: &Expr| *e == target;
+        let outcome = mcts.extract(&root, &x, &goal);
+
+        assert!(outcome.reached_goal);
+        assert_eq!(outcome.solution.result, target);
+    }
+
+    #[test]
+    fn a_search_without_a_goal_returns_none_not_a_partial_solution() {
+        let mut rules = RuleSet::new();
+        rules.try_add("test", two_application_rule()).unwrap();
+        let mcts = NeuralMCTS::with_config(rules, Verifier::new(), small_config());
+
+        let (_symbols, x) = var();
+        let unreachable = |e: &Expr| *e == Expr::int(4242);
+
+        assert!(mcts.search(x.clone(), unreachable).is_none());
+
+        let outcome = mcts.search_best_effort(x, unreachable);
+        assert!(!outcome.reached_goal);
+        assert!(
+            !outcome.solution.is_fully_verified(),
+            "a partial path must not be reported as verified"
+        );
+    }
+
+    #[test]
+    fn search_results_are_deterministic() {
+        // Two independently constructed solvers must agree. They hold separately initialised
+        // networks, so this fails if the search reads randomly initialised weights.
+        let build = || {
+            let mut rules = RuleSet::new();
+            rules.try_add("test", two_application_rule()).unwrap();
+            NeuralMCTS::with_config(rules, Verifier::new(), small_config())
+        };
+
+        let (_symbols, x) = var();
+        let target = mul_one(&x);
+        let goal = |e: &Expr| *e == target;
+
+        let a = build().search(x.clone(), goal).expect("goal is reachable");
+        let b = build().search(x, goal).expect("goal is reachable");
+
+        assert_eq!(a.result, b.result);
+        assert_eq!(a.num_steps(), b.num_steps());
+        assert_eq!(
+            a.steps.iter().map(|s| s.rule_id.0).collect::<Vec<_>>(),
+            b.steps.iter().map(|s| s.rule_id.0).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn simplify_is_deterministic_across_solver_instances() {
+        let expr = Expr::Mul(
+            Box::new(Expr::Add(Box::new(Expr::int(2)), Box::new(Expr::int(3)))),
+            Box::new(Expr::Add(Box::new(Expr::int(4)), Box::new(Expr::int(5)))),
+        );
+
+        let a = NeuralMCTS::with_config(standard_rules(), Verifier::new(), small_config())
+            .simplify(expr.clone());
+        let b = NeuralMCTS::with_config(standard_rules(), Verifier::new(), small_config())
+            .simplify(expr);
+
+        assert_eq!(a.result, b.result);
+        assert_eq!(a.num_steps(), b.num_steps());
+        assert_eq!(a.status, b.status);
+    }
+
+    #[test]
+    fn max_depth_is_respected() {
+        // A rule that always produces a new, larger expression. Without the depth bound the
+        // simulation would recurse until the stack ran out.
+        let mut rules = RuleSet::new();
+        rules
+            .try_add(
+                "test",
+                test_rule(
+                    1,
+                    "grow",
+                    |_, _| true,
+                    |e, _| {
+                        vec![RuleApplication {
+                            result: add_zero(e),
+                            justification: "wrap in + 0".to_string(),
+                        }]
+                    },
+                ),
+            )
+            .unwrap();
+
         let mcts = NeuralMCTS::with_config(
             rules,
-            verifier,
+            Verifier::new(),
             MCTSConfig {
-                simulations: 10, // Reduced for tests
+                simulations: 8,
+                max_depth: 3,
                 ..Default::default()
             },
         );
 
-        // Test simple constant folding
-        let expr = Expr::Add(Box::new(Expr::int(2)), Box::new(Expr::int(3)));
-        let result = mcts.simplify(expr);
+        let outcome = mcts.search_best_effort(Expr::int(1), |e: &Expr| *e == Expr::int(4242));
+        assert!(!outcome.reached_goal);
+        assert!(
+            outcome.solution.num_steps() <= 3,
+            "path length must respect max_depth, got {}",
+            outcome.solution.num_steps()
+        );
+    }
 
-        // Should simplify to 5
-        assert_eq!(result.result.canonicalize(), Expr::int(5));
+    #[test]
+    fn a_cycle_does_not_stall_simplify() {
+        // Two rules that undo each other. `simplify` must terminate and must not drift.
+        let mut rules = RuleSet::new();
+        rules
+            .try_add(
+                "test",
+                test_rule(
+                    1,
+                    "add_zero",
+                    |e, _| matches!(e, Expr::Var(_)),
+                    |e, _| {
+                        vec![RuleApplication {
+                            result: add_zero(e),
+                            justification: "x -> x + 0".to_string(),
+                        }]
+                    },
+                ),
+            )
+            .unwrap();
+        rules
+            .try_add(
+                "test",
+                test_rule(
+                    2,
+                    "drop_zero",
+                    |e, _| {
+                        matches!(e, Expr::Add(_, b)
+                            if matches!(b.as_ref(), Expr::Const(c) if c.is_zero()))
+                    },
+                    |e, _| match e {
+                        Expr::Add(a, _) => vec![RuleApplication {
+                            result: (**a).clone(),
+                            justification: "x + 0 -> x".to_string(),
+                        }],
+                        _ => vec![],
+                    },
+                ),
+            )
+            .unwrap();
+
+        let mcts = NeuralMCTS::with_config(rules, Verifier::new(), small_config());
+        let (_symbols, x) = var();
+        let solution = mcts.simplify(x.clone());
+        assert_eq!(solution.result, x, "the cycle must not change the answer");
+    }
+
+    #[test]
+    fn the_default_policy_is_reported_as_untrained() {
+        let mcts = NeuralMCTS::new(standard_rules(), Verifier::new());
+        assert!(!mcts.provenance().is_trained());
+        assert_eq!(mcts.vocabulary().len(), standard_rules().len());
+    }
+
+    #[test]
+    fn every_registered_rule_has_a_readable_prior() {
+        // The old code indexed a 25-column tensor with a rule identifier of up to five
+        // digits, so nearly every rule silently fell back to a constant 0.01.
+        let mcts = NeuralMCTS::new(standard_rules(), Verifier::new());
+        let priors = mcts.policy.rule_priors(&Expr::int(5)).unwrap();
+        assert_eq!(priors.len(), mcts.vocabulary().len());
+
+        for rule in mcts.rules.all() {
+            mcts.vocabulary()
+                .prior_for_rule(&priors, rule.id)
+                .unwrap_or_else(|e| panic!("rule {} has no prior: {e}", rule.name));
+        }
+    }
+
+    #[test]
+    fn an_untrained_policy_is_not_consulted() {
+        // Random weights are not guidance. Reading them would also make the search differ
+        // between processes, since candle seeds its initialisation from the OS.
+        let mcts = NeuralMCTS::new(standard_rules(), Verifier::new());
+        assert!(!mcts.provenance().is_trained());
+        assert!(mcts.learned_priors(&Expr::int(5)).is_none());
+        assert_eq!(mcts.evaluate(&Expr::int(5)), 0.0);
+    }
+
+    #[test]
+    fn simplify_produces_a_replayable_trace() {
+        let mcts = NeuralMCTS::with_config(standard_rules(), Verifier::new(), small_config());
+        let expr = Expr::Add(Box::new(Expr::int(2)), Box::new(Expr::int(3)));
+        let solution = mcts.simplify(expr.clone());
+
+        assert_eq!(solution.result.canonicalize(), Expr::int(5));
+        assert_eq!(
+            crate::assess_trace(&solution.problem, &solution.result, &solution.steps),
+            solution.status,
+            "the reported status must be the one the trace implies"
+        );
+        assert!(
+            solution.status.replays(),
+            "recorded steps must lead from the input to the reported result, got {}",
+            solution.status
+        );
+    }
+
+    #[test]
+    fn no_untraced_jump_to_the_final_answer() {
+        let mcts = NeuralMCTS::with_config(standard_rules(), Verifier::new(), small_config());
+        let expr = Expr::Add(Box::new(Expr::int(2)), Box::new(Expr::int(3)));
+        let solution = mcts.simplify(expr);
+
+        assert!(!solution.steps.is_empty());
+        assert_eq!(solution.steps.last().unwrap().after, solution.result);
     }
 }

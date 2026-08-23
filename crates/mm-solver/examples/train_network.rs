@@ -27,14 +27,22 @@ fn main() {
     println!("Generated {} training examples", examples.len());
 
     // Configure the network (tuned for better accuracy)
+    // The policy head must have one column per action in the vocabulary plus the reserved
+    // terminal class; it cannot be chosen independently of the rule registry.
+    let vocabulary = mm_rules::ActionVocabulary::standard();
+    println!(
+        "Action vocabulary: {} actions, digest {:#018x}",
+        vocabulary.len(),
+        vocabulary.digest()
+    );
     let network_config = NetworkConfig {
         vocab_size: 64,
-        embed_dim: 128,  // Increased from 64
-        hidden_dim: 256, // Increased from 128
-        num_heads: 8,    // Increased from 4
-        num_layers: 3,   // Increased from 2
+        embed_dim: 128,
+        hidden_dim: 256,
+        num_heads: 8,
+        num_layers: 3,
         max_seq_len: 64,
-        num_rules: 30, // 29 rules + 1 no-op
+        num_policy_classes: mm_brain::network::policy_classes_for(&vocabulary),
         dropout: 0.1,
     };
 
@@ -183,9 +191,12 @@ fn main() {
                 let mut indexed: Vec<(usize, f32)> = probs_vec.into_iter().enumerate().collect();
                 indexed.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
 
-                println!("  Top rules:");
-                for (i, (rule_idx, prob)) in indexed.iter().take(3).enumerate() {
-                    println!("    {}. Rule {} (prob: {:.3})", i + 1, rule_idx, prob);
+                println!("  Top actions:");
+                for (i, (action, prob)) in indexed.iter().take(3).enumerate() {
+                    match vocabulary.key_at(*action) {
+                        Ok(key) => println!("    {}. {} (prob: {:.3})", i + 1, key, prob),
+                        Err(_) => println!("    {}. <terminal action> (prob: {:.3})", i + 1, prob),
+                    }
                 }
 
                 // Get value

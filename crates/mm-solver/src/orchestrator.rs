@@ -15,11 +15,8 @@
 
 use mm_core::{Expr, Rational, Symbol, SymbolTable};
 use mm_rules::{
-    backward::{find_proof_of, BackwardStep, BackwardStrategy},
-    case_analysis::CaseAnalysis,
-    induction::{InductionProof, InductionType},
+    backward::find_proof_of, case_analysis::CaseAnalysis, induction::InductionProof,
     polynomial::algebraically_equal,
-    quantifier::QuantifierEngine,
 };
 
 /// Result of a proof attempt
@@ -62,9 +59,6 @@ pub struct ProofOrchestrator {
     /// Symbol table for variable management
     symbols: SymbolTable,
 
-    /// Quantifier reasoning engine
-    quantifier_engine: QuantifierEngine,
-
     /// Maximum proof depth
     max_depth: usize,
 
@@ -83,7 +77,6 @@ impl ProofOrchestrator {
     pub fn new() -> Self {
         Self {
             symbols: SymbolTable::new(),
-            quantifier_engine: QuantifierEngine::new(),
             max_depth: 10,
             verbose: true,
         }
@@ -905,17 +898,6 @@ impl ProofOrchestrator {
         }
 
         summary
-    }
-}
-
-// Helper trait extension for Rational
-trait RationalExt {
-    fn to_f64(&self) -> f64;
-}
-
-impl RationalExt for Rational {
-    fn to_f64(&self) -> f64 {
-        self.numer() as f64 / self.denom() as f64
     }
 }
 

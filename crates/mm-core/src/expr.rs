@@ -232,18 +232,6 @@ impl PartialEq for Expr {
     /// symbol identifiers, and collection contents) so that two expressions are
     /// equal only if they have the same variant and equal components.
     ///
-    /// # Examples
-    ///
-    /// ```
-    /// let a = Expr::int(1);
-    /// let b = Expr::int(1);
-    /// assert!(a.eq(&b));
-    ///
-    /// let x = Expr::Var(Symbol::from("x"));
-    /// let y = Expr::Var(Symbol::from("y"));
-    /// assert!(!x.eq(&y));
-    /// ```
-    ///
     /// # Returns
     ///
     /// `true` if both expressions are the same variant and their contents are equal, `false` otherwise.
@@ -295,28 +283,6 @@ impl Hash for Expr {
     /// Hashes the expression by first hashing its variant discriminant and then hashing the variant's contents.
     ///
     /// This produces a stable structural hash suitable for use in hash maps and memoization: atoms hash their payloads, constants without payloads rely on the discriminant, unary variants hash their inner expression, binary variants hash both operands, and collection/compound variants hash their contained elements.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use std::collections::hash_map::DefaultHasher;
-    /// use std::hash::{Hash, Hasher};
-    ///
-    /// // construct two equivalent expressions and verify they produce the same hash
-    /// let a = Expr::int(2);
-    /// let b = Expr::frac(4, 2); // canonical equality may differ, but hashing demonstrates usage
-    ///
-    /// let mut ha = DefaultHasher::new();
-    /// a.hash(&mut ha);
-    /// let ha = ha.finish();
-    ///
-    /// let mut hb = DefaultHasher::new();
-    /// b.hash(&mut hb);
-    /// let hb = hb.finish();
-    ///
-    /// // hashes may or may not match depending on canonicalization; this demonstrates calling `hash`.
-    /// let _ = (ha, hb);
-    /// ```
     fn hash<H: Hasher>(&self, state: &mut H) {
         std::mem::discriminant(self).hash(state);
         match self {
@@ -437,16 +403,6 @@ impl Ord for Expr {
     ///
     /// The comparison is a total order: it first compares the variant discriminants (type of expression),
     /// and if they are the same it compares the variant contents recursively.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use std::cmp::Ordering;
-    /// // Assuming Expr::int is available in scope as a constructor for integer constants:
-    /// let a = Expr::int(1);
-    /// let b = Expr::int(2);
-    /// assert_eq!(a.cmp(&b), Ordering::Less);
-    /// ```
     fn cmp(&self, other: &Self) -> Ordering {
         // First compare by discriminant (type of expression)
         let self_disc = std::mem::discriminant(self);

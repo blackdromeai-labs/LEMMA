@@ -14,6 +14,7 @@
 //! - [`PolicyNetwork`] - High-level API for rule selection
 //! - [`Trainer`] - Training loop for the network
 //! - [`DataGenerator`] - Synthetic training data generation
+//! - [`ModelProvenance`] - Whether a network holds trained or random weights
 //!
 //! ## Architecture
 //!
@@ -25,15 +26,17 @@
 pub mod data;
 pub mod encoder;
 pub mod network;
-pub mod onnx_inference;
 pub mod policy;
+pub mod provenance;
 pub mod substitution;
+pub mod text_classifier;
 pub mod training;
 
 pub use data::DataGenerator;
 pub use encoder::ExpressionEncoder;
-pub use network::MathNetwork;
-pub use onnx_inference::MathBertModel;
+pub use network::{MathNetwork, NetworkConfig};
 pub use policy::PolicyNetwork;
+pub use provenance::{ModelLoadError, ModelManifest, ModelProvenance};
 pub use substitution::{SearchHint, SubstitutionPrediction, SubstitutionPredictor};
+pub use text_classifier::KeywordProblemClassifier;
 pub use training::{Trainer, TrainingConfig};

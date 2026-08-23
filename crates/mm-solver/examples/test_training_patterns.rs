@@ -27,7 +27,7 @@ fn main() {
         simulations: 100,
         exploration_weight: 1.41,
         max_depth: 15,
-        temperature: 1.0,
+        ..Default::default()
     };
     let mcts = NeuralMCTS::with_config(rules, verifier, config);
 
@@ -109,10 +109,10 @@ fn main() {
         total += 1;
         let result = mcts.simplify(expr.clone());
         let simplified = result.result != expr;
-        if simplified || result.verified {
+        if simplified || result.status.is_fully_checked() {
             passed += 1;
         }
-        let status = if simplified || result.verified {
+        let status = if simplified || result.status.is_fully_checked() {
             "✅"
         } else {
             "❌"

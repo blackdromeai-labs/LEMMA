@@ -72,7 +72,7 @@ fn main() {
 
     // Create neural predictor
     let predictor = SubstitutionPredictor::new();
-    
+
     // Load all calculus rules
     let rules = calculus_rules();
     println!("✓ Loaded {} calculus rules", rules.len());
@@ -140,28 +140,44 @@ fn main() {
             id: 9,
             difficulty: "Very Hard",
             statement: "Integrate (3x² + 2x)·e^x - sin(x) + 1/x with respect to x",
-            expected_approach: vec!["sum_rule", "difference_rule", "constant_multiple", "integration_by_parts", "integral_sin", "integral_ln"],
+            expected_approach: vec![
+                "sum_rule",
+                "difference_rule",
+                "constant_multiple",
+                "integration_by_parts",
+                "integral_sin",
+                "integral_ln",
+            ],
             requires_chaining: true,
         },
         IntegrationProblem {
             id: 10,
             difficulty: "Very Hard",
             statement: "Find the antiderivative of x·sin(x) + e^(2x) - tan(x)",
-            expected_approach: vec!["sum_rule", "integration_by_parts", "u_substitution", "integral_tan"],
+            expected_approach: vec![
+                "sum_rule",
+                "integration_by_parts",
+                "u_substitution",
+                "integral_tan",
+            ],
             requires_chaining: true,
         },
     ];
 
-    println!("Testing {} integration problems with neural-guided search\n", problems.len());
-    
+    println!(
+        "Testing {} integration problems with neural-guided search\n",
+        problems.len()
+    );
+
     let mut total_time = 0.0;
     let mut solved = 0;
     let mut failed = 0;
 
     for p in &problems {
         println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        println!("Problem {} [{}] - Chaining: {}", 
-            p.id, 
+        println!(
+            "Problem {} [{}] - Chaining: {}",
+            p.id,
             p.difficulty,
             if p.requires_chaining { "Yes" } else { "No" }
         );
@@ -190,15 +206,15 @@ fn main() {
         // Step 2: Use neural predictions to guide rule search
         println!("🔍 Starting neural-guided search...");
         let search_start = Instant::now();
-        
+
         // Try to solve using neural-guided search
         let (success, steps, rules_used, solution) = neural_guided_search(
             p.statement,
             &predictions,
             &rules,
-            10 // max depth
+            10, // max depth
         );
-        
+
         let search_time = search_start.elapsed().as_secs_f64() * 1000.0;
         total_time += pred_time + search_time;
 
@@ -227,23 +243,31 @@ fn main() {
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     println!();
     println!("Problems tested:    {}", problems.len());
-    println!("✅ Solved:          {}/{} ({:.1}%)", solved, problems.len(), (solved as f64 / problems.len() as f64) * 100.0);
+    println!(
+        "✅ Solved:          {}/{} ({:.1}%)",
+        solved,
+        problems.len(),
+        (solved as f64 / problems.len() as f64) * 100.0
+    );
     println!("❌ Failed:          {}/{}", failed, problems.len());
     println!("⏱️  Total time:      {:.2} ms", total_time);
-    println!("📈 Avg time/problem: {:.2} ms", total_time / problems.len() as f64);
+    println!(
+        "📈 Avg time/problem: {:.2} ms",
+        total_time / problems.len() as f64
+    );
     println!();
 
     if solved > 0 {
         println!("✨ Neural network successfully guided search through rule space!");
     }
-    
+
     if failed > 0 {
         println!("⚠️  Some problems failed. This shows:");
         println!("   - Neural network needs more training data");
         println!("   - Search space is complex (requires rule chaining)");
         println!("   - Some patterns not yet learned");
     }
-    
+
     println!();
     println!("🎯 This benchmark tests:");
     println!("   1. Neural network's ability to predict useful steps");
@@ -295,23 +319,26 @@ fn neural_guided_search(
     // 3. Try rules in order of neural network confidence
     // 4. Recursively apply rules (breadth-first or best-first search)
     // 5. Check if we've reached a solution (no more integrals)
-    
+
     let ctx = RuleContext::default();
     let mut steps = 0;
     let mut rules_used = Vec::new();
-    
+
     // For now, just try to match any rule (demonstrates search capability)
     // Real implementation would parse statement and build Expr tree
-    
+
     // Simulate search through rule space
     for prediction in predictions {
         steps += 1;
-        
+
         // Try to find a rule that matches the prediction
         for rule in rules {
-            if rule.name.contains(&prediction.substitution.to_lowercase().replace(" ", "_")) {
+            if rule
+                .name
+                .contains(&prediction.substitution.to_lowercase().replace(" ", "_"))
+            {
                 rules_used.push(rule.name.to_string());
-                
+
                 // In real implementation: apply rule and check if solved
                 // For now, just demonstrate that we're searching
                 if steps >= max_depth {
@@ -319,12 +346,12 @@ fn neural_guided_search(
                 }
             }
         }
-        
+
         if steps >= max_depth {
             break;
         }
     }
-    
+
     // Return results showing we attempted search
     // Real implementation would return actual solution
     let success = !rules_used.is_empty();

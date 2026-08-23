@@ -25,7 +25,7 @@ fn main() {
         simulations: 100,
         exploration_weight: 1.41,
         max_depth: 15,
-        temperature: 1.0,
+        ..Default::default()
     };
     let mcts = NeuralMCTS::with_config(rules, verifier, config);
 
@@ -156,7 +156,7 @@ fn main() {
             println!("    {}: {}", i + 1, step.rule_name);
         }
 
-        if result.verified {
+        if result.status.is_fully_checked() {
             println!("  ✅ Verified");
             verified_count += 1;
         } else if result.result != expr {

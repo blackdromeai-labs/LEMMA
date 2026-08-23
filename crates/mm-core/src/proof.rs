@@ -64,25 +64,25 @@ pub enum SearchDirection {
 pub struct ProofState {
     /// Known facts (hypotheses)
     pub hypotheses: Vec<Hypothesis>,
-    
+
     /// Goals to prove
     pub goals: Vec<Goal>,
-    
+
     /// Variables in scope with their domains
     pub variables: Vec<Variable>,
-    
+
     /// Constraints on variables (e.g., abc = 1)
     pub constraints: Vec<Constraint>,
-    
+
     /// Search direction for this proof state
     pub search_direction: SearchDirection,
-    
+
     /// Counter for generating unique hypothesis IDs
     next_hyp_id: u32,
-    
+
     /// Counter for generating unique goal IDs
     next_goal_id: u32,
-    
+
     /// Symbol table for variable names
     pub symbols: SymbolTable,
 }
@@ -101,21 +101,21 @@ impl ProofState {
             symbols: SymbolTable::new(),
         }
     }
-    
+
     /// Create a new proof state with specified search direction.
     pub fn with_direction(direction: SearchDirection) -> Self {
         let mut state = Self::new();
         state.search_direction = direction;
         state
     }
-    
+
     /// Add a variable with a domain.
     pub fn add_variable(&mut self, name: &str, domain: Domain) -> Symbol {
         let symbol = self.symbols.intern(name);
         self.variables.push(Variable { symbol, domain });
         symbol
     }
-    
+
     /// Add a hypothesis (known fact).
     pub fn add_hypothesis(&mut self, expr: Expr, origin: HypothesisOrigin) -> HypId {
         let id = HypId(self.next_hyp_id);
@@ -123,12 +123,12 @@ impl ProofState {
         self.hypotheses.push(Hypothesis { id, expr, origin });
         id
     }
-    
+
     /// Add a hypothesis from the problem statement.
     pub fn add_given(&mut self, expr: Expr) -> HypId {
         self.add_hypothesis(expr, HypothesisOrigin::Given)
     }
-    
+
     /// Add a goal to prove.
     pub fn add_goal(&mut self, expr: Expr) -> GoalId {
         let id = GoalId(self.next_goal_id);
@@ -140,54 +140,60 @@ impl ProofState {
         });
         id
     }
-    
+
     /// Add a constraint on variables.
     pub fn add_constraint(&mut self, expr: Expr) {
         self.constraints.push(Constraint { expr });
     }
-    
+
     /// Check if all goals are proved.
     pub fn is_complete(&self) -> bool {
-        self.goals.iter().all(|g| matches!(g.status, GoalStatus::Proved(_)))
+        self.goals
+            .iter()
+            .all(|g| matches!(g.status, GoalStatus::Proved(_)))
     }
-    
+
     /// Get open (unproved) goals.
     pub fn open_goals(&self) -> Vec<&Goal> {
-        self.goals.iter().filter(|g| matches!(g.status, GoalStatus::Open)).collect()
+        self.goals
+            .iter()
+            .filter(|g| matches!(g.status, GoalStatus::Open))
+            .collect()
     }
-    
+
     /// Mark a goal as proved.
     pub fn mark_proved(&mut self, goal_id: GoalId, proof: Proof) {
         if let Some(goal) = self.goals.iter_mut().find(|g| g.id == goal_id) {
             goal.status = GoalStatus::Proved(proof);
         }
     }
-    
+
     /// Get a variable's domain.
     pub fn get_domain(&self, symbol: Symbol) -> Option<&Domain> {
-        self.variables.iter()
+        self.variables
+            .iter()
             .find(|v| v.symbol == symbol)
             .map(|v| &v.domain)
     }
-    
+
     /// Check if a variable is positive.
     pub fn is_positive(&self, symbol: Symbol) -> bool {
         self.get_domain(symbol)
             .map(|d| matches!(d, Domain::PositiveReal | Domain::PositiveInteger))
             .unwrap_or(false)
     }
-    
+
     /// Check if all variables are positive (common in inequality problems).
     pub fn all_positive(&self) -> bool {
-        self.variables.iter().all(|v| {
-            matches!(v.domain, Domain::PositiveReal | Domain::PositiveInteger)
-        })
+        self.variables
+            .iter()
+            .all(|v| matches!(v.domain, Domain::PositiveReal | Domain::PositiveInteger))
     }
-    
+
     /// Check if we have a constraint of the form `expr = 1` (common in IMO).
     pub fn has_product_one_constraint(&self) -> bool {
         self.constraints.iter().any(|c| {
-            matches!(&c.expr, Expr::Equation { rhs, .. } 
+            matches!(&c.expr, Expr::Equation { rhs, .. }
                 if matches!(rhs.as_ref(), Expr::Const(r) if r.numer() == 1 && r.denom() == 1))
         })
     }
@@ -208,10 +214,10 @@ impl Default for ProofState {
 pub struct Hypothesis {
     /// Unique identifier
     pub id: HypId,
-    
+
     /// The expression representing this fact
     pub expr: Expr,
-    
+
     /// How this hypothesis was introduced
     pub origin: HypothesisOrigin,
 }
@@ -221,18 +227,21 @@ pub struct Hypothesis {
 pub enum HypothesisOrigin {
     /// Given in the problem statement
     Given,
-    
+
     /// Derived using a rule or tactic
     Derived {
         from: Vec<HypId>,
         justification: String,
     },
-    
+
     /// Assumed for proof by contradiction
     Assumption,
-    
+
     /// Case split (one branch of case analysis)
-    CaseSplit { case_number: usize, total_cases: usize },
+    CaseSplit {
+        case_number: usize,
+        total_cases: usize,
+    },
 }
 
 // ============================================================================
@@ -244,11 +253,11 @@ pub enum HypothesisOrigin {
 pub struct Goal {
     /// Unique identifier
     pub id: GoalId,
-    
+
     /// The expression to prove
     /// For inequalities: Expr::Gte(lhs, rhs) means prove lhs ≥ rhs
     pub expr: Expr,
-    
+
     /// Current status
     pub status: GoalStatus,
 }
@@ -258,13 +267,13 @@ pub struct Goal {
 pub enum GoalStatus {
     /// Not yet proved
     Open,
-    
+
     /// Successfully proved
     Proved(Proof),
-    
+
     /// Split into sub-goals
     Split(Vec<GoalId>),
-    
+
     /// Reduced to a simpler goal
     Reduced(GoalId),
 }
@@ -278,7 +287,7 @@ pub enum GoalStatus {
 pub struct Variable {
     /// The symbol representing this variable
     pub symbol: Symbol,
-    
+
     /// Domain of the variable
     pub domain: Domain,
 }
@@ -288,25 +297,25 @@ pub struct Variable {
 pub enum Domain {
     /// All real numbers
     Real,
-    
+
     /// Positive real numbers (x > 0)
     PositiveReal,
-    
+
     /// Non-negative real numbers (x ≥ 0)
     NonNegativeReal,
-    
+
     /// All integers
     Integer,
-    
+
     /// Positive integers (n > 0)
     PositiveInteger,
-    
+
     /// Natural numbers (n ≥ 0)
     Natural,
-    
+
     /// Bounded interval [a, b]
     Interval { min: f64, max: f64 },
-    
+
     /// Custom domain specified by an expression
     Custom(Expr),
 }
@@ -331,7 +340,7 @@ pub struct Constraint {
 pub struct Proof {
     /// Steps in the proof
     pub steps: Vec<ProofStep>,
-    
+
     /// Final justification
     pub justification: String,
 }
@@ -344,22 +353,22 @@ impl Proof {
             justification,
         }
     }
-    
+
     /// Create a proof by AM-GM inequality.
     pub fn by_am_gm() -> Self {
         Proof::new("AM-GM inequality".to_string())
     }
-    
+
     /// Create a proof by Cauchy-Schwarz inequality.
     pub fn by_cauchy_schwarz() -> Self {
         Proof::new("Cauchy-Schwarz inequality".to_string())
     }
-    
+
     /// Create a proof by Sum of Squares (SOS) decomposition.
     pub fn by_sos() -> Self {
         Proof::new("Sum of squares ≥ 0".to_string())
     }
-    
+
     /// Create a proof by algebraic manipulation.
     pub fn by_algebra() -> Self {
         Proof::new("Algebraic manipulation".to_string())
@@ -371,10 +380,10 @@ impl Proof {
 pub struct ProofStep {
     /// The expression at this step
     pub expr: Expr,
-    
+
     /// Justification for this step
     pub justification: String,
-    
+
     /// Hypotheses used in this step
     pub used_hypotheses: Vec<HypId>,
 }
@@ -391,12 +400,12 @@ impl Expr {
         // For now, use a marker: lhs - rhs ≥ 0
         Expr::Sub(Box::new(lhs), Box::new(rhs))
     }
-    
+
     /// Create a greater-than expression: lhs > rhs
     pub fn gt(lhs: Expr, rhs: Expr) -> Expr {
         Expr::Sub(Box::new(lhs), Box::new(rhs))
     }
-    
+
     /// Check if this expression represents a non-negativity claim.
     pub fn is_non_negative_form(&self) -> bool {
         // Check if it's of the form X - Y (representing X ≥ Y)
@@ -411,40 +420,40 @@ impl Expr {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_proof_state_creation() {
         let mut state = ProofState::new();
-        
+
         // Add variables a, b, c > 0
         let a = state.add_variable("a", Domain::PositiveReal);
         let b = state.add_variable("b", Domain::PositiveReal);
         let c = state.add_variable("c", Domain::PositiveReal);
-        
+
         assert!(state.is_positive(a));
         assert!(state.is_positive(b));
         assert!(state.is_positive(c));
         assert!(state.all_positive());
     }
-    
+
     #[test]
     fn test_add_hypothesis() {
         let mut state = ProofState::new();
         let a = state.add_variable("a", Domain::PositiveReal);
-        
+
         // Add hypothesis: a > 0
         let hyp_id = state.add_given(Expr::Var(a));
-        
+
         assert_eq!(state.hypotheses.len(), 1);
         assert_eq!(hyp_id, HypId(0));
     }
-    
+
     #[test]
     fn test_add_goal() {
         let mut state = ProofState::new();
         let a = state.add_variable("a", Domain::PositiveReal);
         let b = state.add_variable("b", Domain::PositiveReal);
-        
+
         // Goal: a + b ≥ 2√(ab)
         let goal_expr = Expr::Sub(
             Box::new(Expr::Add(Box::new(Expr::Var(a)), Box::new(Expr::Var(b)))),
@@ -456,12 +465,12 @@ mod tests {
                 )))),
             )),
         );
-        
+
         let goal_id = state.add_goal(goal_expr);
-        
+
         assert_eq!(state.goals.len(), 1);
         assert!(!state.is_complete());
-        
+
         // Mark as proved
         state.mark_proved(goal_id, Proof::by_am_gm());
         assert!(state.is_complete());

@@ -2,8 +2,10 @@
 /target/
 */target/
 
-# Cargo lock for libraries (optional)
-Cargo.lock
+# Cargo.lock is committed: this workspace ships runnable applications (the `lemma` root
+# package and a dozen research binaries), and evaluation results are only comparable
+# between runs if the dependency graph is pinned. The usual "libraries do not commit a
+# lockfile" guidance applies to published library crates, which this is not.
 
 # IDE
 .idea/

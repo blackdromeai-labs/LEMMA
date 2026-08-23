@@ -116,7 +116,7 @@ pub enum BridgeResult {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mm_core::{Rational, SymbolTable};
+    use mm_core::SymbolTable;
 
     #[test]
     fn test_bridge_detection() {

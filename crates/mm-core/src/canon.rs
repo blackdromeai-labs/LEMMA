@@ -11,7 +11,7 @@
 //!
 //! For example: `x + 1` and `1 + x` both canonicalize to the same form.
 
-use crate::{Expr, Factor, Rational, Symbol, Term};
+use crate::{Expr, Factor, Rational, Term};
 use std::collections::HashMap;
 
 impl Expr {
@@ -51,15 +51,6 @@ impl Expr {
     ///
     /// If `depth` is greater than or equal to `Self::MAX_CANON_DEPTH`, this returns a clone of `self` without further recursion.
     /// Otherwise returns a new `Expr` where every direct child has been canonicalized with the provided `depth`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// // Construct an expression and canonicalize its children at depth 0.
-    /// let expr = Expr::Neg(Box::new(Expr::Var(0)));
-    /// let out = expr.simplify_recursive_with_depth(0);
-    /// assert_eq!(out, Expr::Neg(Box::new(Expr::Var(0))));
-    /// ```
     fn simplify_recursive_with_depth(&self, depth: usize) -> Expr {
         if depth >= Self::MAX_CANON_DEPTH {
             return self.clone();

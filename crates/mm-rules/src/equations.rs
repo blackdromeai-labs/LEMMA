@@ -28,7 +28,7 @@ pub fn equation_rules() -> Vec<Rule> {
 
 fn isolate_variable() -> Rule {
     Rule {
-        id: RuleId(21),
+        id: RuleId(22000),
         name: "isolate_variable",
         category: RuleCategory::EquationSolving,
         description: "Move terms to isolate variable: ax + b = c → ax = c - b",
@@ -85,7 +85,7 @@ fn isolate_variable() -> Rule {
 
 fn cancel_addition() -> Rule {
     Rule {
-        id: RuleId(22),
+        id: RuleId(22001),
         name: "cancel_addition",
         category: RuleCategory::EquationSolving,
         description: "Cancel addition: x + a = b → x = b - a",
@@ -122,7 +122,7 @@ fn cancel_addition() -> Rule {
 
 fn cancel_subtraction() -> Rule {
     Rule {
-        id: RuleId(23),
+        id: RuleId(22002),
         name: "cancel_subtraction",
         category: RuleCategory::EquationSolving,
         description: "Cancel subtraction: x - a = b → x = b + a",
@@ -159,7 +159,7 @@ fn cancel_subtraction() -> Rule {
 
 fn cancel_multiplication() -> Rule {
     Rule {
-        id: RuleId(24),
+        id: RuleId(22003),
         name: "cancel_multiplication",
         category: RuleCategory::EquationSolving,
         description: "Cancel multiplication: ax = b -> x = b/a (or xa = b -> x = b/a)",

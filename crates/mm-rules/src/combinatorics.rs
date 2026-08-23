@@ -13,13 +13,6 @@ use mm_core::{Expr, Rational};
 /// Returns the complete set of combinatorics rules used by the solver.
 ///
 /// This aggregates binomial, counting, recurrence, and advanced combinatorics rule sets (IDs 400–442 and 600–669).
-///
-/// # Examples
-///
-/// ```
-/// let rules = combinatorics_rules();
-/// assert_eq!(rules.len(), 66);
-/// ```
 pub fn combinatorics_rules() -> Vec<Rule> {
     let mut rules = Vec::new();
 
@@ -40,7 +33,7 @@ fn binomial_rules() -> Vec<Rule> {
     vec![
         // C(n,0) = 1
         Rule {
-            id: RuleId(400),
+            id: RuleId(27000),
             name: "binomial_zero",
             category: RuleCategory::Simplification,
             description: "C(n,0) = 1",
@@ -61,7 +54,7 @@ fn binomial_rules() -> Vec<Rule> {
         },
         // C(n,n) = 1
         Rule {
-            id: RuleId(401),
+            id: RuleId(27001),
             name: "binomial_full",
             category: RuleCategory::Simplification,
             description: "C(n,n) = 1",
@@ -79,7 +72,7 @@ fn binomial_rules() -> Vec<Rule> {
         },
         // C(n,1) = n
         Rule {
-            id: RuleId(402),
+            id: RuleId(27002),
             name: "binomial_one",
             category: RuleCategory::Simplification,
             description: "C(n,1) = n",
@@ -97,7 +90,7 @@ fn binomial_rules() -> Vec<Rule> {
         },
         // C(n,k) = C(n,n-k) symmetry
         Rule {
-            id: RuleId(403),
+            id: RuleId(27003),
             name: "binomial_symmetry",
             category: RuleCategory::Simplification,
             description: "C(n,k) = C(n,n-k)",
@@ -151,7 +144,7 @@ fn binomial_rules() -> Vec<Rule> {
         },
         // Vandermonde's identity
         Rule {
-            id: RuleId(406),
+            id: RuleId(27004),
             name: "vandermonde",
             category: RuleCategory::Simplification,
             description: "ΣC(m,k)C(n,r-k) = C(m+n,r)",
@@ -169,7 +162,7 @@ fn binomial_rules() -> Vec<Rule> {
         },
         // Binomial sum: Σ C(n,k) = 2^n
         Rule {
-            id: RuleId(407),
+            id: RuleId(27005),
             name: "binomial_sum",
             category: RuleCategory::Simplification,
             description: "Σ C(n,k) for k=0 to n = 2^n",
@@ -193,7 +186,7 @@ fn binomial_rules() -> Vec<Rule> {
         },
         // (a+b)^n expansion (binomial theorem)
         Rule {
-            id: RuleId(408),
+            id: RuleId(27006),
             name: "binomial_theorem",
             category: RuleCategory::Expansion,
             description: "(a+b)^n = Σ C(n,k) a^k b^(n-k)",
@@ -227,7 +220,7 @@ fn counting_rules() -> Vec<Rule> {
     vec![
         // Permutations: P(n,k) = n!/(n-k)!
         Rule {
-            id: RuleId(420),
+            id: RuleId(27007),
             name: "permutation_formula",
             category: RuleCategory::Simplification,
             description: "P(n,k) = n!/(n-k)!",
@@ -245,7 +238,7 @@ fn counting_rules() -> Vec<Rule> {
         },
         // Combinations: C(n,k) = n!/(k!(n-k)!)
         Rule {
-            id: RuleId(421),
+            id: RuleId(27008),
             name: "combination_formula",
             category: RuleCategory::Simplification,
             description: "C(n,k) = n!/(k!(n-k)!)",
@@ -263,7 +256,7 @@ fn counting_rules() -> Vec<Rule> {
         },
         // Pigeonhole principle (n+1 items in n boxes)
         Rule {
-            id: RuleId(422),
+            id: RuleId(27009),
             name: "pigeonhole",
             category: RuleCategory::AlgebraicSolving,
             description: "n+1 items in n boxes => at least one box has 2+ items",
@@ -283,7 +276,7 @@ fn counting_rules() -> Vec<Rule> {
         },
         // Generalized pigeonhole
         Rule {
-            id: RuleId(423),
+            id: RuleId(27010),
             name: "pigeonhole_gen",
             category: RuleCategory::AlgebraicSolving,
             description: "n items in k boxes => some box has ≥ ⌈n/k⌉ items",
@@ -303,7 +296,7 @@ fn counting_rules() -> Vec<Rule> {
         },
         // Inclusion-exclusion for 2 sets
         Rule {
-            id: RuleId(424),
+            id: RuleId(27011),
             name: "inclusion_exclusion_2",
             category: RuleCategory::Simplification,
             description: "|A ∪ B| = |A| + |B| - |A ∩ B|",
@@ -321,7 +314,7 @@ fn counting_rules() -> Vec<Rule> {
         },
         // Inclusion-exclusion for 3 sets
         Rule {
-            id: RuleId(425),
+            id: RuleId(27012),
             name: "inclusion_exclusion_3",
             category: RuleCategory::Simplification,
             description: "|A ∪ B ∪ C| = |A|+|B|+|C| - |A∩B| - |B∩C| - |A∩C| + |A∩B∩C|",
@@ -339,7 +332,7 @@ fn counting_rules() -> Vec<Rule> {
         },
         // Derangement formula
         Rule {
-            id: RuleId(426),
+            id: RuleId(27013),
             name: "derangement",
             category: RuleCategory::Simplification,
             description: "D(n) = n! Σ (-1)^k/k! for k=0 to n",
@@ -357,7 +350,7 @@ fn counting_rules() -> Vec<Rule> {
         },
         // Catalan number
         Rule {
-            id: RuleId(427),
+            id: RuleId(27014),
             name: "catalan",
             category: RuleCategory::Simplification,
             description: "C_n = C(2n,n)/(n+1)",
@@ -402,7 +395,7 @@ fn recurrence_rules() -> Vec<Rule> {
         },
         // Closed form Fibonacci (Binet's formula)
         Rule {
-            id: RuleId(441),
+            id: RuleId(27015),
             name: "binet_formula",
             category: RuleCategory::Simplification,
             description: "F(n) = (φ^n - ψ^n)/√5",
@@ -421,7 +414,7 @@ fn recurrence_rules() -> Vec<Rule> {
         },
         // Linear recurrence solving
         Rule {
-            id: RuleId(442),
+            id: RuleId(27016),
             name: "linear_recurrence",
             category: RuleCategory::AlgebraicSolving,
             description: "a_n = c1*a_{n-1} + c2*a_{n-2} => characteristic equation",
@@ -448,13 +441,6 @@ fn recurrence_rules() -> Vec<Rule> {
 /// Aggregate advanced combinatorics rule constructors (derangement, Catalan, Stirling, generating functions, identities, and related rules) into a single collection.
 ///
 /// Returns a vector of `Rule` objects covering the advanced combinatorics rules (IDs 600–669).
-///
-/// # Examples
-///
-/// ```
-/// let rules = advanced_combinatorics_rules();
-/// assert!(!rules.is_empty());
-/// ```
 pub fn advanced_combinatorics_rules() -> Vec<Rule> {
     vec![
         // Derangement rules
@@ -481,8 +467,6 @@ pub fn advanced_combinatorics_rules() -> Vec<Rule> {
         // Pigeonhole principle
         pigeonhole_principle(),
         // Inclusion-exclusion
-        inclusion_exclusion_2(),
-        inclusion_exclusion_3(),
         // Double counting
         double_counting(),
         // Generating functions
@@ -492,7 +476,6 @@ pub fn advanced_combinatorics_rules() -> Vec<Rule> {
         binomial_sum_2n(),
         binomial_alternating_sum(),
         // Permutation formulas
-        permutation_formula(),
         circular_permutation(),
         derangement_asymptotic(),
         // Fibonacci identities
@@ -528,13 +511,6 @@ pub fn advanced_combinatorics_rules() -> Vec<Rule> {
 ///
 /// The rule encodes the derangement identity D(n) = n! * Σ (-1)^k / k! and is applicable to factorial or product expressions.
 /// The rule's apply function is a placeholder that returns the original expression with a justification message.
-///
-/// # Examples
-///
-/// ```
-/// let r = derangement_formula();
-/// assert_eq!(r.id, RuleId(600));
-/// ```
 fn derangement_formula() -> Rule {
     Rule {
         id: RuleId(600),
@@ -815,49 +791,6 @@ fn pigeonhole_principle() -> Rule {
     }
 }
 
-// |A ∪ B| = |A| + |B| - |A ∩ B|
-fn inclusion_exclusion_2() -> Rule {
-    Rule {
-        id: RuleId(613),
-        name: "inclusion_exclusion_2",
-        category: RuleCategory::Simplification,
-        description: "|A∪B| = |A| + |B| - |A∩B|",
-        domains: &[Domain::Combinatorics],
-        requires: &[],
-        is_applicable: |expr, _ctx| matches!(expr, Expr::Add(_, _) | Expr::Sub(_, _)),
-        apply: |expr, _ctx| {
-            vec![RuleApplication {
-                result: expr.clone(),
-                justification: "Inclusion-exclusion principle: |A∪B| = |A| + |B| - |A∩B|"
-                    .to_string(),
-            }]
-        },
-        reversible: false,
-        cost: 2,
-    }
-}
-
-// |A ∪ B ∪ C| = |A| + |B| + |C| - |A∩B| - |A∩C| - |B∩C| + |A∩B∩C|
-fn inclusion_exclusion_3() -> Rule {
-    Rule {
-        id: RuleId(614),
-        name: "inclusion_exclusion_3",
-        category: RuleCategory::Simplification,
-        description: "3-set inclusion-exclusion",
-        domains: &[Domain::Combinatorics],
-        requires: &[],
-        is_applicable: |expr, _ctx| matches!(expr, Expr::Add(_, _) | Expr::Sub(_, _)),
-        apply: |expr, _ctx| {
-            vec![RuleApplication {
-                result: expr.clone(),
-                justification: "3-set inclusion-exclusion: |A∪B∪C| = |A|+|B|+|C| - |A∩B| - |A∩C| - |B∩C| + |A∩B∩C|".to_string(),
-            }]
-        },
-        reversible: false,
-        cost: 3,
-    }
-}
-
 // Double counting principle
 fn double_counting() -> Rule {
     Rule {
@@ -969,27 +902,6 @@ fn binomial_alternating_sum() -> Rule {
     }
 }
 
-// P(n,k) = n!/(n-k)!
-fn permutation_formula() -> Rule {
-    Rule {
-        id: RuleId(620),
-        name: "permutation_formula",
-        category: RuleCategory::Simplification,
-        description: "P(n,k) = n!/(n-k)!",
-        domains: &[Domain::Combinatorics],
-        requires: &[Feature::Combinatorics],
-        is_applicable: |expr, _ctx| matches!(expr, Expr::Div(_, _) | Expr::Factorial(_)),
-        apply: |expr, _ctx| {
-            vec![RuleApplication {
-                result: expr.clone(),
-                justification: "Permutation formula: P(n,k) = n!/(n-k)!".to_string(),
-            }]
-        },
-        reversible: false,
-        cost: 2,
-    }
-}
-
 // Circular permutations: (n-1)!
 fn circular_permutation() -> Rule {
     Rule {
@@ -1076,14 +988,6 @@ fn fibonacci_gcd() -> Rule {
 
 // L(n) = F(n-1) + F(n+1)
 /// Provides a simplification rule relating Lucas numbers to Fibonacci numbers.
-///
-/// # Examples
-///
-/// ```
-/// let rule = lucas_numbers();
-/// assert_eq!(rule.id.0, 625);
-/// assert_eq!(rule.description, "L(n) = F(n-1) + F(n+1)");
-/// ```
 fn lucas_numbers() -> Rule {
     Rule {
         id: RuleId(625),
@@ -1112,14 +1016,6 @@ fn lucas_numbers() -> Rule {
 /// Constructs a rule that recognizes expressions of the form `n^k` where the exponent is a constant or variable and documents the permutation-with-repetition interpretation.
 ///
 /// The rule matches power expressions whose exponent is either a constant or a variable and provides the justification "Permutations with repetition: n choices k times = n^k".
-///
-/// # Examples
-///
-/// ```
-/// let rule = permutation_with_repetition();
-/// assert_eq!(rule.cost, 1);
-/// assert_eq!(rule.description, "Permutations with repetition: n^k");
-/// ```
 fn permutation_with_repetition() -> Rule {
     Rule {
         id: RuleId(650),
@@ -1151,14 +1047,6 @@ fn permutation_with_repetition() -> Rule {
 ///
 /// The rule targets factorial-division expressions and provides the standard
 /// combinatorial justification "C(n+k-1, k) = (n+k-1)!/(k!(n-1)!)".
-///
-/// # Examples
-///
-/// ```
-/// let r = combination_with_repetition();
-/// assert_eq!(r.id, RuleId(651));
-/// assert_eq!(r.name, "combination_with_repetition");
-/// ```
 fn combination_with_repetition() -> Rule {
     Rule {
         id: RuleId(651),
@@ -1191,14 +1079,6 @@ fn combination_with_repetition() -> Rule {
 /// # Returns
 ///
 /// A `Rule` with id 652 that matches `Expr::Add` or `Expr::Mul` and returns the input unchanged with a justification string describing the Bell number recurrence.
-///
-/// # Examples
-///
-/// ```
-/// let r = bell_number_recurrence();
-/// assert_eq!(r.id, RuleId(652));
-/// assert_eq!(r.name, "bell_number_recurrence");
-/// ```
 fn bell_number_recurrence() -> Rule {
     Rule {
         id: RuleId(652),
@@ -1225,14 +1105,6 @@ fn bell_number_recurrence() -> Rule {
 ///
 /// The returned Rule matches division expressions whose numerator is a factorial and, when applied,
 /// yields the same expression with a justification message describing the multinomial coefficient.
-///
-/// # Examples
-///
-/// ```
-/// let rule = multinomial_coefficient();
-/// // rule.id == RuleId(653)
-/// assert_eq!(rule.id.0, 653);
-/// ```
 fn multinomial_coefficient() -> Rule {
     Rule {
         id: RuleId(653),
@@ -1267,22 +1139,6 @@ fn multinomial_coefficient() -> Rule {
 /// The returned `Rule` recognizes multiplicative expressions involving a power of two and
 
 /// provides a `RuleApplication` whose justification is the identity Σ k*C(n,k) = n*2^(n-1).
-
-///
-
-/// # Examples
-
-///
-
-/// ```
-
-/// let rule = binomial_weighted_sum();
-
-/// assert_eq!(rule.id, RuleId(654));
-
-/// assert_eq!(rule.name, "binomial_weighted_sum");
-
-/// ```
 fn binomial_weighted_sum() -> Rule {
     Rule {
         id: RuleId(654),
@@ -1326,14 +1182,6 @@ fn binomial_weighted_sum() -> Rule {
 /// # Returns
 ///
 /// A `Rule` with id 655 named `"subfactorial"` that is applicable to `Expr::Factorial(_)` or `Expr::Div(_, _)` and whose application returns the original expression with a justification string.
-///
-/// # Examples
-///
-/// ```
-/// let r = subfactorial();
-/// assert_eq!(r.name, "subfactorial");
-/// assert_eq!(r.id.0, 655);
-/// ```
 fn subfactorial() -> Rule {
     Rule {
         id: RuleId(655),
@@ -1357,14 +1205,6 @@ fn subfactorial() -> Rule {
 // Christmas stocking identity: C(n,m)*C(m,k) = C(n,k)*C(n-k,m-k)
 /// Constructs the simplification rule encoding the "Christmas stocking" binomial identity:
 /// C(n, m) * C(m, k) = C(n, k) * C(n - k, m - k).
-///
-/// # Examples
-///
-/// ```
-/// let r = christmas_stocking();
-/// assert_eq!(r.id, RuleId(656));
-/// assert_eq!(r.name, "christmas_stocking");
-/// ```
 fn christmas_stocking() -> Rule {
     Rule {
         id: RuleId(656),
@@ -1390,14 +1230,6 @@ fn christmas_stocking() -> Rule {
 ///
 /// The produced Rule matches expressions that represent binomial-coefficient patterns (division or power)
 /// and, when applied, returns a RuleApplication preserving the expression with a justification citing the identity.
-///
-/// # Examples
-///
-/// ```
-/// let r = binomial_squares_sum();
-/// assert_eq!(r.id, RuleId(657));
-/// assert_eq!(r.name, "binomial_squares_sum");
-/// ```
 fn binomial_squares_sum() -> Rule {
     Rule {
         id: RuleId(657),
@@ -1425,14 +1257,6 @@ fn binomial_squares_sum() -> Rule {
 /// Constructs the rule for the rising factorial identity.
 ///
 /// The rule has id 658 and represents the rising factorial (x)_n = x(x+1)(x+2)...(x+n-1); it applies to multiplication expressions and, when applied, returns the original expression with a justification string describing the rising factorial formula.
-///
-/// # Examples
-///
-/// ```
-/// let rule = rising_factorial();
-/// assert_eq!(rule.id, RuleId(658));
-/// assert_eq!(rule.name, "rising_factorial");
-/// ```
 fn rising_factorial() -> Rule {
     Rule {
         id: RuleId(658),
@@ -1467,20 +1291,6 @@ fn rising_factorial() -> Rule {
 ///
 
 /// The constructed `Rule` which matches `Expr::Mul(_, _)` and produces a single `RuleApplication` containing the original expression and a justification: `"Falling factorial: x^(n) = x(x-1)(x-2)...(x-n+1)"`.
-
-///
-
-/// # Examples
-
-///
-
-/// ```
-
-/// let rule = falling_factorial();
-
-/// assert_eq!(rule.id, RuleId(659));
-
-/// ```
 fn falling_factorial() -> Rule {
     Rule {
         id: RuleId(659),
@@ -1505,14 +1315,6 @@ fn falling_factorial() -> Rule {
 /// Creates a rule representing Legendre's formula for the p-adic valuation of n!.
 ///
 /// The rule applies to floor or division expressions and, when applied, returns the input unchanged with a justification stating that the highest power of a prime p dividing n! is the sum of floor(n / p^k) over k.
-///
-/// # Examples
-///
-/// ```
-/// let r = legendre_formula();
-/// assert_eq!(r.id.0, 660);
-/// assert!(r.description.contains("vp(n!)"));
-/// ```
 fn legendre_formula() -> Rule {
     Rule {
         id: RuleId(660),
@@ -1538,14 +1340,6 @@ fn legendre_formula() -> Rule {
 /// Provides the Kummer theorem rule which relates the p-adic valuation of a binomial coefficient to carries in base p.
 ///
 /// The rule matches expressions of the form `C(m+n, m)` when presented as a division or modulus and records that `v_p(C(m+n,m))` equals the number of carries when adding `m` and `n` in base `p`.
-///
-/// # Examples
-///
-/// ```
-/// let rule = kummer_theorem();
-/// assert_eq!(rule.id, RuleId(661));
-/// assert!(rule.description.contains("Kummer"));
-/// ```
 fn kummer_theorem() -> Rule {
     Rule {
         id: RuleId(661),
@@ -1572,14 +1366,6 @@ fn kummer_theorem() -> Rule {
 /// Constructs the Rule implementing Lucas' theorem for binomial coefficients modulo a prime.
 ///
 /// The returned `Rule` matches expressions of the form `C(m,n) mod p` (represented as a `Mod` whose inner expression is a `Div`) and provides a justification string describing Lucas' theorem. The rule has id `662`, category `NumberTheory`, is not reversible, and has cost `3`.
-///
-/// # Examples
-///
-/// ```
-/// let r = lucas_theorem();
-/// assert_eq!(r.id, RuleId(662));
-/// assert_eq!(r.name, "lucas_theorem");
-/// ```
 fn lucas_theorem() -> Rule {
     Rule {
         id: RuleId(662),
@@ -1612,14 +1398,6 @@ fn lucas_theorem() -> Rule {
 ///
 /// The returned Rule matches multiplicative or divisional expressions and records
 /// the identity |X/G| = (1/|G|) Σ |X^g| with an explanatory justification.
-///
-/// # Examples
-///
-/// ```
-/// let r = burnside_lemma();
-/// assert_eq!(r.id, RuleId(663));
-/// assert!(r.description.contains("Burnside"));
-/// ```
 fn burnside_lemma() -> Rule {
     Rule {
         id: RuleId(663),
@@ -1645,13 +1423,6 @@ fn burnside_lemma() -> Rule {
 ///
 /// The returned Rule matches division or multiplication expressions and, when applied,
 /// records a justification about counting inequivalent configurations under a group action.
-///
-/// # Examples
-///
-/// ```
-/// let rule = polya_enumeration();
-/// assert_eq!(rule.id, RuleId(664));
-/// ```
 fn polya_enumeration() -> Rule {
     Rule {
         id: RuleId(664),
@@ -1679,13 +1450,6 @@ fn polya_enumeration() -> Rule {
 ///
 /// The rule matches expressions that are a division whose numerator is a factorial and records
 /// the Catalan alternative as its justification without performing a transformation.
-///
-/// # Examples
-///
-/// ```
-/// let r = catalan_alternative();
-/// assert_eq!(r.id.0, 665);
-/// ```
 fn catalan_alternative() -> Rule {
     Rule {
         id: RuleId(665),
@@ -1716,14 +1480,6 @@ fn catalan_alternative() -> Rule {
 ///
 /// The rule matches addition expressions and, when applied, returns the input expression
 /// unchanged with a justification describing the partition recurrence.
-///
-/// # Examples
-///
-/// ```
-/// let r = partition_into_parts();
-/// assert_eq!(r.id.0, 666);
-/// assert_eq!(r.name, "partition_into_parts");
-/// ```
 fn partition_into_parts() -> Rule {
     Rule {
         id: RuleId(666),
@@ -1754,22 +1510,6 @@ fn partition_into_parts() -> Rule {
 /// produces the same expression with a justification noting that pattern-avoiding permutations
 
 /// are counted by Catalan or similar sequences.
-
-///
-
-/// # Examples
-
-///
-
-/// ```
-
-/// let r = pattern_avoidance();
-
-/// assert_eq!(r.id, RuleId(667));
-
-/// assert_eq!(r.name, "pattern_avoidance");
-
-/// ```
 fn pattern_avoidance() -> Rule {
     Rule {
         id: RuleId(667),
@@ -1798,14 +1538,6 @@ fn pattern_avoidance() -> Rule {
 /// # Returns
 ///
 /// The `Rule` representing the derangement simple recurrence (id 668).
-///
-/// # Examples
-///
-/// ```
-/// let rule = derangement_simple_recurrence();
-/// assert_eq!(rule.id, RuleId(668));
-/// assert_eq!(rule.name, "derangement_simple_recurrence");
-/// ```
 fn derangement_simple_recurrence() -> Rule {
     Rule {
         id: RuleId(668),
@@ -1833,14 +1565,6 @@ fn derangement_simple_recurrence() -> Rule {
 /// The rule matches expressions written as a division whose denominator is a polynomial of the form `1 - x - x^2`
 /// and, when applied, returns the same expression with a justification stating the generating function identity
 /// Σ F_n x^n = x/(1 - x - x^2).
-///
-/// # Examples
-///
-/// ```
-/// let r = fibonacci_generating_function();
-/// assert_eq!(r.id, RuleId(669));
-/// assert!(r.description.contains("x/(1-x-x^2)"));
-/// ```
 fn fibonacci_generating_function() -> Rule {
     Rule {
         id: RuleId(669),

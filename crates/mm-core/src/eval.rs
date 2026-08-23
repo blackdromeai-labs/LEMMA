@@ -8,7 +8,7 @@
 //!
 //! Evaluates expressions to floating-point values given variable bindings.
 
-use crate::{Expr, Rational, Symbol};
+use crate::{Expr, Symbol};
 use std::collections::HashMap;
 
 /// Environment mapping variables to their values.

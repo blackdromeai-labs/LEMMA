@@ -22,21 +22,17 @@ fn main() {
     println!("WARNING: This is designed for GPU training!");
     println!("On CPU, this will take DAYS. Use RunPod or similar.\n");
 
-    // Detect device - prefer CUDA if available
-    let device = if cfg!(feature = "cuda") {
-        match Device::new_cuda(0) {
-            Ok(d) => {
-                println!("Using device: CUDA GPU 0");
-                d
-            }
-            Err(_) => {
-                println!("CUDA not available, falling back to CPU");
-                Device::Cpu
-            }
+    // Use a CUDA device when candle finds one. There is no `cuda` cargo feature in this
+    // workspace, so the old `cfg!(feature = "cuda")` guard was always false.
+    let device = match Device::new_cuda(0) {
+        Ok(d) => {
+            println!("Using device: CUDA GPU 0");
+            d
         }
-    } else {
-        println!("Using device: CPU (compile with --features cuda for GPU)");
-        Device::Cpu
+        Err(_) => {
+            println!("Using device: CPU (no CUDA device available)");
+            Device::Cpu
+        }
     };
 
     // =========================================================================
@@ -57,14 +53,22 @@ fn main() {
     // =========================================================================
     // BEAST MODE: Large Transformer
     // =========================================================================
+    // The policy head must have one column per action in the vocabulary plus the reserved
+    // terminal class; it cannot be chosen independently of the rule registry.
+    let vocabulary = mm_rules::ActionVocabulary::standard();
+    println!(
+        "Action vocabulary: {} actions, digest {:#018x}",
+        vocabulary.len(),
+        vocabulary.digest()
+    );
     let network_config = NetworkConfig {
-        vocab_size: 128,  // Larger vocabulary
+        vocab_size: 128,  // Larger token vocabulary
         embed_dim: 256,   // 256 embedding dimension
         hidden_dim: 512,  // 512 hidden dimension
         num_heads: 16,    // 16 attention heads
         num_layers: 6,    // 6 transformer layers
         max_seq_len: 128, // Longer sequences
-        num_rules: 30,    // 29 rules + 1 no-op
+        num_policy_classes: mm_brain::network::policy_classes_for(&vocabulary),
         dropout: 0.1,
     };
 
@@ -82,7 +86,7 @@ fn main() {
             4 * network_config.embed_dim * network_config.embed_dim + // Attention
             2 * network_config.embed_dim * network_config.hidden_dim  // FFN
         ) +
-        network_config.embed_dim * network_config.num_rules +   // Policy head
+        network_config.embed_dim * network_config.num_policy_classes + // Policy head
         network_config.embed_dim; // Value head
     println!(
         "  Estimated parameters: ~{:.2}M",
@@ -226,8 +230,11 @@ fn main() {
                 indexed.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
 
                 println!("  Top 3 rules:");
-                for (i, (rule_idx, prob)) in indexed.iter().take(3).enumerate() {
-                    println!("    {}. Rule {} (prob: {:.3})", i + 1, rule_idx, prob);
+                for (i, (action, prob)) in indexed.iter().take(3).enumerate() {
+                    match vocabulary.key_at(*action) {
+                        Ok(key) => println!("    {}. {} (prob: {:.3})", i + 1, key, prob),
+                        Err(_) => println!("    {}. <terminal action> (prob: {:.3})", i + 1, prob),
+                    }
                 }
 
                 let value_scalar: f32 = match value.squeeze(0) {

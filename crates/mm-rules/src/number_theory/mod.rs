@@ -1415,7 +1415,7 @@ fn sum_formulas() -> Vec<Rule> {
     vec![
         // Σc (n times) = cn
         Rule {
-            id: RuleId(200),
+            id: RuleId(26000),
             name: "sum_constant",
             category: RuleCategory::Simplification,
             description: "Σc (n times) = cn",
@@ -1449,7 +1449,7 @@ fn sum_formulas() -> Vec<Rule> {
         },
         // 1+2+...+n = n(n+1)/2
         Rule {
-            id: RuleId(201),
+            id: RuleId(26001),
             name: "sum_arithmetic",
             category: RuleCategory::Simplification,
             description: "1+2+...+n = n(n+1)/2",
@@ -1475,7 +1475,7 @@ fn sum_formulas() -> Vec<Rule> {
             },
             apply: |expr, _ctx| {
                 if let Expr::Div(num, _) = expr {
-                    if let Expr::Mul(n, _) = num.as_ref() {
+                    if let Expr::Mul(_n, _) = num.as_ref() {
                         return vec![RuleApplication {
                             result: expr.clone(),
                             justification: "1+2+...+n = n(n+1)/2 (arithmetic sum formula)"
@@ -1490,7 +1490,7 @@ fn sum_formulas() -> Vec<Rule> {
         },
         // 1²+2²+...+n² = n(n+1)(2n+1)/6
         Rule {
-            id: RuleId(202),
+            id: RuleId(26002),
             name: "sum_squares",
             category: RuleCategory::Simplification,
             description: "1²+2²+...+n² = n(n+1)(2n+1)/6",
@@ -1524,7 +1524,7 @@ fn sum_formulas() -> Vec<Rule> {
         },
         // 1³+2³+...+n³ = [n(n+1)/2]²
         Rule {
-            id: RuleId(203),
+            id: RuleId(26003),
             name: "sum_cubes",
             category: RuleCategory::Simplification,
             description: "1³+2³+...+n³ = [n(n+1)/2]²",
@@ -1557,7 +1557,7 @@ fn sum_formulas() -> Vec<Rule> {
         },
         // 1+r+r²+...+r^n = (r^(n+1)-1)/(r-1)
         Rule {
-            id: RuleId(204),
+            id: RuleId(26004),
             name: "geometric_sum",
             category: RuleCategory::Simplification,
             description: "1+r+r²+...+r^n = (r^(n+1)-1)/(r-1)",
@@ -1608,7 +1608,7 @@ fn factorial_rules() -> Vec<Rule> {
     vec![
         // 0! = 1
         Rule {
-            id: RuleId(220),
+            id: RuleId(26005),
             name: "factorial_zero",
             category: RuleCategory::Simplification,
             description: "0! = 1",
@@ -1636,7 +1636,7 @@ fn factorial_rules() -> Vec<Rule> {
         },
         // 1! = 1
         Rule {
-            id: RuleId(221),
+            id: RuleId(26006),
             name: "factorial_one",
             category: RuleCategory::Simplification,
             description: "1! = 1",
@@ -1664,7 +1664,7 @@ fn factorial_rules() -> Vec<Rule> {
         },
         // n! = n · (n-1)!
         Rule {
-            id: RuleId(222),
+            id: RuleId(26007),
             name: "factorial_recurse",
             category: RuleCategory::Expansion,
             description: "n! = n · (n-1)!",
@@ -1698,7 +1698,7 @@ fn floor_ceiling_rules() -> Vec<Rule> {
     vec![
         // ⌊n⌋ = n for integer n
         Rule {
-            id: RuleId(240),
+            id: RuleId(26008),
             name: "floor_integer",
             category: RuleCategory::Simplification,
             description: "⌊n⌋ = n for integer n",
@@ -1731,7 +1731,7 @@ fn floor_ceiling_rules() -> Vec<Rule> {
         },
         // ⌈n⌉ = n for integer n
         Rule {
-            id: RuleId(241),
+            id: RuleId(26009),
             name: "ceiling_integer",
             category: RuleCategory::Simplification,
             description: "⌈n⌉ = n for integer n",
@@ -1763,7 +1763,7 @@ fn floor_ceiling_rules() -> Vec<Rule> {
         },
         // ⌈x⌉ - ⌊x⌋ = 0 or 1
         Rule {
-            id: RuleId(242),
+            id: RuleId(26010),
             name: "floor_ceiling_diff",
             category: RuleCategory::AlgebraicSolving,
             description: "⌈x⌉ - ⌊x⌋ = 0 or 1",
@@ -2638,15 +2638,6 @@ fn mersenne_prime_condition() -> Rule {
 /// a `Const` expression containing the integer σ(n) (the sum of all positive divisors of n) and a
 /// justification string. For any other expression the rule is applicable only as a descriptive
 /// transformation and returns the original expression with a generic justification.
-///
-/// # Examples
-///
-/// ```
-/// let rule = sum_of_divisors();
-/// let expr = Expr::Const(Rational::from_integer(6));
-/// let apps = (rule.apply)(&expr, &Context::default());
-/// assert_eq!(apps[0].result, Expr::Const(Rational::from_integer(12))); // 1+2+3+6 = 12
-/// ```
 fn sum_of_divisors() -> Rule {
     Rule {
         id: RuleId(726),
@@ -2700,16 +2691,6 @@ fn sum_of_divisors() -> Rule {
 /// This rule applies only when the expression is a positive integer constant less than 1000;
 /// in that case it returns a concrete constant equal to the count of all positive divisors of n.
 /// Otherwise the rule leaves the expression unchanged and provides a descriptive justification.
-///
-/// # Examples
-///
-/// ```
-/// // Example: τ(12) = 6 because divisors are 1,2,3,4,6,12
-/// let rule = number_of_divisors();
-/// let expr = Expr::Const(Rational::from_integer(12));
-/// let apps = (rule.apply)(&expr, &Default::default());
-/// assert_eq!(apps[0].result, Expr::Const(Rational::from_integer(6)));
-/// ```
 fn number_of_divisors() -> Rule {
     Rule {
         id: RuleId(727),

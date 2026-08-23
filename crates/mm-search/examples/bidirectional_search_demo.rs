@@ -4,7 +4,7 @@
 //!
 //! Usage: cargo run --example bidirectional_search_demo --release -p mm-search
 
-use mm_core::{proof::SearchDirection, Expr, SymbolTable};
+use mm_core::{Expr, SymbolTable};
 use mm_rules::backward::backward_search;
 use mm_rules::rule::standard_rules;
 use mm_rules::RuleContext;

@@ -6,7 +6,7 @@
 //! Usage: cargo run --example comprehensive_proof_demo --release -p mm-solver
 
 use mm_core::{Expr, SymbolTable};
-use mm_rules::backward::{backward_search, BackwardStrategy};
+use mm_rules::backward::backward_search;
 use mm_rules::rule::standard_rules;
 use mm_rules::RuleContext;
 use mm_search::bridge::BridgeFinder;

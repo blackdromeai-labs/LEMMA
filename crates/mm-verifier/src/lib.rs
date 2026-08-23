@@ -6,18 +6,27 @@
 
 //! # mm-verifier
 //!
-//! Verification system for the Math Monster.
+//! Verification system for LEMMA.
 //!
-//! Provides multiple levels of verification to ensure mathematical correctness:
-//! - **Numerical**: Fast spot-checking at random points
-//! - **Symbolic**: Canonical form comparison
-//! - **Formal**: SMT solver proof (future)
+//! What each level actually does:
+//! - **Numerical**: samples both expressions at random points and compares.
+//! - **Symbolic**: compares canonical forms, falling back to sampling.
+//! - **Formal**: not implemented. It reports [`VerifyResult::Unsupported`] rather than
+//!   pretending an SMT solver ran.
+//!
+//! None of these prove a rule is mathematically sound. They check that a claimed transition
+//! is the rule's own output and that the two expressions agree; every accepted step records
+//! the [`VerificationMethod`] that established it, so a caller can tell replay from
+//! equivalence. See [`status`] for how per-step evidence becomes a result status.
 
 pub mod numerical;
+pub mod status;
 pub mod symbolic;
 
-use mm_core::{Expr, MathError};
+use mm_core::Expr;
 use mm_rules::{Rule, RuleContext};
+
+pub use status::{status_from_evidence, StepEvidence, VerificationMethod, VerificationStatus};
 
 /// Verification confidence level.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -26,19 +35,35 @@ pub enum VerificationLevel {
     Numerical,
     /// Symbolic canonical form comparison.
     Symbolic,
-    /// Full formal proof (SMT solver).
+    /// Machine-checked proof. Not implemented.
     Formal,
 }
 
 /// Result of verification.
 #[derive(Debug, Clone)]
 pub enum VerifyResult {
-    /// Step is valid with given confidence.
-    Valid { confidence: f64 },
+    /// Step is valid, with the method that established it.
+    Valid {
+        /// Confidence in the check itself, not in the rule's soundness.
+        confidence: f64,
+        /// How the step was established.
+        method: VerificationMethod,
+    },
     /// Step is invalid with reason.
-    Invalid { reason: String },
+    Invalid {
+        /// Why the step was rejected.
+        reason: String,
+    },
     /// Could not determine (timeout, complexity).
-    Unknown { reason: String },
+    Unknown {
+        /// Why no verdict was reached.
+        reason: String,
+    },
+    /// The requested verification mode is not implemented.
+    Unsupported {
+        /// What was requested and why it cannot be answered.
+        reason: String,
+    },
 }
 
 impl VerifyResult {
@@ -50,26 +75,32 @@ impl VerifyResult {
     /// Get confidence if valid.
     pub fn confidence(&self) -> Option<f64> {
         match self {
-            VerifyResult::Valid { confidence } => Some(*confidence),
+            VerifyResult::Valid { confidence, .. } => Some(*confidence),
             _ => None,
+        }
+    }
+
+    /// Get the method that established validity, if any.
+    pub fn method(&self) -> Option<VerificationMethod> {
+        match self {
+            VerifyResult::Valid { method, .. } => Some(*method),
+            _ => None,
+        }
+    }
+
+    /// Evidence to record on a step for this result.
+    pub fn evidence(&self) -> StepEvidence {
+        match self {
+            VerifyResult::Valid { method, .. } => StepEvidence::Checked(*method),
+            _ => StepEvidence::Unchecked,
         }
     }
 }
 
-/// Detects whether an expression contains calculus operations (derivatives or integrals)
-/// or any subexpression that contains them.
+/// Whether an expression contains a derivative or integral anywhere inside it.
 ///
-/// This checks recursively: returns `true` if the expression is a derivative or integral
-/// node, or if any child/subexpression contains such a node; returns `false` for plain
-/// constants, variables, and transcendental constants that do not enclose calculus.
-///
-/// # Examples
-///
-/// ```
-/// // A simple non-calculus expression
-/// let expr = Expr::Neg(Box::new(Expr::Const(1.0)));
-/// assert!(!is_calculus_expr(&expr));
-/// ```
+/// Such expressions cannot be sampled by the numeric evaluator, so steps involving them can
+/// only be established by rule replay.
 fn is_calculus_expr(expr: &Expr) -> bool {
     match expr {
         Expr::Derivative { .. } | Expr::Integral { .. } => true,
@@ -183,17 +214,31 @@ impl Verifier {
             };
         }
 
-        // 3. Additional verification based on level
-        // For calculus expressions (derivatives/integrals), skip numerical verification
-        // since they cannot be numerically evaluated - trust the rule application
+        // 3. Formal mode is not implemented for any expression, calculus or not.
+        if self.level == VerificationLevel::Formal {
+            return VerifyResult::Unsupported {
+                reason: "formal verification is not implemented; no SMT or proof-checking \
+                         backend is present"
+                    .to_string(),
+            };
+        }
+
+        // 4. Expressions containing a derivative or integral cannot be evaluated numerically,
+        //    so nothing beyond the replay in step 2 can be established about them. Say so.
         if is_calculus_expr(before) || is_calculus_expr(after) {
-            return VerifyResult::Valid { confidence: 0.95 };
+            return VerifyResult::Valid {
+                confidence: 0.95,
+                method: VerificationMethod::RuleReplayOnly,
+            };
         }
 
         match self.level {
             VerificationLevel::Numerical => {
                 if numerical::verify_equivalent(before, after, self.num_samples, self.tolerance) {
-                    VerifyResult::Valid { confidence: 0.999 }
+                    VerifyResult::Valid {
+                        confidence: 0.999,
+                        method: VerificationMethod::NumericSampling,
+                    }
                 } else {
                     VerifyResult::Invalid {
                         reason: "Numerical verification failed".to_string(),
@@ -202,24 +247,63 @@ impl Verifier {
             }
             VerificationLevel::Symbolic => {
                 if symbolic::verify_equivalent(before, after) {
-                    VerifyResult::Valid { confidence: 1.0 }
+                    VerifyResult::Valid {
+                        confidence: 1.0,
+                        method: VerificationMethod::SymbolicEquivalence,
+                    }
+                } else if numerical::verify_equivalent(
+                    before,
+                    after,
+                    self.num_samples,
+                    self.tolerance,
+                ) {
+                    VerifyResult::Valid {
+                        confidence: 0.999,
+                        method: VerificationMethod::NumericSampling,
+                    }
                 } else {
-                    // Fall back to numerical
-                    if numerical::verify_equivalent(before, after, self.num_samples, self.tolerance)
-                    {
-                        VerifyResult::Valid { confidence: 0.999 }
-                    } else {
-                        VerifyResult::Invalid {
-                            reason: "Symbolic verification failed".to_string(),
-                        }
+                    VerifyResult::Invalid {
+                        reason: "Symbolic verification failed".to_string(),
                     }
                 }
             }
-            VerificationLevel::Formal => {
-                // TODO: Implement Z3 integration
-                VerifyResult::Unknown {
-                    reason: "Formal verification not yet implemented".to_string(),
-                }
+            VerificationLevel::Formal => unreachable!("handled above"),
+        }
+    }
+
+    /// Check that two expressions are equivalent, independently of any rule.
+    ///
+    /// Used for transitions that are not a registry rule application, such as
+    /// canonicalisation or constant folding done during post-processing. Those must still
+    /// produce evidence, or the result they contribute to cannot be called checked.
+    pub fn verify_equivalence(&self, before: &Expr, after: &Expr) -> VerifyResult {
+        if self.level == VerificationLevel::Formal {
+            return VerifyResult::Unsupported {
+                reason: "formal verification is not implemented".to_string(),
+            };
+        }
+
+        if symbolic::verify_equivalent(before, after) {
+            return VerifyResult::Valid {
+                confidence: 1.0,
+                method: VerificationMethod::SymbolicEquivalence,
+            };
+        }
+
+        if is_calculus_expr(before) || is_calculus_expr(after) {
+            return VerifyResult::Unknown {
+                reason: "expressions contain calculus operators and cannot be sampled".to_string(),
+            };
+        }
+
+        if numerical::verify_equivalent(before, after, self.num_samples, self.tolerance) {
+            VerifyResult::Valid {
+                confidence: 0.999,
+                method: VerificationMethod::NumericSampling,
+            }
+        } else {
+            VerifyResult::Invalid {
+                reason: "expressions are not equivalent".to_string(),
             }
         }
     }
@@ -238,13 +322,19 @@ impl Verifier {
 
             // After substitution, lhs should equal rhs
             if self.expressions_equal(&lhs_subst, &rhs_subst) {
-                return VerifyResult::Valid { confidence: 1.0 };
+                return VerifyResult::Valid {
+                    confidence: 1.0,
+                    method: VerificationMethod::SymbolicEquivalence,
+                };
             }
 
             // Try numerical verification
             let diff = Expr::Sub(Box::new(lhs_subst.clone()), Box::new(rhs_subst.clone()));
             if numerical::is_zero(&diff, self.num_samples, self.tolerance) {
-                return VerifyResult::Valid { confidence: 0.999 };
+                return VerifyResult::Valid {
+                    confidence: 0.999,
+                    method: VerificationMethod::NumericSampling,
+                };
             }
 
             return VerifyResult::Invalid {
@@ -278,21 +368,8 @@ impl Verifier {
 
 /// Replace all free occurrences of a variable in an expression with another expression.
 ///
-/// The substitution avoids replacing occurrences that are bound by local quantifiers or
-/// summation/product indices (for example, the bound variable of `Summation`, `BigProduct`,
-/// `ForAll`, and `Exists` are not substituted when they shadow `var`). All other expression
-/// nodes are traversed and reconstructed with `var` replaced by `value`.
-///
-/// # Examples
-///
-/// ```
-/// use mm_core::{Expr, Symbol};
-///
-/// let x = Symbol::from("x");
-/// let expr = Expr::Add(Box::new(Expr::Var(x)), Box::new(Expr::Const(1.0)));
-/// let replaced = substitute(&expr, x, &Expr::Const(3.0));
-/// assert_eq!(replaced, Expr::Add(Box::new(Expr::Const(3.0)), Box::new(Expr::Const(1.0))));
-/// ```
+/// Occurrences bound by a local quantifier or a summation/product index are left alone when
+/// the bound variable shadows `var`.
 fn substitute(expr: &Expr, var: mm_core::Symbol, value: &Expr) -> Expr {
     match expr {
         Expr::Var(v) if *v == var => value.clone(),

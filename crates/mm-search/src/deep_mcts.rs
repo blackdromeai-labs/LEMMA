@@ -1,16 +1,21 @@
-//! Deep MCTS for IMO Problem Solving
+//! Parallel tree search with a large node budget.
 //!
-//! This module implements an industrial-strength MCTS that can:
-//! - Search millions/billions of nodes
-//! - Run for hours on a single problem
-//! - Use parallel workers for faster exploration
-//! - Use neural guidance for action selection
+//! What this is: a multi-threaded best-first tree search over rule applications, with
+//! constant action priors (0.15 at the top level, 0.1 for sub-expression rewrites), no
+//! learned leaf evaluation, and a binary success/failure backup.
+//!
+//! What it is not: AlphaZero-style neural MCTS. It does not consult a policy or value
+//! network. [`crate::mcts::NeuralMCTS`] is the module that does.
+//!
+//! Statistics reported by [`DeepMCTS::search`] are measured, not estimated. `nodes_expanded`
+//! and `max_depth_reached` were previously derived from the configuration
+//! (`nodes_explored / 10` and the configured depth limit) rather than observed.
 
 use mm_core::Expr;
 use mm_rules::{RuleContext, RuleId, RuleSet};
 use mm_verifier::Verifier;
 use rayon::prelude::*;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
@@ -152,18 +157,24 @@ impl DeepNode {
     }
 }
 
-/// Statistics for the search
+/// Measured statistics for a search.
 #[derive(Debug, Clone, Default)]
 pub struct SearchStats {
+    /// Nodes visited by a simulation.
     pub nodes_explored: u64,
+    /// Nodes whose children were generated. Counted, not estimated.
     pub nodes_expanded: u64,
+    /// Deepest simulation depth actually reached. Observed, not the configured limit.
     pub max_depth_reached: usize,
+    /// Number of goal paths found.
     pub solutions_found: u64,
+    /// Wall-clock duration.
     pub elapsed_seconds: f64,
+    /// Nodes explored per second.
     pub nodes_per_second: f64,
 }
 
-/// Deep MCTS solver
+/// Parallel tree search solver.
 pub struct DeepMCTS {
     pub rules: RuleSet,
     pub verifier: Verifier,
@@ -205,6 +216,8 @@ impl DeepMCTS {
 
         // Shared state for parallel search
         let nodes_explored = AtomicU64::new(0);
+        let nodes_expanded = AtomicU64::new(0);
+        let max_depth_reached = AtomicUsize::new(0);
         let solutions_found = AtomicU64::new(0);
         let found_solution: RwLock<Option<Vec<Expr>>> = RwLock::new(None);
         let should_stop = AtomicBool::new(false);
@@ -227,8 +240,12 @@ impl DeepMCTS {
                     }
 
                     // Run one simulation
-                    if let Some(path) = self.simulate(Arc::clone(&root), &goal, 0, &nodes_explored)
-                    {
+                    let counters = Counters {
+                        nodes_explored: &nodes_explored,
+                        nodes_expanded: &nodes_expanded,
+                        max_depth_reached: &max_depth_reached,
+                    };
+                    if let Some(path) = self.simulate(Arc::clone(&root), &goal, 0, &counters) {
                         // Found a solution!
                         solutions_found.fetch_add(1, Ordering::Relaxed);
                         let mut sol = found_solution.write().unwrap();
@@ -256,8 +273,8 @@ impl DeepMCTS {
 
         let stats = SearchStats {
             nodes_explored: total_nodes,
-            nodes_expanded: total_nodes / 10, // Approximate
-            max_depth_reached: self.config.max_depth,
+            nodes_expanded: nodes_expanded.load(Ordering::Relaxed),
+            max_depth_reached: max_depth_reached.load(Ordering::Relaxed),
             solutions_found: solutions_found.load(Ordering::Relaxed),
             elapsed_seconds: elapsed.as_secs_f64(),
             nodes_per_second: total_nodes as f64 / elapsed.as_secs_f64(),
@@ -267,18 +284,19 @@ impl DeepMCTS {
         (solution, stats)
     }
 
-    /// Run one MCTS simulation (SELECT, EXPAND, EVALUATE, BACKUP)
+    /// Run one simulation (SELECT, EXPAND, BACKUP).
     fn simulate<F>(
         &self,
         node: Arc<DeepNode>,
         goal: &F,
         depth: usize,
-        nodes_explored: &AtomicU64,
+        counters: &Counters<'_>,
     ) -> Option<Vec<Expr>>
     where
         F: Fn(&Expr) -> bool + Sync,
     {
-        nodes_explored.fetch_add(1, Ordering::Relaxed);
+        counters.nodes_explored.fetch_add(1, Ordering::Relaxed);
+        counters.record_depth(depth);
 
         // Check if at goal
         if goal(&node.state) {
@@ -291,14 +309,14 @@ impl DeepMCTS {
         }
 
         // EXPAND if needed
-        if !node.expanded.load(Ordering::Relaxed) {
-            if node
+        if !node.expanded.load(Ordering::Relaxed)
+            && node
                 .expanded
                 .compare_exchange(false, true, Ordering::SeqCst, Ordering::Relaxed)
                 .is_ok()
-            {
-                self.expand(&node);
-            }
+        {
+            self.expand(&node);
+            counters.nodes_expanded.fetch_add(1, Ordering::Relaxed);
         }
 
         // SELECT best child
@@ -325,7 +343,7 @@ impl DeepMCTS {
             // Apply virtual loss
             child.visits.fetch_add(1, Ordering::Relaxed);
 
-            let result = self.simulate(child.clone(), goal, depth + 1, nodes_explored);
+            let result = self.simulate(child.clone(), goal, depth + 1, counters);
 
             // BACKUP
             let value = if result.is_some() { 1.0 } else { 0.0 };
@@ -467,9 +485,46 @@ impl DeepMCTS {
     }
 }
 
+/// Shared measurement counters for one search.
+struct Counters<'a> {
+    nodes_explored: &'a AtomicU64,
+    nodes_expanded: &'a AtomicU64,
+    max_depth_reached: &'a AtomicUsize,
+}
+
+impl Counters<'_> {
+    /// Record the deepest simulation depth seen so far.
+    fn record_depth(&self, depth: usize) {
+        self.max_depth_reached.fetch_max(depth, Ordering::Relaxed);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use mm_rules::rule::{standard_rules, Rule, RuleApplication, RuleSet};
+    use mm_rules::{Domain, Feature, RuleCategory};
+
+    /// A rule that only ever matches a bare variable, so a constant root has no children.
+    fn variable_only_rule() -> Rule {
+        Rule {
+            id: RuleId(1),
+            name: "wrap_variable",
+            category: RuleCategory::Simplification,
+            description: "x -> x + 0",
+            domains: &[] as &[Domain],
+            requires: &[] as &[Feature],
+            is_applicable: |e, _| matches!(e, Expr::Var(_)),
+            apply: |e, _| {
+                vec![RuleApplication {
+                    result: Expr::Add(Box::new(e.clone()), Box::new(Expr::int(0))),
+                    justification: "x -> x + 0".to_string(),
+                }]
+            },
+            reversible: false,
+            cost: 1,
+        }
+    }
 
     #[test]
     fn test_config_presets() {
@@ -478,5 +533,83 @@ mod tests {
 
         let deep = DeepMCTSConfig::deep();
         assert_eq!(deep.max_nodes, 100_000_000);
+    }
+
+    #[test]
+    fn statistics_are_measured_not_derived_from_the_configuration() {
+        let mut rules = RuleSet::new();
+        rules.try_add("test", variable_only_rule()).unwrap();
+
+        let configured_depth = 32;
+        let search = DeepMCTS::with_config(
+            rules,
+            Verifier::new(),
+            DeepMCTSConfig {
+                max_nodes: 200,
+                time_limit_secs: 10,
+                max_depth: configured_depth,
+                num_workers: 1,
+                ..DeepMCTSConfig::default()
+            },
+        );
+
+        // The root is a constant, so no rule applies and the tree has no children at all.
+        let (solution, stats) = search.search(Expr::int(5), |e: &Expr| *e == Expr::int(4242));
+
+        assert!(solution.is_none());
+        assert!(stats.nodes_explored > 0);
+        assert_eq!(
+            stats.max_depth_reached, 0,
+            "max_depth_reached must be the depth actually reached, not the configured limit              of {configured_depth}"
+        );
+        assert_eq!(
+            stats.nodes_expanded, 1,
+            "exactly one node (the root) is expanded here; the count must not be estimated              as nodes_explored / 10"
+        );
+        assert_ne!(stats.nodes_expanded, stats.nodes_explored / 10);
+    }
+
+    #[test]
+    fn depth_is_recorded_when_the_search_descends() {
+        let mut symbols = mm_core::SymbolTable::new();
+        let x = symbols.intern("x");
+        let mut rules = RuleSet::new();
+        rules.try_add("test", variable_only_rule()).unwrap();
+
+        let search = DeepMCTS::with_config(
+            rules,
+            Verifier::new(),
+            DeepMCTSConfig {
+                max_nodes: 100,
+                time_limit_secs: 10,
+                max_depth: 6,
+                num_workers: 1,
+                ..DeepMCTSConfig::default()
+            },
+        );
+
+        let (_solution, stats) = search.search(Expr::Var(x), |e: &Expr| *e == Expr::int(4242));
+        assert!(
+            stats.max_depth_reached > 0,
+            "the search should have descended"
+        );
+        assert!(stats.max_depth_reached <= 6);
+    }
+
+    #[test]
+    fn a_goal_at_the_root_is_reported_immediately() {
+        let search = DeepMCTS::with_config(
+            standard_rules(),
+            Verifier::new(),
+            DeepMCTSConfig {
+                max_nodes: 10,
+                time_limit_secs: 1,
+                num_workers: 1,
+                ..DeepMCTSConfig::default()
+            },
+        );
+
+        let (solution, _stats) = search.search(Expr::int(5), |e: &Expr| *e == Expr::int(5));
+        assert_eq!(solution, Some(vec![Expr::int(5)]));
     }
 }

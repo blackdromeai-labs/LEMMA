@@ -8,11 +8,12 @@
 
 use candle_core::{DType, Device, IndexOp, Module, Result, Tensor};
 use candle_nn::{embedding, linear, Embedding, Linear, VarBuilder, VarMap};
+use mm_rules::ActionVocabulary;
 
 /// Configuration for the network.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct NetworkConfig {
-    /// Vocabulary size for embedding.
+    /// Token vocabulary size for embedding.
     pub vocab_size: usize,
     /// Embedding dimension.
     pub embed_dim: usize,
@@ -24,24 +25,56 @@ pub struct NetworkConfig {
     pub num_layers: usize,
     /// Maximum sequence length.
     pub max_seq_len: usize,
-    /// Number of rules (output dimension for policy).
-    pub num_rules: usize,
+    /// Number of policy output classes.
+    ///
+    /// One column per action in the [`mm_rules::ActionVocabulary`] plus one reserved
+    /// terminal class (see [`STOP_CLASS_NOTE`]). It must be derived from a vocabulary,
+    /// never hard-coded: the head previously had 25 columns while the registry held
+    /// hundreds of rules, so almost every rule indexed past the end of the tensor.
+    pub num_policy_classes: usize,
     /// Dropout rate.
     pub dropout: f64,
 }
 
-impl Default for NetworkConfig {
-    fn default() -> Self {
+/// The last policy class is reserved for "apply no rule" and maps to no action.
+pub const STOP_CLASS_NOTE: &str =
+    "policy class `num_policy_classes - 1` is the reserved terminal action";
+
+/// Number of policy classes required for a vocabulary: one per action plus the terminal class.
+pub fn policy_classes_for(vocab: &ActionVocabulary) -> usize {
+    vocab.len() + 1
+}
+
+impl NetworkConfig {
+    /// Build a configuration whose policy head matches an action vocabulary.
+    pub fn for_vocabulary(vocab: &ActionVocabulary) -> Self {
         Self {
             vocab_size: 64,
             embed_dim: 64,
             hidden_dim: 128,
             num_heads: 4,
             max_seq_len: 64,
-            num_rules: 25, // Number of rules we have
+            num_policy_classes: policy_classes_for(vocab),
             num_layers: 2,
             dropout: 0.1,
         }
+    }
+
+    /// Number of classes that correspond to rule actions (all but the terminal class).
+    pub fn num_actions(&self) -> usize {
+        self.num_policy_classes - 1
+    }
+
+    /// Index of the reserved terminal class.
+    pub fn stop_class(&self) -> usize {
+        self.num_policy_classes - 1
+    }
+}
+
+impl Default for NetworkConfig {
+    /// Sized for the standard rule registry.
+    fn default() -> Self {
+        Self::for_vocabulary(mm_rules::standard_action_vocabulary())
     }
 }
 
@@ -183,6 +216,9 @@ pub struct MathNetwork {
 
 impl MathNetwork {
     /// Create a new network with random weights.
+    ///
+    /// Callers that expose the result must record [`crate::ModelProvenance::Untrained`]:
+    /// priors from a randomly initialised head are noise, not guidance.
     pub fn new(config: NetworkConfig, device: &Device) -> Result<Self> {
         let varmap = VarMap::new();
         let vb = VarBuilder::from_varmap(&varmap, DType::F32, device);
@@ -205,7 +241,7 @@ impl MathNetwork {
             transformer_blocks.push(block);
         }
 
-        let policy_head = linear(config.embed_dim, config.num_rules, vb.pp("policy"))?;
+        let policy_head = linear(config.embed_dim, config.num_policy_classes, vb.pp("policy"))?;
         let value_head = linear(config.embed_dim, 1, vb.pp("value"))?;
 
         Ok(Self {
@@ -238,7 +274,7 @@ impl MathNetwork {
     /// * `tokens` - Token IDs tensor of shape (batch_size, seq_len)
     ///
     /// # Returns
-    /// * Policy logits (batch_size, num_rules)
+    /// * Policy logits (batch_size, num_policy_classes)
     /// * Value estimate (batch_size, 1)
     pub fn forward(&self, tokens: &Tensor) -> Result<(Tensor, Tensor)> {
         let (batch_size, seq_len) = tokens.dims2()?;
@@ -301,7 +337,7 @@ mod tests {
 
         let (policy, value) = network.forward(&tokens).unwrap();
 
-        assert_eq!(policy.dims(), &[2, config.num_rules]);
+        assert_eq!(policy.dims(), &[2, config.num_policy_classes]);
         assert_eq!(value.dims(), &[2, 1]);
     }
 

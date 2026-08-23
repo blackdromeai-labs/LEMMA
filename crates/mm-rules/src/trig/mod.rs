@@ -1508,7 +1508,7 @@ fn sin_half_angle() -> Rule {
         description: "sin(x/2) = √((1-cos(x))/2)",
         is_applicable: |expr, _ctx| {
             if let Expr::Sin(inner) = expr {
-                if let Expr::Div(num, den) = inner.as_ref() {
+                if let Expr::Div(_num, den) = inner.as_ref() {
                     if let Expr::Const(c) = den.as_ref() {
                         return *c == mm_core::Rational::from_integer(2);
                     }
@@ -1553,7 +1553,7 @@ fn cos_half_angle() -> Rule {
         description: "cos(x/2) = √((1+cos(x))/2)",
         is_applicable: |expr, _ctx| {
             if let Expr::Cos(inner) = expr {
-                if let Expr::Div(num, den) = inner.as_ref() {
+                if let Expr::Div(_num, den) = inner.as_ref() {
                     if let Expr::Const(c) = den.as_ref() {
                         return *c == mm_core::Rational::from_integer(2);
                     }
@@ -1776,7 +1776,8 @@ fn hyperbolic_sinh() -> Rule {
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
-                justification: "sinh(x) = (e^x - e^(-x))/2 (hyperbolic sine definition)".to_string(),
+                justification: "sinh(x) = (e^x - e^(-x))/2 (hyperbolic sine definition)"
+                    .to_string(),
             }]
         },
         reversible: true,
@@ -1797,7 +1798,8 @@ fn hyperbolic_cosh() -> Rule {
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
-                justification: "cosh(x) = (e^x + e^(-x))/2 (hyperbolic cosine definition)".to_string(),
+                justification: "cosh(x) = (e^x + e^(-x))/2 (hyperbolic cosine definition)"
+                    .to_string(),
             }]
         },
         reversible: true,
@@ -1818,7 +1820,8 @@ fn hyperbolic_tanh() -> Rule {
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
-                justification: "tanh(x) = sinh(x)/cosh(x) (hyperbolic tangent definition)".to_string(),
+                justification: "tanh(x) = sinh(x)/cosh(x) (hyperbolic tangent definition)"
+                    .to_string(),
             }]
         },
         reversible: true,
@@ -1877,13 +1880,12 @@ fn sinh_cosh_identity() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "cosh²(x) - sinh²(x) = 1",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Sub(_, _))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Sub(_, _)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
-                justification: "cosh²(x) - sinh²(x) = 1 (hyperbolic Pythagorean identity)".to_string(),
+                justification: "cosh²(x) - sinh²(x) = 1 (hyperbolic Pythagorean identity)"
+                    .to_string(),
             }]
         },
         reversible: true,
@@ -1995,18 +1997,17 @@ fn arcsin_arccos_sum() -> Rule {
         description: "arcsin(x) + arccos(x) = π/2",
         is_applicable: |expr, _| {
             if let Expr::Add(left, right) = expr {
-                let is_arcsin_arccos = matches!(left.as_ref(), Expr::Arcsin(_)) && matches!(right.as_ref(), Expr::Arccos(_));
-                let is_arccos_arcsin = matches!(left.as_ref(), Expr::Arccos(_)) && matches!(right.as_ref(), Expr::Arcsin(_));
+                let is_arcsin_arccos = matches!(left.as_ref(), Expr::Arcsin(_))
+                    && matches!(right.as_ref(), Expr::Arccos(_));
+                let is_arccos_arcsin = matches!(left.as_ref(), Expr::Arccos(_))
+                    && matches!(right.as_ref(), Expr::Arcsin(_));
                 return is_arcsin_arccos || is_arccos_arcsin;
             }
             false
         },
-        apply: |expr, _| {
+        apply: |_expr, _| {
             vec![RuleApplication {
-                result: Expr::Div(
-                    Box::new(Expr::Pi),
-                    Box::new(Expr::int(2)),
-                ),
+                result: Expr::Div(Box::new(Expr::Pi), Box::new(Expr::int(2))),
                 justification: "arcsin(x) + arccos(x) = π/2".to_string(),
             }]
         },
@@ -2026,14 +2027,16 @@ fn sin_sum_to_product() -> Rule {
         description: "sinA + sinB = 2sin((A+B)/2)cos((A-B)/2)",
         is_applicable: |expr, _| {
             if let Expr::Add(left, right) = expr {
-                return matches!(left.as_ref(), Expr::Sin(_)) && matches!(right.as_ref(), Expr::Sin(_));
+                return matches!(left.as_ref(), Expr::Sin(_))
+                    && matches!(right.as_ref(), Expr::Sin(_));
             }
             false
         },
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
-                justification: "sinA + sinB = 2sin((A+B)/2)cos((A-B)/2) (sum-to-product)".to_string(),
+                justification: "sinA + sinB = 2sin((A+B)/2)cos((A-B)/2) (sum-to-product)"
+                    .to_string(),
             }]
         },
         reversible: true,
@@ -2052,14 +2055,16 @@ fn cos_sum_to_product() -> Rule {
         description: "cosA + cosB = 2cos((A+B)/2)cos((A-B)/2)",
         is_applicable: |expr, _| {
             if let Expr::Add(left, right) = expr {
-                return matches!(left.as_ref(), Expr::Cos(_)) && matches!(right.as_ref(), Expr::Cos(_));
+                return matches!(left.as_ref(), Expr::Cos(_))
+                    && matches!(right.as_ref(), Expr::Cos(_));
             }
             false
         },
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
-                justification: "cosA + cosB = 2cos((A+B)/2)cos((A-B)/2) (sum-to-product)".to_string(),
+                justification: "cosA + cosB = 2cos((A+B)/2)cos((A-B)/2) (sum-to-product)"
+                    .to_string(),
             }]
         },
         reversible: true,
@@ -2078,14 +2083,16 @@ fn sin_diff_to_product() -> Rule {
         description: "sinA - sinB = 2cos((A+B)/2)sin((A-B)/2)",
         is_applicable: |expr, _| {
             if let Expr::Sub(left, right) = expr {
-                return matches!(left.as_ref(), Expr::Sin(_)) && matches!(right.as_ref(), Expr::Sin(_));
+                return matches!(left.as_ref(), Expr::Sin(_))
+                    && matches!(right.as_ref(), Expr::Sin(_));
             }
             false
         },
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
-                justification: "sinA - sinB = 2cos((A+B)/2)sin((A-B)/2) (difference-to-product)".to_string(),
+                justification: "sinA - sinB = 2cos((A+B)/2)sin((A-B)/2) (difference-to-product)"
+                    .to_string(),
             }]
         },
         reversible: true,
@@ -2104,14 +2111,16 @@ fn cos_diff_to_product() -> Rule {
         description: "cosA - cosB = -2sin((A+B)/2)sin((A-B)/2)",
         is_applicable: |expr, _| {
             if let Expr::Sub(left, right) = expr {
-                return matches!(left.as_ref(), Expr::Cos(_)) && matches!(right.as_ref(), Expr::Cos(_));
+                return matches!(left.as_ref(), Expr::Cos(_))
+                    && matches!(right.as_ref(), Expr::Cos(_));
             }
             false
         },
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
-                justification: "cosA - cosB = -2sin((A+B)/2)sin((A-B)/2) (difference-to-product)".to_string(),
+                justification: "cosA - cosB = -2sin((A+B)/2)sin((A-B)/2) (difference-to-product)"
+                    .to_string(),
             }]
         },
         reversible: true,
@@ -2128,9 +2137,7 @@ fn sin_squared_half() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "sin²(x/2) = (1 - cos(x))/2",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Pow(_, _))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Pow(_, _)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
@@ -2151,9 +2158,7 @@ fn cos_squared_half() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "cos²(x/2) = (1 + cos(x))/2",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Pow(_, _))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Pow(_, _)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
@@ -2174,9 +2179,7 @@ fn tan_half_sin() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "tan(x/2) = sin(x)/(1 + cos(x))",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Tan(_))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Tan(_)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
@@ -2197,9 +2200,7 @@ fn tan_half_cos() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "tan(x/2) = (1 - cos(x))/sin(x)",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Tan(_))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Tan(_)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
@@ -2220,9 +2221,7 @@ fn sin_3x_expand() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "sin(3x) = 3sin(x) - 4sin³(x)",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Sin(_))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Sin(_)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
@@ -2243,9 +2242,7 @@ fn cos_3x_expand() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "cos(3x) = 4cos³(x) - 3cos(x)",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Cos(_))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Cos(_)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
@@ -2266,13 +2263,12 @@ fn sin_4x_formula() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "sin(4x) = 4sin(x)cos(x)(1 - 2sin²(x))",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Sin(_))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Sin(_)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
-                justification: "sin(4x) = 4sin(x)cos(x)(1 - 2sin²(x)) (quadruple angle)".to_string(),
+                justification: "sin(4x) = 4sin(x)cos(x)(1 - 2sin²(x)) (quadruple angle)"
+                    .to_string(),
             }]
         },
         reversible: true,
@@ -2289,9 +2285,7 @@ fn cos_4x_formula() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "cos(4x) = 8cos⁴(x) - 8cos²(x) + 1",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Cos(_))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Cos(_)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
@@ -2312,9 +2306,7 @@ fn cot_reciprocal() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "cot(x) = 1/tan(x)",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Div(_, _))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Div(_, _)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
@@ -2335,9 +2327,7 @@ fn sec_reciprocal() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "sec(x) = 1/cos(x)",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Div(_, _))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Div(_, _)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
@@ -2358,9 +2348,7 @@ fn csc_reciprocal() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "csc(x) = 1/sin(x)",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Div(_, _))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Div(_, _)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
@@ -2474,9 +2462,7 @@ fn sin_pi_minus() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "sin(π - x) = sin(x)",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Sin(_))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Sin(_)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
@@ -2497,9 +2483,7 @@ fn cos_pi_minus() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "cos(π - x) = -cos(x)",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Cos(_))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Cos(_)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
@@ -2520,9 +2504,7 @@ fn sin_pi_plus() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "sin(π + x) = -sin(x)",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Sin(_))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Sin(_)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
@@ -2543,9 +2525,7 @@ fn cos_pi_plus() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "cos(π + x) = -cos(x)",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Cos(_))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Cos(_)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
@@ -2566,9 +2546,7 @@ fn sin_2pi_plus() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "sin(2π + x) = sin(x)",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Sin(_))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Sin(_)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
@@ -2589,9 +2567,7 @@ fn cos_2pi_plus() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "cos(2π + x) = cos(x)",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Cos(_))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Cos(_)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
@@ -2612,9 +2588,7 @@ fn tan_pi_plus() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "tan(π + x) = tan(x)",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Tan(_))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Tan(_)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
@@ -2635,9 +2609,7 @@ fn sin_complementary() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "sin(π/2 - x) = cos(x)",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Sin(_))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Sin(_)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
@@ -2658,9 +2630,7 @@ fn cos_complementary() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "cos(π/2 - x) = sin(x)",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Cos(_))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Cos(_)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
@@ -2681,9 +2651,7 @@ fn sin_supplementary() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "sin(π - x) = sin(x)",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Sin(_))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Sin(_)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
@@ -2704,9 +2672,7 @@ fn sin_squared_formula() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "sin²(x) = (1 - cos(2x))/2",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Pow(_, _))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Pow(_, _)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
@@ -2727,9 +2693,7 @@ fn cos_squared_formula() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "cos²(x) = (1 + cos(2x))/2",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Pow(_, _))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Pow(_, _)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
@@ -2750,13 +2714,12 @@ fn tan_squared_formula() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "tan²(x) = (1 - cos(2x))/(1 + cos(2x))",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Pow(_, _))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Pow(_, _)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
-                justification: "tan²(x) = (1 - cos(2x))/(1 + cos(2x)) (power reduction)".to_string(),
+                justification: "tan²(x) = (1 - cos(2x))/(1 + cos(2x)) (power reduction)"
+                    .to_string(),
             }]
         },
         reversible: true,
@@ -2773,13 +2736,12 @@ fn sin_pow4() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "sin⁴(x) = (3 - 4cos(2x) + cos(4x))/8",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Pow(_, _))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Pow(_, _)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
-                justification: "sin⁴(x) = (3 - 4cos(2x) + cos(4x))/8 (fourth power reduction)".to_string(),
+                justification: "sin⁴(x) = (3 - 4cos(2x) + cos(4x))/8 (fourth power reduction)"
+                    .to_string(),
             }]
         },
         reversible: true,
@@ -2796,13 +2758,12 @@ fn cos_pow4() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "cos⁴(x) = (3 + 4cos(2x) + cos(4x))/8",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Pow(_, _))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Pow(_, _)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
-                justification: "cos⁴(x) = (3 + 4cos(2x) + cos(4x))/8 (fourth power reduction)".to_string(),
+                justification: "cos⁴(x) = (3 + 4cos(2x) + cos(4x))/8 (fourth power reduction)"
+                    .to_string(),
             }]
         },
         reversible: true,
@@ -2819,9 +2780,7 @@ fn triple_sin_formula() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "3sin(x) - sin(3x) = 4sin³(x)",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Sub(_, _))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Sub(_, _)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
@@ -2842,9 +2801,7 @@ fn triple_cos_formula() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "cos(3x) + 3cos(x) = 4cos³(x)",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Add(_, _))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Add(_, _)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
@@ -2865,9 +2822,7 @@ fn chebyshev_t2() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "T_2(x) = 2x² - 1",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Sub(_, _))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Sub(_, _)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
@@ -2888,9 +2843,7 @@ fn chebyshev_t3() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "T_3(x) = 4x³ - 3x",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Sub(_, _))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Sub(_, _)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
@@ -2911,9 +2864,7 @@ fn chebyshev_u2() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "U_2(x) = 4x² - 1",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Sub(_, _))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Sub(_, _)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
@@ -2934,9 +2885,7 @@ fn chebyshev_u3() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "U_3(x) = 8x³ - 4x",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Sub(_, _))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Sub(_, _)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),
@@ -2957,9 +2906,7 @@ fn prosthaphaeresis_1() -> Rule {
         domains: &[crate::rule::Domain::Trigonometry],
         requires: &[crate::rule::Feature::Trig],
         description: "2cos(A)cos(B) = cos(A+B) + cos(A-B)",
-        is_applicable: |expr, _| {
-            matches!(expr, Expr::Mul(_, _))
-        },
+        is_applicable: |expr, _| matches!(expr, Expr::Mul(_, _)),
         apply: |expr, _| {
             vec![RuleApplication {
                 result: expr.clone(),

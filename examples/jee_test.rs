@@ -9,7 +9,7 @@
 //! Run: cargo run --example jee_test
 
 use mm_boink::analyze;
-use mm_core::{Expr, Rational, SymbolTable};
+use mm_core::{Expr, SymbolTable};
 use mm_rules::standard_rules;
 use mm_search::BoinkMCTS;
 use mm_verifier::Verifier;

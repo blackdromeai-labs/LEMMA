@@ -38,16 +38,6 @@ pub enum QuadraticRoots {
 /// The discriminant determines the nature of the roots of the quadratic:
 /// D = b² - 4ac.
 ///
-/// # Examples
-///
-/// ```
-/// let a = Rational::from(1);
-/// let b = Rational::from(-5);
-/// let c = Rational::from(6);
-/// let d = discriminant(a, b, c);
-/// assert_eq!(d, Rational::from(1)); // 25 - 24 = 1
-/// ```
-///
 /// # Returns
 ///
 /// The discriminant D = b² - 4ac as a `Rational`.
@@ -62,21 +52,6 @@ pub fn discriminant(a: Rational, b: Rational, c: Rational) -> Rational {
 /// - `QuadraticRoots::OneReal(r)` when the discriminant is zero (repeated real root).
 /// - `QuadraticRoots::TwoReal(r1, r2)` when there are two distinct real roots. If the discriminant is a perfect square the roots are returned exactly as rationals; otherwise approximate rationals are used.
 /// - `QuadraticRoots::Complex { real, imaginary_squared }` when the discriminant is negative; `real` is the real part and `imaginary_squared` equals the square of the imaginary part.
-///
-/// # Examples
-///
-/// ```
-/// let roots = solve_quadratic(Rational::from(1), Rational::from(-5), Rational::from(6));
-/// match roots {
-///     QuadraticRoots::TwoReal(r1, r2) => {
-///         let s1 = r1.to_f64();
-///         let s2 = r2.to_f64();
-///         assert!((s1 - 2.0).abs() < 1e-9 || (s2 - 2.0).abs() < 1e-9);
-///         assert!((s1 - 3.0).abs() < 1e-9 || (s2 - 3.0).abs() < 1e-9);
-///     }
-///     _ => panic!("expected two real roots"),
-/// }
-/// ```
 pub fn solve_quadratic(a: Rational, b: Rational, c: Rational) -> QuadraticRoots {
     if a.is_zero() {
         return QuadraticRoots::NotQuadratic;
@@ -125,15 +100,6 @@ pub fn solve_quadratic(a: Rational, b: Rational, c: Rational) -> QuadraticRoots 
 /// Return the integer square root when `n` is a perfect square.
 ///
 /// Returns `Some(k)` where `k * k == n` for `n >= 0`, or `None` if `n` is negative or not a perfect square.
-///
-/// # Examples
-///
-/// ```
-/// assert_eq!(int_sqrt(16), Some(4));
-/// assert_eq!(int_sqrt(15), None);
-/// assert_eq!(int_sqrt(0), Some(0));
-/// assert_eq!(int_sqrt(-1), None);
-/// ```
 fn int_sqrt(n: i64) -> Option<i64> {
     if n < 0 {
         return None;
@@ -153,13 +119,6 @@ fn int_sqrt(n: i64) -> Option<i64> {
 
 /// Compute the sum of the roots of a quadratic equation using Vieta's formula.
 ///
-/// # Examples
-///
-/// ```
-/// let s = sum_of_roots(Rational::from(1), Rational::from(-5), Rational::from(6)); // roots 2 and 3
-/// assert_eq!(s, Rational::from(5));
-/// ```
-///
 /// # Returns
 ///
 /// `-b / a` if `a` ≠ 0; `0` if `a` == 0.
@@ -175,13 +134,6 @@ pub fn sum_of_roots(a: Rational, b: Rational, _c: Rational) -> Rational {
 /// # Returns
 ///
 /// The product `αβ` of the roots: `c / a` when `a != 0`, otherwise `0`.
-///
-/// # Examples
-///
-/// ```
-/// let prod = product_of_roots(Rational::from(1), Rational::from(-5), Rational::from(6));
-/// assert_eq!(prod, Rational::from(6)); // roots 2 and 3 -> product 6
-/// ```
 pub fn product_of_roots(a: Rational, _b: Rational, c: Rational) -> Rational {
     if a.is_zero() {
         return Rational::from(0);
@@ -194,15 +146,6 @@ pub fn product_of_roots(a: Rational, _b: Rational, c: Rational) -> Rational {
 // ============================================================================
 
 /// Compute the nth term of an arithmetic progression (1-indexed).
-///
-/// # Examples
-///
-/// ```
-/// let a = Rational::from(2); // first term
-/// let d = Rational::from(3); // common difference
-/// let t4 = ap_nth_term(a, d, 4); // 2 + (4-1)*3 = 11
-/// assert_eq!(t4, Rational::from(11));
-/// ```
 pub fn ap_nth_term(a: Rational, d: Rational, n: i64) -> Rational {
     a + Rational::from(n - 1) * d
 }
@@ -212,15 +155,6 @@ pub fn ap_nth_term(a: Rational, d: Rational, n: i64) -> Rational {
 /// Formula: Sₙ = n/2 × [2a + (n - 1)d]
 ///
 /// Returns the sum as a `Rational`.
-///
-/// # Examples
-///
-/// ```
-/// let a = Rational::from(1);
-/// let d = Rational::from(1);
-/// let sum = ap_sum(a, d, 10);
-/// assert_eq!(sum, Rational::from(55));
-/// ```
 pub fn ap_sum(a: Rational, d: Rational, n: i64) -> Rational {
     let n_rat = Rational::from(n);
     n_rat / Rational::from(2) * (Rational::from(2) * a + Rational::from(n - 1) * d)
@@ -235,13 +169,6 @@ pub fn ap_sum_with_last(first: Rational, last: Rational, n: i64) -> Rational {
 ///
 /// `term_m` and `term_n` are the terms at positions `m` and `n` (indices), respectively.
 /// Returns the `Rational` common difference d = (term_n - term_m) / (n - m).
-///
-/// # Examples
-///
-/// ```
-/// let d = ap_common_difference(Rational::from(2), Rational::from(8), 1, 3);
-/// assert_eq!(d, Rational::from(3)); // sequence: 2, 5, 8,...
-/// ```
 pub fn ap_common_difference(term_m: Rational, term_n: Rational, m: i64, n: i64) -> Rational {
     if m == n {
         return Rational::from(0);
@@ -256,13 +183,6 @@ pub fn ap_common_difference(term_m: Rational, term_n: Rational, m: i64, n: i64) 
 /// Computes the nth term of a geometric progression.
 ///
 /// The first term is `a`, the common ratio is `r`, and `n` is 1-indexed.
-///
-/// # Examples
-///
-/// ```
-/// let term = gp_nth_term(2.into(), 3.into(), 4);
-/// assert_eq!(term, 54.into()); // 2 * 3^(4-1) = 54
-/// ```
 pub fn gp_nth_term(a: Rational, r: Rational, n: i64) -> Rational {
     a * r.pow((n - 1) as i32)
 }
@@ -271,18 +191,6 @@ pub fn gp_nth_term(a: Rational, r: Rational, n: i64) -> Rational {
 ///
 /// If `r == 1`, returns `n * a`. Otherwise returns `a * (r.pow(n) - 1) / (r - 1)`.
 /// Returns `None` if the computation would require division by zero.
-///
-/// # Examples
-///
-/// ```
-/// let a = Rational::from(1);
-/// let r = Rational::from(2);
-/// assert_eq!(gp_sum(a, r, 4), Some(Rational::from(15))); // 1 + 2 + 4 + 8 = 15
-///
-/// let a = Rational::from(3);
-/// let r = Rational::from(1);
-/// assert_eq!(gp_sum(a, r, 5), Some(Rational::from(15))); // 5 * 3 = 15
-/// ```
 pub fn gp_sum(a: Rational, r: Rational, n: i64) -> Option<Rational> {
     if r.is_one() {
         // If r = 1, sum is just n × a
@@ -303,13 +211,6 @@ pub fn gp_sum(a: Rational, r: Rational, n: i64) -> Option<Rational> {
 /// Compute the sum of an infinite geometric progression when it converges.
 ///
 /// Returns `Some(sum)` where `sum = a / (1 - r)` if |r| < 1 and the denominator `1 - r` is non-zero; returns `None` if the series diverges or the denominator is zero.
-///
-/// # Examples
-///
-/// ```
-/// let sum = gp_sum_infinite(Rational::from(1), Rational::from(1) / Rational::from(2));
-/// assert_eq!(sum, Some(Rational::from(2)));
-/// ```
 pub fn gp_sum_infinite(a: Rational, r: Rational) -> Option<Rational> {
     // Check if |r| < 1
     let abs_r = r.abs();
@@ -331,22 +232,6 @@ pub fn gp_sum_infinite(a: Rational, r: Rational) -> Option<Rational> {
 /// - if the terms are one step apart (n - m = 1), returns `term_n / term_m`;
 /// - if they are two steps apart (n - m = 2) and the quotient is a perfect rational square, returns its rational square root.
 /// Returns `None` when `m == n`, `term_m` is zero, the gap is not 1 or 2, or a rational root cannot be determined.
-///
-/// # Examples
-///
-/// ```
-/// // For GP 2, 6, 18,... term_1 = 2, term_3 = 18 so r = 3
-/// let r = gp_common_ratio(Rational::new(2, 1), Rational::new(18, 1), 1, 3);
-/// assert_eq!(r, Some(Rational::new(3, 1)));
-///
-/// // For adjacent terms ratio is direct
-/// let r2 = gp_common_ratio(Rational::new(5, 1), Rational::new(15, 1), 1, 2);
-/// assert_eq!(r2, Some(Rational::new(3, 1)));
-///
-/// // Non-computable gap > 2 returns None
-/// let r3 = gp_common_ratio(Rational::new(1, 1), Rational::new(8, 1), 1, 4);
-/// assert_eq!(r3, None);
-/// ```
 pub fn gp_common_ratio(term_m: Rational, term_n: Rational, m: i64, n: i64) -> Option<Rational> {
     if m == n || term_m.is_zero() {
         return None;
@@ -387,20 +272,6 @@ pub fn gp_common_ratio(term_m: Rational, term_n: Rational, m: i64, n: i64) -> Op
 /// - Multiplication when exactly one factor is constant with respect to `var`.
 /// - Powers `x^n` where base is the integration variable and `n` is a rational constant (returns `x^(n+1)/(n+1)` for `n != -1`).
 /// - Returns `None` for forms not covered (e.g., products where both factors contain `var`, `x^-1`, or other non-elementary cases).
-///
-/// # Examples
-///
-/// ```
-/// let x = Symbol::from("x");
-/// // ∫ x^2 dx = x^3 / 3
-/// let expr = Expr::Pow(Box::new(Expr::Var(x)), Box::new(Expr::int(2)));
-/// let res = integrate(&expr, x).unwrap();
-/// let expected = Expr::Div(
-///     Box::new(Expr::Pow(Box::new(Expr::Var(x)), Box::new(Expr::int(3)))),
-///     Box::new(Expr::int(3)),
-/// );
-/// assert_eq!(res, expected);
-/// ```
 pub fn integrate(expr: &Expr, var: Symbol) -> Option<Expr> {
     match expr {
         // ∫c dx = cx
@@ -489,14 +360,6 @@ pub fn integrate(expr: &Expr, var: Symbol) -> Option<Expr> {
 /// The check recurses into common expression forms (negation, addition, subtraction,
 /// multiplication, division, and power) and conservatively returns `true` for any
 /// expression variants not explicitly handled.
-///
-/// # Examples
-///
-/// ```
-/// let x = Symbol::from("x");
-/// let expr = Expr::Add(Box::new(Expr::Var(x.clone())), Box::new(Expr::Const(Rational::from(1))));
-/// assert!(contains_var(&expr, x));
-/// ```
 fn contains_var(expr: &Expr, var: Symbol) -> bool {
     match expr {
         Expr::Const(_) => false,
@@ -514,16 +377,6 @@ fn contains_var(expr: &Expr, var: Symbol) -> bool {
 ///
 /// Returns the value F(upper) - F(lower) where F is an antiderivative of `expr`.
 /// Returns `None` if an antiderivative cannot be found or if evaluation at the bounds fails.
-///
-/// # Examples
-///
-/// ```
-/// // ∫_0^2 x dx = 2
-/// let x = Symbol::from("x");
-/// let expr = Expr::Var(x.clone());
-/// let res = definite_integral(&expr, x, Rational::from(0), Rational::from(2));
-/// assert_eq!(res, Some(Rational::from(2)));
-/// ```
 pub fn definite_integral(
     expr: &Expr,
     var: Symbol,

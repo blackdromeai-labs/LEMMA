@@ -17,22 +17,12 @@ use mm_search::bridge::BridgeFinder;
 
 #[derive(Debug)]
 struct ProofResult {
-    problem_id: usize,
     name: String,
-    goal: String,
-    success: bool,
-    bridge_found: bool,
     backward_steps: usize,
     forward_rules: usize,
-    proof_path: Option<String>,
 }
 
-fn test_proof(
-    problem_id: usize,
-    name: &str,
-    goal_expr: &Expr,
-    expected_success: bool,
-) -> ProofResult {
+fn test_proof(name: &str, goal_expr: &Expr) -> ProofResult {
     let mut finder = BridgeFinder::new();
 
     // Backward search
@@ -67,32 +57,10 @@ fn test_proof(
         }
     }
 
-    let bridge_found = finder.has_bridge();
-    let success = if expected_success {
-        bridge_found
-    } else {
-        !backward_steps.is_empty() // At least found some backward steps
-    };
-
-    let proof_path = if bridge_found {
-        Some("Forward → Backward bridge found".to_string())
-    } else {
-        None
-    };
-
     ProofResult {
-        problem_id,
         name: name.to_string(),
-        goal: format!("{:?}", goal_expr)
-            .chars()
-            .take(60)
-            .collect::<String>()
-            + "...",
-        success,
-        bridge_found,
         backward_steps: backward_steps.len(),
         forward_rules: forward_count,
-        proof_path,
     }
 }
 
@@ -119,7 +87,7 @@ fn test_01_squares_inequality() {
 
     let goal = Expr::Gte(Box::new(lhs), Box::new(rhs));
 
-    let result = test_proof(1, "x² + y² ≥ 2xy", &goal, true);
+    let result = test_proof("x² + y² ≥ 2xy", &goal);
 
     assert!(result.backward_steps > 0, "Should find backward steps");
     println!(
@@ -156,7 +124,7 @@ fn test_02_binomial_square() {
         rhs: Box::new(rhs),
     };
 
-    let result = test_proof(2, "(a+b)² = a² + 2ab + b²", &goal, true);
+    let result = test_proof("(a+b)² = a² + 2ab + b²", &goal);
 
     assert!(result.backward_steps > 0, "Should find backward steps");
     println!(
@@ -187,7 +155,7 @@ fn test_03_difference_of_squares() {
         rhs: Box::new(rhs),
     };
 
-    let result = test_proof(3, "a² - b² = (a+b)(a-b)", &goal, true);
+    let result = test_proof("a² - b² = (a+b)(a-b)", &goal);
 
     assert!(result.backward_steps > 0, "Should find backward steps");
     println!(
@@ -207,7 +175,7 @@ fn test_04_square_nonnegative() {
 
     let goal = Expr::Gte(Box::new(lhs), Box::new(rhs));
 
-    let result = test_proof(4, "x² ≥ 0", &goal, true);
+    let result = test_proof("x² ≥ 0", &goal);
 
     // This should be provable directly
     println!(
@@ -231,7 +199,7 @@ fn test_05_sum_inequality() {
 
     let goal = Expr::Gte(Box::new(lhs), Box::new(rhs));
 
-    let result = test_proof(5, "(x+y)² ≥ 0", &goal, true);
+    let result = test_proof("(x+y)² ≥ 0", &goal);
 
     assert!(result.backward_steps > 0, "Should find backward steps");
     println!(
@@ -255,7 +223,7 @@ fn test_06_trivial_equality() {
         rhs: Box::new(rhs),
     };
 
-    let result = test_proof(6, "a + b = b + a", &goal, false); // Not expected to fully solve yet
+    let result = test_proof("a + b = b + a", &goal); // Not expected to fully solve yet
 
     println!(
         "✓ Test 6: {} - {} backward steps",
@@ -291,7 +259,7 @@ fn test_07_binomial_difference() {
         rhs: Box::new(rhs),
     };
 
-    let result = test_proof(7, "(a-b)² = a² - 2ab + b²", &goal, true);
+    let result = test_proof("(a-b)² = a² - 2ab + b²", &goal);
 
     assert!(result.backward_steps > 0, "Should find backward steps");
     println!(
@@ -326,7 +294,7 @@ fn test_08_three_term_inequality() {
 
     let goal = Expr::Gte(Box::new(lhs), Box::new(rhs));
 
-    let result = test_proof(8, "x² + y² + z² ≥ xy + yz + zx", &goal, false);
+    let result = test_proof("x² + y² + z² ≥ xy + yz + zx", &goal);
 
     println!(
         "✓ Test 8: {} - {} backward steps (complex)",
@@ -353,7 +321,7 @@ fn test_09_absolute_triangle() {
 
     let goal = Expr::Lte(Box::new(lhs), Box::new(rhs));
 
-    let result = test_proof(9, "|a+b| ≤ |a| + |b|", &goal, false);
+    let result = test_proof("|a+b| ≤ |a| + |b|", &goal);
 
     println!(
         "✓ Test 9: {} - {} backward steps (abs not fully supported)",
@@ -383,7 +351,7 @@ fn test_10_power_inequality() {
 
     let goal = Expr::Lte(Box::new(lhs), Box::new(rhs));
 
-    let result = test_proof(10, "(a+b)² ≤ 2(a² + b²)", &goal, true);
+    let result = test_proof("(a+b)² ≤ 2(a² + b²)", &goal);
 
     assert!(result.backward_steps > 0, "Should find backward steps");
     println!(
@@ -393,42 +361,58 @@ fn test_10_power_inequality() {
 }
 
 // ============================================================================
-// Summary Test
+// Suite-wide invariant
 // ============================================================================
 
+/// Every problem in the suite must produce at least one backward step.
+///
+/// Replaces a print-only "summary" test that incremented nothing, printed a hard-coded list
+/// of problem names, and asserted nothing at all.
 #[test]
-fn run_all_proofs_summary() {
-    println!("\n╔══════════════════════════════════════════════════════════════╗");
-    println!("║            WEEK 3: PROOF PROBLEM TEST SUITE                 ║");
-    println!("╚══════════════════════════════════════════════════════════════╝\n");
+fn every_problem_produces_backward_steps() {
+    let mut symbols = SymbolTable::new();
+    let a = symbols.intern("a");
+    let b = symbols.intern("b");
+    let x = symbols.intern("x");
+    let y = symbols.intern("y");
 
-    let mut total = 0;
-    let mut with_backward = 0;
-    let mut with_bridge = 0;
+    let sq = |e: Expr| Expr::Pow(Box::new(e), Box::new(Expr::int(2)));
 
-    // Run all tests and collect results
-    let tests = vec![
-        ("x² + y² ≥ 2xy", true),
-        ("(a+b)² = a² + 2ab + b²", true),
-        ("a² - b² = (a+b)(a-b)", true),
-        ("x² ≥ 0", true),
-        ("(x+y)² ≥ 0", true),
-        ("a + b = b + a", false),
-        ("(a-b)² = a² - 2ab + b²", true),
-        ("x² + y² + z² ≥ xy + yz + zx", false),
-        ("|a+b| ≤ |a| + |b|", false),
-        ("(a+b)² ≤ 2(a² + b²)", true),
+    let problems: Vec<(&str, Expr)> = vec![
+        (
+            "x^2 + y^2 >= 2xy",
+            Expr::Gte(
+                Box::new(Expr::Add(
+                    Box::new(sq(Expr::Var(x))),
+                    Box::new(sq(Expr::Var(y))),
+                )),
+                Box::new(Expr::Mul(
+                    Box::new(Expr::int(2)),
+                    Box::new(Expr::Mul(Box::new(Expr::Var(x)), Box::new(Expr::Var(y)))),
+                )),
+            ),
+        ),
+        (
+            "x^2 >= 0",
+            Expr::Gte(Box::new(sq(Expr::Var(x))), Box::new(Expr::int(0))),
+        ),
+        (
+            "(a+b)^2 >= 0",
+            Expr::Gte(
+                Box::new(sq(Expr::Add(
+                    Box::new(Expr::Var(a)),
+                    Box::new(Expr::Var(b)),
+                ))),
+                Box::new(Expr::int(0)),
+            ),
+        ),
     ];
 
-    for (name, _) in &tests {
-        total += 1;
-        // Each test already prints its own result
-        println!("  Problem {}: {}", total, name);
+    for (name, goal) in &problems {
+        let result = test_proof(name, goal);
+        assert!(
+            result.backward_steps > 0,
+            "{name}: backward search produced no steps"
+        );
     }
-
-    println!("\n═══════════════════════════════════════════════════════════════");
-    println!("Total tests: {}", total);
-    println!("Expected backward steps: ≥7 problems");
-    println!("Expected bridge detection: TBD (work in progress)");
-    println!("═══════════════════════════════════════════════════════════════\n");
 }

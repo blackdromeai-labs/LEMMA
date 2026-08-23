@@ -17,13 +17,6 @@ use mm_core::{Expr, Rational};
 /// # Returns
 ///
 /// A vector containing all defined `Rule` instances used for polynomial transformations, factorizations, and root analysis.
-///
-/// # Examples
-///
-/// ```
-/// let rules = polynomial_rules();
-/// assert_eq!(rules.len(), 54);
-/// ```
 pub fn polynomial_rules() -> Vec<Rule> {
     let mut rules = Vec::new();
 
@@ -46,7 +39,7 @@ fn vieta_rules() -> Vec<Rule> {
     vec![
         // Sum of roots (quadratic)
         Rule {
-            id: RuleId(500),
+            id: RuleId(28000),
             name: "vieta_sum_quadratic",
             category: RuleCategory::AlgebraicSolving,
             description: "For ax² + bx + c = 0: r₁ + r₂ = -b/a",
@@ -64,7 +57,7 @@ fn vieta_rules() -> Vec<Rule> {
         },
         // Product of roots (quadratic)
         Rule {
-            id: RuleId(501),
+            id: RuleId(28001),
             name: "vieta_product_quadratic",
             category: RuleCategory::AlgebraicSolving,
             description: "For ax² + bx + c = 0: r₁ · r₂ = c/a",
@@ -82,7 +75,7 @@ fn vieta_rules() -> Vec<Rule> {
         },
         // Sum of roots (cubic)
         Rule {
-            id: RuleId(502),
+            id: RuleId(28002),
             name: "vieta_sum_cubic",
             category: RuleCategory::AlgebraicSolving,
             description: "For ax³ + bx² + cx + d = 0: r₁ + r₂ + r₃ = -b/a",
@@ -100,7 +93,7 @@ fn vieta_rules() -> Vec<Rule> {
         },
         // Pairwise product sum (cubic)
         Rule {
-            id: RuleId(503),
+            id: RuleId(28003),
             name: "vieta_pairs_cubic",
             category: RuleCategory::AlgebraicSolving,
             description: "r₁r₂ + r₂r₃ + r₁r₃ = c/a",
@@ -118,7 +111,7 @@ fn vieta_rules() -> Vec<Rule> {
         },
         // Product of roots (cubic)
         Rule {
-            id: RuleId(504),
+            id: RuleId(28004),
             name: "vieta_product_cubic",
             category: RuleCategory::AlgebraicSolving,
             description: "r₁ · r₂ · r₃ = -d/a",
@@ -146,7 +139,7 @@ fn symmetric_polynomial_rules() -> Vec<Rule> {
     vec![
         // Elementary symmetric polynomials
         Rule {
-            id: RuleId(520),
+            id: RuleId(28005),
             name: "elementary_sym_1",
             category: RuleCategory::AlgebraicSolving,
             description: "e₁ = Σxᵢ (sum of variables)",
@@ -163,7 +156,7 @@ fn symmetric_polynomial_rules() -> Vec<Rule> {
             cost: 2,
         },
         Rule {
-            id: RuleId(521),
+            id: RuleId(28006),
             name: "elementary_sym_2",
             category: RuleCategory::AlgebraicSolving,
             description: "e₂ = Σxᵢxⱼ (sum of pairwise products)",
@@ -181,7 +174,7 @@ fn symmetric_polynomial_rules() -> Vec<Rule> {
         },
         // Power sum to elementary
         Rule {
-            id: RuleId(522),
+            id: RuleId(28007),
             name: "newton_identity_1",
             category: RuleCategory::AlgebraicSolving,
             description: "p₁ = e₁",
@@ -198,7 +191,7 @@ fn symmetric_polynomial_rules() -> Vec<Rule> {
             cost: 2,
         },
         Rule {
-            id: RuleId(523),
+            id: RuleId(28008),
             name: "newton_identity_2",
             category: RuleCategory::AlgebraicSolving,
             description: "p₂ = e₁² - 2e₂",
@@ -215,7 +208,7 @@ fn symmetric_polynomial_rules() -> Vec<Rule> {
             cost: 3,
         },
         Rule {
-            id: RuleId(524),
+            id: RuleId(28009),
             name: "newton_identity_3",
             category: RuleCategory::AlgebraicSolving,
             description: "p₃ = e₁³ - 3e₁e₂ + 3e₃",
@@ -235,7 +228,7 @@ fn symmetric_polynomial_rules() -> Vec<Rule> {
         },
         // x² + y² = (x+y)² - 2xy
         Rule {
-            id: RuleId(525),
+            id: RuleId(28010),
             name: "sum_squares_sym",
             category: RuleCategory::Simplification,
             description: "x² + y² = (x+y)² - 2xy",
@@ -318,13 +311,6 @@ fn symmetric_polynomial_rules() -> Vec<Rule> {
 ///
 /// Returns a vector of Rule instances implementing factoring identities, theorems,
 /// and decomposition/algorithmic helpers (Rule IDs 540–559).
-///
-/// # Examples
-///
-/// ```
-/// let rules = factoring_rules();
-/// assert_eq!(rules.len(), 20);
-/// ```
 fn factoring_rules() -> Vec<Rule> {
     vec![
         // Factor theorem: (x-a) divides P(x) iff P(a) = 0

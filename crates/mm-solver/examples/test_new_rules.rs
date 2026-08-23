@@ -78,7 +78,7 @@ fn main() {
         simulations: 30,
         exploration_weight: 1.41,
         max_depth: 5,
-        temperature: 1.0,
+        ..Default::default()
     };
     let mcts = NeuralMCTS::with_config(standard_rules(), verifier, config);
 
@@ -112,7 +112,7 @@ fn main() {
         let result = mcts.simplify(expr.clone());
         println!("  Output: {:?}", result.result);
         println!("  Steps: {}", result.steps.len());
-        println!("  Verified: {}", result.verified);
+        println!("  Verification: {}", result.status);
         if !result.steps.is_empty() {
             for (i, step) in result.steps.iter().enumerate() {
                 println!("    Step {}: {}", i + 1, step.rule_name);

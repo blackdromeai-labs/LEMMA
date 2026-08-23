@@ -13,7 +13,7 @@ fn main() {
         simulations: 200,
         exploration_weight: 1.41,
         max_depth: 30,
-        temperature: 1.0,
+        ..Default::default()
     };
     let mcts = NeuralMCTS::with_config(rules, verifier, config);
 

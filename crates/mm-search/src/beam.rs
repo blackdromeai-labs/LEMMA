@@ -9,7 +9,7 @@
 use crate::{SearchConfig, Solution, Step};
 use mm_core::Expr;
 use mm_rules::{RuleContext, RuleSet};
-use mm_verifier::Verifier;
+use mm_verifier::{VerificationStatus, Verifier};
 use std::collections::HashSet;
 
 /// Beam search solver.
@@ -53,12 +53,7 @@ impl BeamSearch {
     {
         // Check if already at goal
         if goal(&start) {
-            return Some(Solution {
-                problem: start.clone(),
-                result: start,
-                steps: vec![],
-                verified: true,
-            });
+            return Some(Solution::assess(start.clone(), start, vec![]));
         }
 
         // Initialize beam with starting state
@@ -81,12 +76,11 @@ impl BeamSearch {
             for candidate in &beam {
                 // Check if this candidate reaches the goal
                 if goal(&candidate.expr) {
-                    return Some(Solution {
-                        problem: start.clone(),
-                        result: candidate.expr.clone(),
-                        steps: candidate.steps.clone(),
-                        verified: true,
-                    });
+                    return Some(Solution::assess(
+                        start.clone(),
+                        candidate.expr.clone(),
+                        candidate.steps.clone(),
+                    ));
                 }
 
                 // Find applicable rules
@@ -112,14 +106,15 @@ impl BeamSearch {
                             continue;
                         }
 
-                        // Create new step
-                        let step = Step {
-                            before: candidate.expr.clone(),
-                            after: app.result.clone(),
-                            rule_id: rule.id,
-                            rule_name: rule.name,
-                            justification: app.justification,
-                        };
+                        // Create new step, carrying the evidence the verifier produced.
+                        let step = Step::rule(
+                            candidate.expr.clone(),
+                            app.result.clone(),
+                            rule.id,
+                            rule.name,
+                            app.justification,
+                            verify_result.evidence(),
+                        );
 
                         // Create new candidate
                         let mut new_steps = candidate.steps.clone();
@@ -158,12 +153,11 @@ impl BeamSearch {
             // Check if any candidate reaches goal
             for candidate in &beam {
                 if goal(&candidate.expr) {
-                    return Some(Solution {
-                        problem: start.clone(),
-                        result: candidate.expr.clone(),
-                        steps: candidate.steps.clone(),
-                        verified: true,
-                    });
+                    return Some(Solution::assess(
+                        start.clone(),
+                        candidate.expr.clone(),
+                        candidate.steps.clone(),
+                    ));
                 }
             }
         }
@@ -179,15 +173,22 @@ impl BeamSearch {
         // First, canonicalize to apply basic simplifications
         let canonical = expr.canonicalize();
 
-        // If canonicalization already simplified it, we're done
+        // Canonicalisation is not a registry rule, so it is recorded as a normalisation step
+        // and checked independently. Previously it returned `verified: true` with no steps at
+        // all, which made the reported answer unreachable from the recorded trace.
         if canonical != expr {
-            // Create a solution showing the simplification
-            return Solution {
-                problem: expr,
-                result: canonical,
-                steps: vec![], // Canonicalization is atomic - could expand later
-                verified: true,
-            };
+            let evidence = self
+                .verifier
+                .verify_equivalence(&expr, &canonical)
+                .evidence();
+            let step = Step::normalization(
+                expr.clone(),
+                canonical.clone(),
+                "canonicalize",
+                "Rewrote the expression into canonical form".to_string(),
+                evidence,
+            );
+            return Solution::assess(expr, canonical, vec![step]);
         }
 
         // Otherwise, try to find a simplification path using rules
@@ -205,22 +206,39 @@ impl BeamSearch {
 
         // Try beam search
         if let Some(solution) = self.search(expr.clone(), goal) {
-            // Return the best result, canonicalized
-            return Solution {
-                problem: solution.problem,
-                result: solution.result.canonicalize(),
-                steps: solution.steps,
-                verified: solution.verified,
-            };
+            let mut steps = solution.steps;
+            let mut result = solution.result;
+
+            // The final canonicalisation is another normalisation step, not a free rewrite.
+            let canonical_result = result.canonicalize();
+            if canonical_result != result {
+                let evidence = self
+                    .verifier
+                    .verify_equivalence(&result, &canonical_result)
+                    .evidence();
+                steps.push(Step::normalization(
+                    result.clone(),
+                    canonical_result.clone(),
+                    "canonicalize",
+                    "Rewrote the result into canonical form".to_string(),
+                    evidence,
+                ));
+                result = canonical_result;
+            }
+
+            return Solution::assess(expr, result, steps);
         }
 
-        // No simplification found, return canonical form
-        Solution {
-            problem: expr.clone(),
-            result: canonical,
-            steps: vec![],
-            verified: true,
-        }
+        // No simplification found: the canonical form equals the input here, since a
+        // difference would have been handled above.
+        Solution::assess_at_most(
+            expr,
+            canonical,
+            vec![],
+            VerificationStatus::Unverified {
+                reason: "no simplification path was found".to_string(),
+            },
+        )
     }
 
     /// Score an expression (lower is better).
@@ -254,5 +272,32 @@ mod tests {
         let solution = searcher.simplify(expr);
 
         assert_eq!(solution.result.canonicalize(), Expr::int(5));
+    }
+
+    #[test]
+    fn simplify_records_a_replayable_trace() {
+        let searcher = BeamSearch::new(standard_rules(), Verifier::new());
+        let expr = Expr::Add(Box::new(Expr::int(2)), Box::new(Expr::int(3)));
+        let solution = searcher.simplify(expr.clone());
+
+        // The result changed, so the trace must say how.
+        assert_ne!(solution.result, expr);
+        assert!(!solution.steps.is_empty());
+        assert_eq!(
+            crate::assess_trace(&solution.problem, &solution.result, &solution.steps),
+            solution.status
+        );
+        assert!(solution.status.replays(), "status was {}", solution.status);
+    }
+
+    #[test]
+    fn an_unsolved_problem_is_not_reported_as_verified() {
+        let searcher = BeamSearch::new(standard_rules(), Verifier::new());
+        let mut symbols = mm_core::SymbolTable::new();
+        let x = symbols.intern("x");
+
+        // A bare variable has nothing to simplify.
+        let solution = searcher.simplify(Expr::Var(x));
+        assert!(solution.steps.is_empty());
     }
 }

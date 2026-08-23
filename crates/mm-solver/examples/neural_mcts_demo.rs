@@ -1,11 +1,12 @@
-//! Neural-Guided MCTS for IMO Problem Solving
+//! Rule-availability report for problem statements.
 //!
-//! Combines MCTS tree search with MathBERT predictions
-//! to prioritize relevant rules during exploration.
+//! Prints the keyword classifier's topic guess for each statement and lists which rules the
+//! registry would offer for a matching expression. No search runs and nothing is solved: the
+//! classifier is keyword-based, not a trained model.
 //!
 //! Usage: cargo run --example neural_mcts_demo --release -p mm-solver
 
-use mm_brain::MathBertModel;
+use mm_brain::KeywordProblemClassifier;
 use mm_core::{Expr, Rational, SymbolTable};
 use mm_rules::rule::standard_rules;
 use mm_rules::{RuleCategory, RuleContext};
@@ -17,20 +18,20 @@ fn main() {
     println!("║       Neural-Guided MCTS - IMO Problem Solver                ║");
     println!("╚══════════════════════════════════════════════════════════════╝\n");
 
-    // Load the MathBERT model
-    let model_path = Path::new("models/lemma_mathbert.onnx");
+    // The classifier only needs a token vocabulary; its scoring is keyword-based.
     let vocab_path = Path::new("models/vocab.txt");
 
-    let model = match MathBertModel::load(model_path, vocab_path) {
-        Ok(m) => {
-            println!("✓ MathBERT model loaded\n");
-            Some(m)
-        }
-        Err(e) => {
-            println!("⚠ Model not loaded: {} (using heuristics)\n", e);
-            None
-        }
-    };
+    let classifier: Option<KeywordProblemClassifier> =
+        match KeywordProblemClassifier::from_vocab(vocab_path) {
+            Ok(m) => {
+                println!("Keyword classifier ready: {} vocab tokens\n", m.vocab_len());
+                Some(m)
+            }
+            Err(e) => {
+                println!("No vocabulary file ({e}); skipping topic classification\n");
+                None
+            }
+        };
 
     // Load rules
     let rules = standard_rules();
@@ -59,19 +60,14 @@ fn main() {
         println!("Problem: {}", problem);
         println!("Expected: {}", expected_type);
 
-        if let Some(ref m) = model {
-            match m.predict_top_k(problem, 3) {
-                Ok(preds) => {
-                    println!("Model predictions:");
-                    for (idx, prob) in preds {
-                        println!(
-                            "  → {} ({:.1}%)",
-                            MathBertModel::class_name(idx),
-                            prob * 100.0
-                        );
-                    }
-                }
-                Err(e) => println!("  Prediction error: {}", e),
+        if let Some(ref m) = classifier {
+            println!("Keyword topic scores:");
+            for (idx, prob) in m.predict_top_k(problem, 3) {
+                println!(
+                    "  -> {} ({:.1}%)",
+                    KeywordProblemClassifier::class_name(idx),
+                    prob * 100.0
+                );
             }
         }
 

@@ -16,7 +16,7 @@ fn main() {
         simulations: 100,
         exploration_weight: 1.41,
         max_depth: 15,
-        temperature: 1.0,
+        ..Default::default()
     };
     let mcts = NeuralMCTS::with_config(rules, verifier, config);
 
@@ -37,7 +37,7 @@ fn main() {
             step.rule_name, step.before, step.after
         );
     }
-    println!("  Verified: {}", result.verified);
+    println!("  Verification: {}", result.status);
 
     // Test d/dx(x)
     let d_x = Expr::Derivative {
@@ -56,5 +56,5 @@ fn main() {
             step.rule_name, step.before, step.after
         );
     }
-    println!("  Verified: {}", result.verified);
+    println!("  Verification: {}", result.status);
 }

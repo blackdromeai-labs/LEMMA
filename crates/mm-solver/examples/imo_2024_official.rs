@@ -4,8 +4,8 @@
 //!
 //! Usage: cargo run --example imo_2024_official --release -p mm-solver
 
-use mm_brain::MathBertModel;
-use mm_core::{Expr, Rational, SymbolTable};
+use mm_brain::KeywordProblemClassifier;
+use mm_core::{Expr, SymbolTable};
 use mm_rules::rule::standard_rules;
 use mm_rules::RuleContext;
 use std::path::Path;
@@ -83,17 +83,14 @@ fn main() {
     println!("║        Real problems from imo-official.org                   ║");
     println!("╚══════════════════════════════════════════════════════════════╝\n");
 
-    // Load model
-    let model = match MathBertModel::load(
-        Path::new("models/lemma_mathbert.onnx"),
-        Path::new("models/vocab.txt"),
-    ) {
+    // Keyword classifier: reads a token vocabulary, scores topics by keyword match.
+    let classifier = match KeywordProblemClassifier::from_vocab(Path::new("models/vocab.txt")) {
         Ok(m) => {
-            println!("✓ MathBERT model loaded\n");
+            println!("Keyword classifier ready: {} vocab tokens\n", m.vocab_len());
             Some(m)
         }
         Err(e) => {
-            println!("⚠ Model not found: {} (using heuristics)\n", e);
+            println!("No vocabulary file ({e}); skipping topic classification\n");
             None
         }
     };
@@ -106,7 +103,7 @@ fn main() {
     println!("═══════════════════════════════════════════════════════════════\n");
 
     for (id, category, text) in &IMO_2024_PROBLEMS[0..3] {
-        analyze_problem(id, category, text, &model, &rules);
+        analyze_problem(id, category, text, &classifier, &rules);
     }
 
     println!("═══════════════════════════════════════════════════════════════");
@@ -114,7 +111,7 @@ fn main() {
     println!("═══════════════════════════════════════════════════════════════\n");
 
     for (id, category, text) in &IMO_2024_PROBLEMS[3..6] {
-        analyze_problem(id, category, text, &model, &rules);
+        analyze_problem(id, category, text, &classifier, &rules);
     }
 
     println!("═══════════════════════════════════════════════════════════════");
@@ -139,7 +136,7 @@ fn analyze_problem(
     id: &str,
     category: &str,
     text: &str,
-    model: &Option<MathBertModel>,
+    classifier: &Option<KeywordProblemClassifier>,
     rules: &mm_rules::RuleSet,
 ) {
     let start = Instant::now();
@@ -157,18 +154,13 @@ fn analyze_problem(
     println!("│ {}", display_text);
     println!("└─────────────────────────────────────────────────────────────┘\n");
 
-    // Model predictions
-    if let Some(m) = model {
-        match m.predict_top_k(text, 5) {
-            Ok(preds) => {
-                println!("Model Classification:");
-                for (i, (idx, prob)) in preds.iter().enumerate() {
-                    let name = MathBertModel::class_name(*idx);
-                    let bar = "█".repeat((prob * 20.0) as usize);
-                    println!("  {}. {:15} {:5.1}% {}", i + 1, name, prob * 100.0, bar);
-                }
-            }
-            Err(e) => println!("  Prediction error: {}", e),
+    // Keyword topic scores
+    if let Some(m) = classifier {
+        println!("Keyword topic scores:");
+        for (i, (idx, prob)) in m.predict_top_k(text, 5).iter().enumerate() {
+            let name = KeywordProblemClassifier::class_name(*idx);
+            let bar = "#".repeat((prob * 20.0) as usize);
+            println!("  {}. {:15} {:5.1}% {}", i + 1, name, prob * 100.0, bar);
         }
     }
 

@@ -19,6 +19,7 @@
 //! - Combinatorics (1 working, 45 need implementation)
 //! - Polynomials (3 working, 36 need implementation)
 
+pub mod action;
 pub mod algebra;
 pub mod backward;
 pub mod board_exam;
@@ -40,12 +41,16 @@ pub mod quantifier;
 pub mod rule;
 pub mod trig;
 
+pub use action::{
+    standard_action_vocabulary, ActionEntry, ActionError, ActionVocabulary,
+    ACTION_VOCABULARY_VERSION,
+};
 pub use guardrail::{
     analyze, decompose_additive, filter_rules, is_rule_applicable, solvability_score,
     ProblemProfile,
 };
 pub use patterns::match_integral_pattern;
 pub use rule::{
-    standard_rules, Domain, Feature, Rule, RuleApplication, RuleCategory, RuleContext, RuleId,
-    RuleSet,
+    standard_rules, try_standard_rules, Domain, Feature, RegistryError, Rule, RuleApplication,
+    RuleCategory, RuleContext, RuleId, RuleKey, RuleSet,
 };

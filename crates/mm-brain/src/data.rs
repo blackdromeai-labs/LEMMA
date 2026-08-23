@@ -4,113 +4,154 @@
 //
 // Author: Pushp Kharat
 
-//! Comprehensive synthetic training data generation.
+//! Synthetic training data generation.
 //!
-//! Generates 10K+ training examples covering all 29 rules:
+//! Labels are dense [`ActionVocabulary`] indices resolved from stable `module::name` keys, so
+//! a training label and an inference column always refer to the same rule.
+//!
+//! Covers a small, hand-written slice of the registry:
 //! - Algebra: constant folding, identities, distribution, factoring
 //! - Calculus: power, sum, product, quotient, chain rules
-//! - Trig: sin/cos derivatives, identities
+//! - Trig: sin/cos derivatives
 //! - Equations: linear, quadratic solving
+//!
+//! The remaining actions in the vocabulary get no synthetic examples at all; this data is not
+//! coverage of the rule corpus.
 
 use candle_core::Device;
 use mm_core::{Expr, SymbolTable};
+use mm_rules::ActionVocabulary;
 use rand::prelude::*;
 
 use crate::encoder::ExpressionEncoder;
 use crate::training::TrainingExample;
 
-/// Rule ID constants matching those in mm-rules
-mod rule_ids {
-    // Algebra rules (1-10)
-    pub const CONST_FOLD: u32 = 0;
-    pub const IDENTITY_ADD_ZERO: u32 = 1;
-    pub const IDENTITY_MUL_ONE: u32 = 2;
-    pub const ZERO_MUL: u32 = 3;
-    pub const COLLECT_LIKE_TERMS: u32 = 4;
-    pub const DISTRIBUTE: u32 = 5;
-    pub const FACTOR_COMMON: u32 = 6;
-    pub const DIFF_OF_SQUARES: u32 = 7;
-    pub const PERFECT_SQUARE_SUM: u32 = 8;
-    pub const PERFECT_SQUARE_DIFF: u32 = 9;
-
-    // Calculus rules (10-18)
-    pub const POWER_RULE: u32 = 10;
-    pub const CONSTANT_RULE: u32 = 11;
-    pub const SUM_RULE: u32 = 12;
-    pub const PRODUCT_RULE: u32 = 13;
-    pub const QUOTIENT_RULE: u32 = 14;
-    pub const SIN_DERIVATIVE: u32 = 15;
-    pub const COS_DERIVATIVE: u32 = 16;
-    pub const EXP_DERIVATIVE: u32 = 17;
-    pub const LN_DERIVATIVE: u32 = 18;
-
-    // Trig rules (19-20)
-    pub const PYTHAGOREAN: u32 = 19;
-    pub const DOUBLE_ANGLE_SIN: u32 = 20;
-
-    // Equation rules (21-27)
-    pub const ISOLATE_VARIABLE: u32 = 21;
-    pub const CANCEL_ADDITION: u32 = 22;
-    pub const CANCEL_SUBTRACTION: u32 = 23;
-    pub const CANCEL_MULTIPLICATION: u32 = 24;
-    pub const CANCEL_DIVISION: u32 = 25;
-    pub const LINEAR_SOLVE: u32 = 26;
-    pub const QUADRATIC_FORMULA: u32 = 27;
-
-    // No-op for negative examples
-    pub const NO_OP: u32 = 28;
+/// Dense action indices for the rules the synthetic generator writes labels for.
+///
+/// Resolved from an [`ActionVocabulary`] by stable `module::name` key. The previous version
+/// of this module hard-coded small integers that were meant to be rule identifiers but were
+/// used as tensor columns; they were off by one for every algebra rule (class 0 was
+/// documented as `const_fold`, whose identifier is 1) and matched nothing at all for the
+/// rest of the registry.
+struct ActionIds {
+    const_fold: u32,
+    identity_add_zero: u32,
+    identity_mul_one: u32,
+    zero_mul: u32,
+    collect_like_terms: u32,
+    distribute: u32,
+    factor_common: u32,
+    diff_of_squares: u32,
+    power_rule: u32,
+    constant_rule: u32,
+    sum_rule: u32,
+    product_rule: u32,
+    quotient_rule: u32,
+    sin_derivative: u32,
+    cos_derivative: u32,
+    exp_derivative: u32,
+    ln_derivative: u32,
+    isolate_variable: u32,
+    cancel_addition: u32,
+    cancel_subtraction: u32,
+    cancel_multiplication: u32,
+    cancel_division: u32,
+    linear_solve: u32,
+    quadratic_formula: u32,
+    /// Reserved terminal class: "no rule applies here".
+    no_op: u32,
 }
 
-/// Generator for comprehensive synthetic training data.
+impl ActionIds {
+    fn resolve(vocab: &ActionVocabulary) -> Self {
+        let idx = |module: &str, name: &str| -> u32 {
+            vocab
+                .index_of(module, name)
+                .unwrap_or_else(|e| panic!("synthetic label refers to a missing rule: {e}"))
+                as u32
+        };
+
+        Self {
+            const_fold: idx("algebra", "const_fold"),
+            identity_add_zero: idx("algebra", "identity_add_zero"),
+            identity_mul_one: idx("algebra", "identity_mul_one"),
+            zero_mul: idx("algebra", "zero_mul"),
+            collect_like_terms: idx("algebra", "collect_like_terms"),
+            distribute: idx("algebra", "distribute"),
+            factor_common: idx("algebra", "factor_common"),
+            diff_of_squares: idx("algebra", "difference_of_squares"),
+            power_rule: idx("calculus", "power_rule"),
+            constant_rule: idx("calculus", "constant_rule"),
+            sum_rule: idx("calculus", "sum_rule"),
+            product_rule: idx("calculus", "product_rule"),
+            quotient_rule: idx("calculus", "quotient_rule"),
+            sin_derivative: idx("calculus", "sin_chain_rule"),
+            cos_derivative: idx("calculus", "cos_chain_rule"),
+            exp_derivative: idx("calculus", "exp_derivative"),
+            ln_derivative: idx("calculus", "ln_derivative"),
+            isolate_variable: idx("equations", "isolate_variable"),
+            cancel_addition: idx("equations", "cancel_addition"),
+            cancel_subtraction: idx("equations", "cancel_subtraction"),
+            cancel_multiplication: idx("equations", "cancel_multiplication"),
+            cancel_division: idx("equations", "cancel_division"),
+            linear_solve: idx("equations", "linear_solve"),
+            quadratic_formula: idx("equations", "quadratic_formula"),
+            no_op: vocab.len() as u32,
+        }
+    }
+}
+
+/// Generator for synthetic training data.
 pub struct DataGenerator {
     encoder: ExpressionEncoder,
-    symbols: SymbolTable,
     rng: StdRng,
     x: mm_core::Symbol,
     y: mm_core::Symbol,
     z: mm_core::Symbol,
+    vocabulary: ActionVocabulary,
+    actions: ActionIds,
 }
 
 impl DataGenerator {
-    /// Create a new data generator.
+    /// Create a new data generator for the standard action vocabulary.
     pub fn new(device: Device) -> Self {
-        let mut symbols = SymbolTable::new();
-        let x = symbols.intern("x");
-        let y = symbols.intern("y");
-        let z = symbols.intern("z");
-
-        Self {
-            encoder: ExpressionEncoder::new(device),
-            symbols,
-            rng: StdRng::seed_from_u64(42),
-            x,
-            y,
-            z,
-        }
+        Self::with_seed(device, 42)
     }
 
     /// Create with a specific random seed.
     pub fn with_seed(device: Device, seed: u64) -> Self {
+        Self::with_vocabulary(device, seed, ActionVocabulary::standard())
+    }
+
+    /// Create with an explicit action vocabulary.
+    pub fn with_vocabulary(device: Device, seed: u64, vocabulary: ActionVocabulary) -> Self {
         let mut symbols = SymbolTable::new();
         let x = symbols.intern("x");
         let y = symbols.intern("y");
         let z = symbols.intern("z");
+        let actions = ActionIds::resolve(&vocabulary);
 
         Self {
             encoder: ExpressionEncoder::new(device),
-            symbols,
             rng: StdRng::seed_from_u64(seed),
             x,
             y,
             z,
+            vocabulary,
+            actions,
         }
     }
 
-    fn make_example(&self, expr: &Expr, rule: u32, value: f32) -> TrainingExample {
+    /// The action vocabulary the generated labels are expressed in.
+    pub fn vocabulary(&self) -> &ActionVocabulary {
+        &self.vocabulary
+    }
+
+    fn make_example(&self, expr: &Expr, action: u32, value: f32) -> TrainingExample {
         let tokens = self.encoder.encode_tokens(&self.encoder.tokenize(expr));
         TrainingExample {
             tokens,
-            target_rule: rule,
+            target_action: action,
             target_value: value,
         }
     }
@@ -143,21 +184,21 @@ impl DataGenerator {
             // Addition
             examples.push(self.make_example(
                 &Expr::Add(Box::new(Expr::int(a)), Box::new(Expr::int(b))),
-                rule_ids::CONST_FOLD,
+                self.actions.const_fold,
                 1.0,
             ));
 
             // Subtraction
             examples.push(self.make_example(
                 &Expr::Sub(Box::new(Expr::int(a + b)), Box::new(Expr::int(b))),
-                rule_ids::CONST_FOLD,
+                self.actions.const_fold,
                 1.0,
             ));
 
             // Multiplication
             examples.push(self.make_example(
                 &Expr::Mul(Box::new(Expr::int(a)), Box::new(Expr::int(b))),
-                rule_ids::CONST_FOLD,
+                self.actions.const_fold,
                 1.0,
             ));
 
@@ -165,7 +206,7 @@ impl DataGenerator {
             if b != 0 {
                 examples.push(self.make_example(
                     &Expr::Div(Box::new(Expr::int(a * b)), Box::new(Expr::int(b))),
-                    rule_ids::CONST_FOLD,
+                    self.actions.const_fold,
                     1.0,
                 ));
             }
@@ -174,7 +215,7 @@ impl DataGenerator {
             let exp = self.rng.gen_range(0..5);
             examples.push(self.make_example(
                 &Expr::Pow(Box::new(Expr::int(2)), Box::new(Expr::int(exp))),
-                rule_ids::CONST_FOLD,
+                self.actions.const_fold,
                 1.0,
             ));
         }
@@ -193,42 +234,42 @@ impl DataGenerator {
             // x + 0 → x
             examples.push(self.make_example(
                 &Expr::Add(Box::new(Expr::Var(v)), Box::new(Expr::int(0))),
-                rule_ids::IDENTITY_ADD_ZERO,
+                self.actions.identity_add_zero,
                 1.0,
             ));
 
             // 0 + x → x
             examples.push(self.make_example(
                 &Expr::Add(Box::new(Expr::int(0)), Box::new(Expr::Var(v))),
-                rule_ids::IDENTITY_ADD_ZERO,
+                self.actions.identity_add_zero,
                 1.0,
             ));
 
             // x * 1 → x
             examples.push(self.make_example(
                 &Expr::Mul(Box::new(Expr::Var(v)), Box::new(Expr::int(1))),
-                rule_ids::IDENTITY_MUL_ONE,
+                self.actions.identity_mul_one,
                 1.0,
             ));
 
             // 1 * x → x
             examples.push(self.make_example(
                 &Expr::Mul(Box::new(Expr::int(1)), Box::new(Expr::Var(v))),
-                rule_ids::IDENTITY_MUL_ONE,
+                self.actions.identity_mul_one,
                 1.0,
             ));
 
             // x * 0 → 0
             examples.push(self.make_example(
                 &Expr::Mul(Box::new(Expr::Var(v)), Box::new(Expr::int(0))),
-                rule_ids::ZERO_MUL,
+                self.actions.zero_mul,
                 1.0,
             ));
 
             // 0 * x → 0
             examples.push(self.make_example(
                 &Expr::Mul(Box::new(Expr::int(0)), Box::new(Expr::Var(v))),
-                rule_ids::ZERO_MUL,
+                self.actions.zero_mul,
                 1.0,
             ));
         }
@@ -252,7 +293,7 @@ impl DataGenerator {
                         Box::new(Expr::Var(self.y)),
                     )),
                 ),
-                rule_ids::DISTRIBUTE,
+                self.actions.distribute,
                 1.0,
             ));
 
@@ -265,7 +306,7 @@ impl DataGenerator {
                     )),
                     Box::new(Expr::int(a)),
                 ),
-                rule_ids::DISTRIBUTE,
+                self.actions.distribute,
                 1.0,
             ));
 
@@ -278,7 +319,7 @@ impl DataGenerator {
                         Box::new(Expr::Neg(Box::new(Expr::Var(self.y)))),
                     )),
                 ),
-                rule_ids::DISTRIBUTE,
+                self.actions.distribute,
                 1.0,
             ));
         }
@@ -305,7 +346,7 @@ impl DataGenerator {
                         Box::new(Expr::Var(self.y)),
                     )),
                 ),
-                rule_ids::FACTOR_COMMON,
+                self.actions.factor_common,
                 1.0,
             ));
         }
@@ -330,7 +371,7 @@ impl DataGenerator {
                         Box::new(Expr::int(2)),
                     )),
                 ),
-                rule_ids::DIFF_OF_SQUARES,
+                self.actions.diff_of_squares,
                 1.0,
             ));
 
@@ -344,7 +385,7 @@ impl DataGenerator {
                     )),
                     Box::new(Expr::Pow(Box::new(Expr::int(a)), Box::new(Expr::int(2)))),
                 ),
-                rule_ids::DIFF_OF_SQUARES,
+                self.actions.diff_of_squares,
                 1.0,
             ));
         }
@@ -372,14 +413,14 @@ impl DataGenerator {
                         Box::new(Expr::Var(self.x)),
                     )),
                 ),
-                rule_ids::COLLECT_LIKE_TERMS,
+                self.actions.collect_like_terms,
                 1.0,
             ));
 
             // x + x → 2x
             examples.push(self.make_example(
                 &Expr::Add(Box::new(Expr::Var(self.x)), Box::new(Expr::Var(self.x))),
-                rule_ids::COLLECT_LIKE_TERMS,
+                self.actions.collect_like_terms,
                 1.0,
             ));
         }
@@ -407,7 +448,7 @@ impl DataGenerator {
                     )),
                     var: self.x,
                 },
-                rule_ids::POWER_RULE,
+                self.actions.power_rule,
                 1.0,
             ));
 
@@ -417,7 +458,7 @@ impl DataGenerator {
                     expr: Box::new(Expr::Var(self.x)),
                     var: self.x,
                 },
-                rule_ids::POWER_RULE,
+                self.actions.power_rule,
                 1.0,
             ));
         }
@@ -437,7 +478,7 @@ impl DataGenerator {
                     expr: Box::new(Expr::int(c)),
                     var: self.x,
                 },
-                rule_ids::CONSTANT_RULE,
+                self.actions.constant_rule,
                 1.0,
             ));
 
@@ -447,7 +488,7 @@ impl DataGenerator {
                     expr: Box::new(Expr::Var(self.x)),
                     var: self.y,
                 },
-                rule_ids::CONSTANT_RULE,
+                self.actions.constant_rule,
                 1.0,
             ));
         }
@@ -478,7 +519,7 @@ impl DataGenerator {
                     )),
                     var: self.x,
                 },
-                rule_ids::SUM_RULE,
+                self.actions.sum_rule,
                 1.0,
             ));
 
@@ -492,7 +533,7 @@ impl DataGenerator {
                     )),
                     var: self.x,
                 },
-                rule_ids::SUM_RULE,
+                self.actions.sum_rule,
                 1.0,
             ));
         }
@@ -519,7 +560,7 @@ impl DataGenerator {
                     )),
                     var: self.x,
                 },
-                rule_ids::PRODUCT_RULE,
+                self.actions.product_rule,
                 1.0,
             ));
 
@@ -532,7 +573,7 @@ impl DataGenerator {
                     )),
                     var: self.x,
                 },
-                rule_ids::PRODUCT_RULE,
+                self.actions.product_rule,
                 1.0,
             ));
         }
@@ -559,7 +600,7 @@ impl DataGenerator {
                     )),
                     var: self.x,
                 },
-                rule_ids::QUOTIENT_RULE,
+                self.actions.quotient_rule,
                 1.0,
             ));
 
@@ -572,7 +613,7 @@ impl DataGenerator {
                     )),
                     var: self.x,
                 },
-                rule_ids::QUOTIENT_RULE,
+                self.actions.quotient_rule,
                 1.0,
             ));
 
@@ -588,7 +629,7 @@ impl DataGenerator {
                     )),
                     var: self.x,
                 },
-                rule_ids::QUOTIENT_RULE,
+                self.actions.quotient_rule,
                 1.0,
             ));
         }
@@ -607,7 +648,7 @@ impl DataGenerator {
                     expr: Box::new(Expr::Sin(Box::new(Expr::Var(self.x)))),
                     var: self.x,
                 },
-                rule_ids::SIN_DERIVATIVE,
+                self.actions.sin_derivative,
                 1.0,
             ));
 
@@ -617,7 +658,7 @@ impl DataGenerator {
                     expr: Box::new(Expr::Cos(Box::new(Expr::Var(self.x)))),
                     var: self.x,
                 },
-                rule_ids::COS_DERIVATIVE,
+                self.actions.cos_derivative,
                 1.0,
             ));
 
@@ -627,7 +668,7 @@ impl DataGenerator {
                     expr: Box::new(Expr::Exp(Box::new(Expr::Var(self.x)))),
                     var: self.x,
                 },
-                rule_ids::EXP_DERIVATIVE,
+                self.actions.exp_derivative,
                 1.0,
             ));
 
@@ -637,7 +678,7 @@ impl DataGenerator {
                     expr: Box::new(Expr::Ln(Box::new(Expr::Var(self.x)))),
                     var: self.x,
                 },
-                rule_ids::LN_DERIVATIVE,
+                self.actions.ln_derivative,
                 1.0,
             ));
         }
@@ -666,7 +707,7 @@ impl DataGenerator {
                     )),
                     rhs: Box::new(Expr::int(b)),
                 },
-                rule_ids::CANCEL_ADDITION,
+                self.actions.cancel_addition,
                 1.0,
             ));
 
@@ -679,7 +720,7 @@ impl DataGenerator {
                     )),
                     rhs: Box::new(Expr::int(b)),
                 },
-                rule_ids::CANCEL_ADDITION,
+                self.actions.cancel_addition,
                 1.0,
             ));
         }
@@ -704,7 +745,7 @@ impl DataGenerator {
                     )),
                     rhs: Box::new(Expr::int(b)),
                 },
-                rule_ids::CANCEL_SUBTRACTION,
+                self.actions.cancel_subtraction,
                 1.0,
             ));
         }
@@ -730,7 +771,7 @@ impl DataGenerator {
                         )),
                         rhs: Box::new(Expr::int(b)),
                     },
-                    rule_ids::CANCEL_MULTIPLICATION,
+                    self.actions.cancel_multiplication,
                     1.0,
                 ));
             }
@@ -757,7 +798,7 @@ impl DataGenerator {
                         )),
                         rhs: Box::new(Expr::int(b)),
                     },
-                    rule_ids::CANCEL_DIVISION,
+                    self.actions.cancel_division,
                     1.0,
                 ));
             }
@@ -788,7 +829,7 @@ impl DataGenerator {
                         )),
                         rhs: Box::new(Expr::int(c)),
                     },
-                    rule_ids::LINEAR_SOLVE,
+                    self.actions.linear_solve,
                     1.0,
                 ));
 
@@ -804,7 +845,7 @@ impl DataGenerator {
                         )),
                         rhs: Box::new(Expr::int(c)),
                     },
-                    rule_ids::ISOLATE_VARIABLE,
+                    self.actions.isolate_variable,
                     1.0,
                 ));
             }
@@ -844,7 +885,7 @@ impl DataGenerator {
                         )),
                         rhs: Box::new(Expr::int(0)),
                     },
-                    rule_ids::QUADRATIC_FORMULA,
+                    self.actions.quadratic_formula,
                     1.0,
                 ));
 
@@ -857,7 +898,7 @@ impl DataGenerator {
                         )),
                         rhs: Box::new(Expr::int(c.abs())),
                     },
-                    rule_ids::QUADRATIC_FORMULA,
+                    self.actions.quadratic_formula,
                     1.0,
                 ));
             }
@@ -881,7 +922,7 @@ impl DataGenerator {
             if n != 0 {
                 examples.push(self.make_example(
                     &Expr::Add(Box::new(Expr::Var(self.x)), Box::new(Expr::int(n))),
-                    rule_ids::NO_OP,
+                    self.actions.no_op,
                     -0.3,
                 ));
             }
@@ -890,7 +931,7 @@ impl DataGenerator {
             if n > 1 {
                 examples.push(self.make_example(
                     &Expr::Mul(Box::new(Expr::Var(self.x)), Box::new(Expr::int(n))),
-                    rule_ids::NO_OP,
+                    self.actions.no_op,
                     -0.3,
                 ));
             }
@@ -899,7 +940,7 @@ impl DataGenerator {
             if n > 1 {
                 examples.push(self.make_example(
                     &Expr::Pow(Box::new(Expr::Var(self.x)), Box::new(Expr::int(n))),
-                    rule_ids::NO_OP,
+                    self.actions.no_op,
                     -0.2,
                 ));
             }
@@ -907,7 +948,7 @@ impl DataGenerator {
             // sin(x) (already simplified)
             examples.push(self.make_example(
                 &Expr::Sin(Box::new(Expr::Var(self.x))),
-                rule_ids::NO_OP,
+                self.actions.no_op,
                 0.0,
             ));
         }
@@ -978,9 +1019,8 @@ mod tests {
         let mut gen = DataGenerator::new(Device::Cpu);
         let examples = gen.generate_constant_folding(10);
         assert!(examples.len() >= 40);
-        assert!(examples
-            .iter()
-            .all(|e| e.target_rule == rule_ids::CONST_FOLD));
+        let expected = gen.vocabulary().index_of("algebra", "const_fold").unwrap() as u32;
+        assert!(examples.iter().all(|e| e.target_action == expected));
     }
 
     #[test]

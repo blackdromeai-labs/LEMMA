@@ -6,8 +6,6 @@
 //! This module connects to LEMMA's MCTS search engine.
 
 use std::collections::HashMap;
-use std::fs;
-use std::path::Path;
 
 /// Substitution vocabulary - 20 common IMO substitutions
 pub const SUBSTITUTION_VOCAB: &[&str] = &[

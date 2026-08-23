@@ -12,7 +12,7 @@ use std::collections::HashMap;
 use std::fmt;
 
 /// Unique identifier for a rule.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct RuleId(pub u32);
 
 impl fmt::Display for RuleId {
@@ -283,12 +283,93 @@ impl fmt::Debug for Rule {
     }
 }
 
+//// Error produced when a rule cannot be registered.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RegistryError {
+    /// Two rules declare the same [`RuleId`].
+    DuplicateId {
+        /// The colliding identifier.
+        id: RuleId,
+        /// Module and name of the rule already registered under `id`.
+        existing: RuleKey,
+        /// Module and name of the rule that was rejected.
+        incoming: RuleKey,
+    },
+    /// Two rules in the same module declare the same name.
+    DuplicateKey {
+        /// The colliding module/name pair.
+        key: RuleKey,
+        /// Identifier of the rule already registered under `key`.
+        existing: RuleId,
+        /// Identifier of the rule that was rejected.
+        incoming: RuleId,
+    },
+}
+
+impl fmt::Display for RegistryError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            RegistryError::DuplicateId {
+                id,
+                existing,
+                incoming,
+            } => write!(
+                f,
+                "duplicate rule id {}: {} already registered, {} rejected",
+                id.0, existing, incoming
+            ),
+            RegistryError::DuplicateKey {
+                key,
+                existing,
+                incoming,
+            } => write!(
+                f,
+                "duplicate rule name {}: id {} already registered, id {} rejected",
+                key, existing.0, incoming.0
+            ),
+        }
+    }
+}
+
+impl std::error::Error for RegistryError {}
+
+/// Stable, human-readable identity of a rule: the module that defines it plus its name.
+///
+/// [`RuleId`] is the compact identity recorded in proofs and search; `RuleKey` is the
+/// identity used by anything that must survive renumbering, such as the neural action
+/// vocabulary in [`crate::action`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct RuleKey {
+    /// Module that defines the rule (for example `"algebra"`).
+    pub module: &'static str,
+    /// Rule name, unique within its module.
+    pub name: &'static str,
+}
+
+impl fmt::Display for RuleKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}::{}", self.module, self.name)
+    }
+}
+
 /// A collection of rules.
+///
+/// The set enforces two invariants at registration time:
+///
+/// 1. every [`RuleId`] is unique, and
+/// 2. every [`RuleKey`] (module plus name) is unique.
+///
+/// Both are required because [`Self::by_category`] and [`Self::get`] resolve through the
+/// identifier: with duplicates, a category lookup could return a rule other than the one
+/// registered under that category. Insertion order is preserved, so [`Self::all`],
+/// [`Self::keys`] and [`Self::by_category`] all iterate deterministically.
 #[derive(Default)]
 pub struct RuleSet {
     rules: Vec<Rule>,
+    keys: Vec<RuleKey>,
     by_id: HashMap<RuleId, usize>,
-    by_category: HashMap<RuleCategory, Vec<RuleId>>,
+    by_key: HashMap<RuleKey, usize>,
+    by_category: HashMap<RuleCategory, Vec<usize>>,
 }
 
 impl RuleSet {
@@ -297,32 +378,80 @@ impl RuleSet {
         Self::default()
     }
 
-    /// Add a rule to the set.
-    pub fn add(&mut self, rule: Rule) {
+    /// Add a rule defined by `module`, rejecting identifier or name collisions.
+    pub fn try_add(&mut self, module: &'static str, rule: Rule) -> Result<(), RegistryError> {
         let id = rule.id;
+        let key = RuleKey {
+            module,
+            name: rule.name,
+        };
+
+        if let Some(&idx) = self.by_id.get(&id) {
+            return Err(RegistryError::DuplicateId {
+                id,
+                existing: self.keys[idx],
+                incoming: key,
+            });
+        }
+        if let Some(&idx) = self.by_key.get(&key) {
+            return Err(RegistryError::DuplicateKey {
+                key,
+                existing: self.rules[idx].id,
+                incoming: id,
+            });
+        }
+
         let category = rule.category;
         let idx = self.rules.len();
-
         self.rules.push(rule);
+        self.keys.push(key);
         self.by_id.insert(id, idx);
-        self.by_category.entry(category).or_default().push(id);
+        self.by_key.insert(key, idx);
+        self.by_category.entry(category).or_default().push(idx);
+        Ok(())
     }
 
-    /// Get a rule by ID.
+    /// Add every rule of a module, rejecting the first collision.
+    pub fn try_add_module<I>(&mut self, module: &'static str, rules: I) -> Result<(), RegistryError>
+    where
+        I: IntoIterator<Item = Rule>,
+    {
+        for rule in rules {
+            self.try_add(module, rule)?;
+        }
+        Ok(())
+    }
+
+    /// Get a rule by identifier.
     pub fn get(&self, id: RuleId) -> Option<&Rule> {
         self.by_id.get(&id).map(|&idx| &self.rules[idx])
     }
 
-    /// Get all rules.
+    /// Get a rule by its stable module/name key.
+    pub fn get_by_key(&self, key: &RuleKey) -> Option<&Rule> {
+        self.by_key.get(key).map(|&idx| &self.rules[idx])
+    }
+
+    /// Get the stable key of a registered rule.
+    pub fn key_of(&self, id: RuleId) -> Option<RuleKey> {
+        self.by_id.get(&id).map(|&idx| self.keys[idx])
+    }
+
+    /// Get all rules, in registration order.
     pub fn all(&self) -> &[Rule] {
         &self.rules
     }
 
-    /// Get rules by category.
+    /// Get all rule keys, in registration order and aligned with [`Self::all`].
+    pub fn keys(&self) -> &[RuleKey] {
+        &self.keys
+    }
+
+    /// Get rules by category, in registration order.
     pub fn by_category(&self, category: RuleCategory) -> Vec<&Rule> {
         self.by_category
             .get(&category)
-            .map(|ids| ids.iter().filter_map(|id| self.get(*id)).collect())
+            .map(|idxs| idxs.iter().map(|&i| &self.rules[i]).collect())
             .unwrap_or_default()
     }
 
@@ -345,72 +474,46 @@ impl RuleSet {
     }
 }
 
+/// Modules registered by [`standard_rules`], in registration order.
+///
+/// Identifier blocks: the modules originally used overlapping hand-written ranges, which
+/// produced 100 colliding identifiers. Rules whose identifier collided were moved into a
+/// reserved per-module block (`22000`-`28999`). New rules must not reuse an identifier that
+/// is already present; `try_standard_rules` reports the collision instead of hiding it.
+fn standard_modules() -> Vec<(&'static str, Vec<Rule>)> {
+    vec![
+        ("algebra", crate::algebra::algebra_rules()),
+        ("trig", crate::trig::trig_rules()),
+        ("equations", crate::equations::equation_rules()),
+        ("integration", crate::integration::integration_rules()),
+        ("calculus", crate::calculus::calculus_rules()),
+        ("inequalities", crate::inequalities::inequality_rules()),
+        ("number_theory", crate::number_theory::number_theory_rules()),
+        ("combinatorics", crate::combinatorics::combinatorics_rules()),
+        ("polynomials", crate::polynomials::polynomial_rules()),
+        ("geometry", crate::geometry::geometry_rules()),
+    ]
+}
+
+/// Build the standard rule set, returning the first identity collision instead of hiding it.
+pub fn try_standard_rules() -> Result<RuleSet, RegistryError> {
+    let mut rules = RuleSet::new();
+    for (module, module_rules) in standard_modules() {
+        rules.try_add_module(module, module_rules)?;
+    }
+    Ok(rules)
+}
+
 /// Create a standard rule set with all built-in rules.
 ///
-/// Current state: 162 working rules, 151 stubs in mixed modules
-/// Stubs are included but won't match any expressions (is_applicable returns false)
+/// Panics if two rules share an identifier or a module/name key. That is a build-time
+/// programming error, not a runtime condition: silently overwriting either index previously
+/// made `get`, `by_category` and recorded proof metadata disagree with each other.
 pub fn standard_rules() -> RuleSet {
-    let mut rules = RuleSet::new();
-
-    // FULLY WORKING MODULES (0 stubs):
-
-    // Add algebra rules - 36 working, 0 stubs
-    for rule in crate::algebra::algebra_rules() {
-        rules.add(rule);
+    match try_standard_rules() {
+        Ok(rules) => rules,
+        Err(err) => panic!("standard rule registry is inconsistent: {err}"),
     }
-
-    // Add trig rules - 43 working, 0 stubs
-    for rule in crate::trig::trig_rules() {
-        rules.add(rule);
-    }
-
-    // Add equation solving rules - 7 working, 0 stubs
-    for rule in crate::equations::equation_rules() {
-        rules.add(rule);
-    }
-
-    // Add integration rules - 9 working, 0 stubs
-    for rule in crate::integration::integration_rules() {
-        rules.add(rule);
-    }
-
-    // MIXED MODULES (have both working and stub rules):
-
-    // Add calculus rules - 15 working, 2 stubs
-    for rule in crate::calculus::calculus_rules() {
-        rules.add(rule);
-    }
-
-    // Add inequality rules - 20 working, 12 stubs
-    for rule in crate::inequalities::inequality_rules() {
-        rules.add(rule);
-    }
-
-    // Add number theory rules - 28 working, 56 stubs
-    for rule in crate::number_theory::number_theory_rules() {
-        rules.add(rule);
-    }
-
-    // Add combinatorics rules - 1 working, 45 stubs
-    for rule in crate::combinatorics::combinatorics_rules() {
-        rules.add(rule);
-    }
-
-    // Add polynomial rules - 3 working, 36 stubs
-    for rule in crate::polynomials::polynomial_rules() {
-        rules.add(rule);
-    }
-
-    // Add geometry rules - 25 stubs (Conic Sections, Coordinate Geometry)
-    for rule in crate::geometry::geometry_rules() {
-        rules.add(rule);
-    }
-
-    // DELETED pure-stub modules (had 0 working rules):
-    // complex.rs, logarithm.rs, sequences.rs, modular.rs, functional.rs
-    // These were created as stubs and never implemented - now deleted.
-
-    rules
 }
 
 #[cfg(test)]

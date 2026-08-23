@@ -38,6 +38,7 @@ fn main() {
         exploration_weight: 1.41,
         virtual_loss: 3.0,
         progress_interval: 10,
+        ..Default::default()
     };
 
     let rules = standard_rules();

@@ -1,4 +1,4 @@
-use mm_core::{Expr, SymbolTable};
+use mm_core::Expr;
 use mm_rules::rule::standard_rules;
 use mm_search::{MCTSConfig, NeuralMCTS};
 use mm_verifier::Verifier;
@@ -10,7 +10,7 @@ fn main() {
         simulations: 200,
         exploration_weight: 1.41,
         max_depth: 20,
-        temperature: 1.0,
+        ..Default::default()
     };
     let mcts = NeuralMCTS::with_config(rules, verifier, config);
 

@@ -3,7 +3,6 @@
 //! Demonstrates using neural-guided Monte Carlo Tree Search
 //! to simplify expressions.
 
-use candle_core::Device;
 use mm_core::{Expr, SymbolTable};
 use mm_rules::rule::standard_rules;
 use mm_search::{MCTSConfig, NeuralMCTS};
@@ -19,7 +18,7 @@ fn main() {
         simulations: 50, // Reduced for demo
         exploration_weight: 1.41,
         max_depth: 10,
-        temperature: 1.0,
+        ..Default::default()
     };
     let mcts = NeuralMCTS::with_config(rules, verifier, config);
 
@@ -33,7 +32,7 @@ fn main() {
     let result = mcts.simplify(expr);
     println!("Output: {:?}", result.result);
     println!("Steps: {}", result.steps.len());
-    println!("Verified: {}", result.verified);
+    println!("Verification: {}", result.status);
 
     // Test 2: Identity elimination
     println!("\n--- Test 2: Identity Elimination ---");

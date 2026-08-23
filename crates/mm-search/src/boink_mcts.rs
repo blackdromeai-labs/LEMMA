@@ -12,10 +12,10 @@
 //! - Reward/penalty feedback loop via [`BoinkSupervisor`]
 //! - Integration with the global [`Bank`] for credits
 
-use crate::{NeuralMCTS, Solution, Step};
-use mm_boink::{analyze, Bank, BoinkSupervisor, Budget, ProblemProfile, RunResult};
+use crate::{NeuralMCTS, Solution};
+use mm_boink::{analyze, Bank, BoinkSupervisor, RunResult};
 use mm_core::Expr;
-use mm_rules::{Rule, RuleSet};
+use mm_rules::RuleSet;
 use mm_verifier::Verifier;
 use std::cell::RefCell;
 

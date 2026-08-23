@@ -9,9 +9,11 @@
 use candle_core::{DType, Device, Result, Tensor};
 use candle_nn::optim::{AdamW, ParamsAdamW};
 use candle_nn::{Optimizer, VarMap};
+use mm_rules::ActionVocabulary;
 
 use crate::encoder::ExpressionEncoder;
 use crate::network::{MathNetwork, NetworkConfig};
+use crate::provenance::ModelManifest;
 
 /// Training configuration.
 #[derive(Debug, Clone)]
@@ -41,12 +43,15 @@ impl Default for TrainingConfig {
 }
 
 /// A single training example.
+///
+/// `target_action` is a dense [`ActionVocabulary`] index, not a [`mm_rules::RuleId`]. The two
+/// were previously conflated, which put the label one column away from the rule it named.
 #[derive(Debug, Clone)]
 pub struct TrainingExample {
     /// The expression state.
     pub tokens: Vec<u32>,
-    /// Target rule probabilities (one-hot or soft).
-    pub target_rule: u32,
+    /// Target policy class: an action index, or the reserved terminal class.
+    pub target_action: u32,
     /// Target value (-1 to 1).
     pub target_value: f32,
 }
@@ -59,15 +64,41 @@ pub struct Trainer {
     encoder: ExpressionEncoder,
     config: TrainingConfig,
     device: Device,
+    vocabulary: ActionVocabulary,
 }
 
 impl Trainer {
-    /// Create a new trainer.
+    /// Create a new trainer for the standard action vocabulary.
     pub fn new(
         network_config: NetworkConfig,
         training_config: TrainingConfig,
         device: Device,
     ) -> Result<Self> {
+        Self::with_vocabulary(
+            network_config,
+            training_config,
+            device,
+            ActionVocabulary::standard(),
+        )
+    }
+
+    /// Create a trainer bound to a specific action vocabulary.
+    ///
+    /// The vocabulary is recorded in the manifest written by [`Self::save`], so weights can
+    /// never be loaded against a rule set they were not trained for.
+    pub fn with_vocabulary(
+        network_config: NetworkConfig,
+        training_config: TrainingConfig,
+        device: Device,
+        vocabulary: ActionVocabulary,
+    ) -> Result<Self> {
+        let expected = crate::network::policy_classes_for(&vocabulary);
+        if network_config.num_policy_classes != expected {
+            return Err(candle_core::Error::Msg(format!(
+                "network has {} policy classes but the action vocabulary needs {}",
+                network_config.num_policy_classes, expected
+            )));
+        }
         let varmap = VarMap::new();
         let vb = candle_nn::VarBuilder::from_varmap(&varmap, DType::F32, &device);
 
@@ -89,7 +120,13 @@ impl Trainer {
             encoder,
             config: training_config,
             device,
+            vocabulary,
         })
+    }
+
+    /// The action vocabulary this trainer's labels are expressed in.
+    pub fn vocabulary(&self) -> &ActionVocabulary {
+        &self.vocabulary
     }
 
     /// Train on a batch of examples.
@@ -109,7 +146,7 @@ impl Trainer {
             })
             .collect();
 
-        let target_rules: Vec<u32> = examples.iter().map(|e| e.target_rule).collect();
+        let target_rules: Vec<u32> = examples.iter().map(|e| e.target_action).collect();
         let target_values: Vec<f32> = examples.iter().map(|e| e.target_value).collect();
 
         // Create tensors
@@ -197,13 +234,35 @@ impl Trainer {
         &self.device
     }
 
-    /// Save trained model weights to a file.
+    /// Save trained model weights plus the manifest that identifies their vocabulary.
+    ///
+    /// Without the manifest, weights could be loaded against a rule set they were not
+    /// trained for and would produce priors for the wrong rules.
     pub fn save<P: AsRef<std::path::Path>>(&self, path: P) -> Result<()> {
+        let path = path.as_ref();
         self.varmap.save(path)?;
+
+        let config = self.network.config();
+        let manifest = ModelManifest {
+            vocabulary_version: mm_rules::ACTION_VOCABULARY_VERSION,
+            vocabulary_digest: self.vocabulary.digest(),
+            num_actions: self.vocabulary.len(),
+            num_policy_classes: config.num_policy_classes,
+            embed_dim: config.embed_dim,
+            hidden_dim: config.hidden_dim,
+            num_heads: config.num_heads,
+            num_layers: config.num_layers,
+            max_seq_len: config.max_seq_len,
+            token_vocab_size: config.vocab_size,
+        };
+        let json = serde_json::to_string_pretty(&manifest)
+            .map_err(|e| candle_core::Error::Msg(e.to_string()))?;
+        std::fs::write(ModelManifest::path_for(path), json)
+            .map_err(|e| candle_core::Error::Msg(e.to_string()))?;
         Ok(())
     }
 
-    /// Load model weights from a file.
+    /// Load model weights from a file into this trainer's network.
     pub fn load<P: AsRef<std::path::Path>>(&mut self, path: P) -> Result<()> {
         self.varmap.load(path)?;
         Ok(())
@@ -233,11 +292,11 @@ mod tests {
         )
         .unwrap();
 
-        // Create dummy training example
+        // Dummy example: action 0 is the first rule in the vocabulary (`algebra::const_fold`).
         let example = TrainingExample {
-            tokens: vec![1, 26, 4, 27, 2], // <START> 0 + 1 <END>
-            target_rule: 0,                // const_fold
-            target_value: 1.0,             // Good state
+            tokens: vec![1, 26, 4, 27, 2],
+            target_action: 0,
+            target_value: 1.0,
         };
 
         let (policy_loss, value_loss) = trainer.train_step(&[example]).unwrap();

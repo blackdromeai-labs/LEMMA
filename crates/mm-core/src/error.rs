@@ -42,6 +42,13 @@ pub enum MathError {
     /// Maximum depth exceeded.
     #[error("Maximum depth exceeded")]
     MaxDepthExceeded,
+
+    /// The operation is not implemented.
+    ///
+    /// Returned instead of an empty or default-shaped success value, so a caller can tell
+    /// "there is nothing to report" apart from "this was never built".
+    #[error("Not implemented: {0}")]
+    NotImplemented(String),
 }
 
 /// Result type for math operations.
