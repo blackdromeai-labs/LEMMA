@@ -18,8 +18,10 @@ A research prototype exploring neural-guided symbolic mathematics in Rust. Inspi
 ### What LEMMA IS:
 - A **research prototype** exploring hybrid neural-symbolic reasoning
 - A **proof of concept** for AlphaProof-style mathematical search
-- **550+ verified transformation rules** for IMO-level mathematics
-- An **MCTS engine** guided by a neural policy network
+- **572 registered transformation rules**, a mix of working rules and unimplemented
+  stubs that never match
+- An **MCTS engine** over those rules; it can be guided by a policy network, but no
+  trained model ships with the repository
 - A **learning project** for anyone interested in symbolic AI
 
 ### What LEMMA is NOT:
@@ -75,7 +77,7 @@ A research prototype exploring neural-guided symbolic mathematics in Rust. Inspi
                                  v
                   +-----------------------------+
                   |       Rule Library          |
-                  |  (550+ verified transforms) |
+                  |     (572 registered rules)  |
                   +--------------+--------------+
                                  |
                                  v
@@ -85,12 +87,18 @@ A research prototype exploring neural-guided symbolic mathematics in Rust. Inspi
                   +-----------------------------+
 ```
 
-### Key Innovation
+### Approach
 
 Unlike LLMs that predict text statistically, LEMMA:
-1. **Only applies verified mathematical rules** - no hallucination
-2. **Provides complete proof traces** - every step is justified
-3. **Uses neural guidance for search** - learns which rules to try first
+1. **Only applies rules from an explicit registry** - it cannot invent a transformation
+2. **Records a trace** - every result carries the steps that produced it, and a
+   `VerificationStatus` saying what was actually checked (see below)
+3. **Can be guided by a policy network** - with no trained model present the search uses
+   uniform priors and says so, rather than reading randomly initialised weights
+
+Verification here means equivalence checking (canonical form, with numeric sampling as a
+fallback), not machine-checked proof. There is no SMT backend; `VerificationLevel::Formal`
+reports that it is unsupported instead of returning a verdict.
 
 ---
 
@@ -122,11 +130,11 @@ cd LEMMA
 # Build everything
 cargo build --release
 
-# Run the benchmark suite
-cargo run --release --example benchmark_advanced
+# Run the correctness evaluation (fail-closed: a regression fails the run)
+cargo test -p mm-solver --test evaluation -- --nocapture
 
-# Run stress tests
-cargo run --release --example stress_test
+# Run everything
+cargo test --workspace --lib --tests
 ```
 
 ### Train the Neural Network
@@ -155,55 +163,49 @@ fn main() {
     let verifier = Verifier::new();
     let mcts = NeuralMCTS::new(rules, verifier);
     
-    // Solve: 3x + 5 = 17
+    // Solve: x + 3 = 7
     let equation = Expr::Equation {
-        lhs: Box::new(Expr::Add(
-            Box::new(Expr::Mul(Box::new(Expr::int(3)), Box::new(Expr::Var(x)))),
-            Box::new(Expr::int(5)),
-        )),
-        rhs: Box::new(Expr::int(17)),
+        lhs: Box::new(Expr::Add(Box::new(Expr::Var(x)), Box::new(Expr::int(3)))),
+        rhs: Box::new(Expr::int(7)),
     };
-    
+
     let solution = mcts.simplify(equation);
-    // Result: x = 4
-    // Steps: ["isolate_variable", "cancel_multiplication"]
-    // Verified: true
+
+    // solution.result  -> x = 4
+    // solution.steps   -> the transitions that produced it, each with its evidence
+    // solution.status  -> what is actually known about the result. Only
+    //                     `VerificationStatus::Checked` means the trace replays from the
+    //                     exact input and every step was independently checked.
+    println!("{:?} ({})", solution.result, solution.status);
 }
 ```
 
-## Benchmark Results
+Not every problem in this shape is solved. `3x + 5 = 17` is one the search does not currently
+finish; the evaluation suite lists such cases explicitly rather than omitting them.
+
+## Evaluation
 
 ## Evaluation Notice (Research Integrity Update){Edited on 6 Feb 2026}
 An internal audit identified issues in earlier evaluation scripts and neural-rule integration that invalidated previous competitive benchmark claims.
 Those historical results are deprecated.
-Current verified performance is documented in the Benchmark section below.
 See Issue #8 for technical details and remediation work.
 
-### Basic Benchmark (21 tests)
-```
-Algebraic Identities: 5/6
-Constant Folding: 5/5
-Trigonometry: 3/3
-Derivatives: 5/5
-Multi-Variable: 2/2
---------------------------
-TOTAL: 20/21 (95.2%)
+The `benchmark`, `benchmark_advanced` and `stress_test` examples that produced the previously
+quoted 20/21, 10/10 and 10/10 figures have been removed. They printed pass counts but exited
+zero whether or not a case failed, accepted output *shapes* instead of values (one case
+accepted every possible output), and gated on a `verified` flag that several code paths set
+unconditionally. Those numbers are withdrawn and are not replaced here.
+
+Correctness is now measured by a fail-closed test:
+
+```bash
+cargo test -p mm-solver --test evaluation -- --nocapture
 ```
 
-### Advanced Benchmark (10 tests)
-```
-Multi-Step Algebra: 3/3
-Calculus Multi-Step: 3/3
-Equation Solving: 2/2
-Trig Multi-Step: 2/2
---------------------------
-TOTAL: 10/10 (100%)
-```
-
-### Stress Test (10 complex problems)
-```
-All 10 passing
-```
+Every case states an exact expected expression, cases the engine does not solve are listed by
+name in the suite itself, and a solved case must also produce a trace that replays from the
+input to the reported result. The run prints the rule count, the action-vocabulary digest and
+the model provenance it was produced under. Read the numbers from a run, not from this file.
 
 ---
 

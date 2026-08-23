@@ -1,0 +1,40 @@
+name: CI
+
+# Gates the invariants this repository now relies on: formatting, a warning-free build of
+# every target, and the fail-closed test suites. Deliberately small - it does not run
+# clippy, benchmarks, or anything that would need a model artifact.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+  # Deny warnings so the clean state does not silently rot.
+  RUSTFLAGS: "-D warnings"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Formatting
+        run: cargo fmt --all -- --check
+
+      - name: Build all targets
+        # Serial: parallel all-target compilation has exhausted memory on smaller runners.
+        run: cargo check --workspace --all-targets -j 1
+
+      - name: Library and integration tests
+        run: cargo test --workspace --lib --tests -j 1
+
+      - name: Documentation tests
+        run: cargo test --workspace --doc -j 1
