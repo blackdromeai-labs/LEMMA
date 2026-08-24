@@ -100,6 +100,12 @@ pub struct NodeState {
     pub constraints: Vec<Expr>,
 }
 
+impl Default for NodeState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl NodeState {
     pub fn new() -> Self {
         NodeState {
@@ -711,7 +717,7 @@ impl ProofSearchEngine {
                         Action::Substitute { result, .. } => result.clone(),
                         _ => Expr::int(0),
                     },
-                    justification: format!("{:?}", action),
+                    justification: format!("{action:?}"),
                     used_hypotheses: vec![],
                 };
                 steps.push(step);
@@ -739,7 +745,7 @@ impl ProofSearchEngine {
 
 fn exprs_equal(a: &Expr, b: &Expr) -> bool {
     // Structural equality for now
-    format!("{:?}", a) == format!("{:?}", b)
+    format!("{a:?}") == format!("{b:?}")
 }
 
 fn is_zero_goal(goal: &Expr) -> bool {
@@ -747,10 +753,7 @@ fn is_zero_goal(goal: &Expr) -> bool {
 }
 
 fn is_trivially_true(expr: &Expr) -> bool {
-    match expr {
-        Expr::Const(r) if r.is_zero() || *r == Rational::from(1) => true,
-        _ => false,
-    }
+    matches!(expr, Expr::Const(r) if r.is_zero() || *r == Rational::from(1))
 }
 
 fn try_simplify_expr(expr: &Expr) -> Option<Expr> {

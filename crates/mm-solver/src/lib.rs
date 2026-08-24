@@ -191,6 +191,25 @@ impl LemmaSolver {
     pub fn num_rules(&self) -> usize {
         self.rules.len()
     }
+
+    /// Read-only access to the rule registry.
+    ///
+    /// A [`Step`] records a [`mm_rules::RuleId`], and resolving that to the stable
+    /// `module::name` key needs the registry the step came from. Presentation layers that
+    /// show rule identity would otherwise have to build a second registry and hope the
+    /// identifiers line up.
+    pub fn rules(&self) -> &RuleSet {
+        &self.rules
+    }
+
+    /// Read-only access to the verifier.
+    ///
+    /// Lets a caller check a candidate against an already-parsed [`Expr`], rather than going
+    /// through [`Self::verify_solution`], which re-parses from strings and so cannot report
+    /// which input field a parse error belongs to.
+    pub fn verifier(&self) -> &Verifier {
+        &self.verifier
+    }
 }
 
 /// Result of solving a problem.

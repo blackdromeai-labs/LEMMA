@@ -19,7 +19,7 @@ fn main() {
     let x = symbols.intern("x");
     let y = symbols.intern("y");
     let _z = symbols.intern("z");
-    let n = symbols.intern("n");
+    let _n = symbols.intern("n");
 
     let rules = standard_rules();
     println!("📚 Loaded {} rules\n", rules.len());

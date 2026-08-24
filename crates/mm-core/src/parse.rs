@@ -446,7 +446,7 @@ fn tokenize(input: &str) -> Result<Vec<Token>, MathError> {
                 // Parse as decimal, convert to rational
                 let val: f64 = num_str
                     .parse()
-                    .map_err(|_| MathError::ParseError(format!("Invalid number: {}", num_str)))?;
+                    .map_err(|_| MathError::ParseError(format!("Invalid number: {num_str}")))?;
 
                 // Approximate as rational (simple approach)
                 let scale = 1_000_000i64;
@@ -455,7 +455,7 @@ fn tokenize(input: &str) -> Result<Vec<Token>, MathError> {
             } else {
                 let val: i64 = num_str
                     .parse()
-                    .map_err(|_| MathError::ParseError(format!("Invalid integer: {}", num_str)))?;
+                    .map_err(|_| MathError::ParseError(format!("Invalid integer: {num_str}")))?;
                 tokens.push(Token::Number(Rational::from_integer(val)));
             }
             continue;
@@ -473,7 +473,7 @@ fn tokenize(input: &str) -> Result<Vec<Token>, MathError> {
             continue;
         }
 
-        return Err(MathError::ParseError(format!("Unknown character: {}", c)));
+        return Err(MathError::ParseError(format!("Unknown character: {c}")));
     }
 
     Ok(tokens)

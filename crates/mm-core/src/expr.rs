@@ -480,7 +480,7 @@ impl Ord for Expr {
         let other_disc = std::mem::discriminant(other);
 
         // Use debug representation for discriminant ordering
-        let disc_cmp = format!("{:?}", self_disc).cmp(&format!("{:?}", other_disc));
+        let disc_cmp = format!("{self_disc:?}").cmp(&format!("{other_disc:?}"));
         if disc_cmp != Ordering::Equal {
             return disc_cmp;
         }

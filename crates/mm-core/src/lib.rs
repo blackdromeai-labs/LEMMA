@@ -46,6 +46,7 @@ pub mod canon;
 pub mod error;
 pub mod eval;
 pub mod expr;
+pub mod format;
 pub mod parse;
 pub mod proof;
 pub mod rational;
@@ -54,6 +55,7 @@ pub mod symbol;
 
 pub use error::MathError;
 pub use expr::{Expr, Factor, Term};
+pub use format::{format_expr, format_expr_truncated, symbol_name, truncate_chars};
 pub use proof::{
     Constraint, Domain, Goal, GoalId, GoalStatus, HypId, Hypothesis, HypothesisOrigin, Proof,
     ProofState, ProofStep, Variable,

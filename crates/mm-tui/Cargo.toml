@@ -1,0 +1,34 @@
+[package]
+name = "mm-tui"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Terminal symbolic workbench for LEMMA"
+
+[dependencies]
+mm-core = { path = "../mm-core" }
+mm-search = { path = "../mm-search" }
+mm-solver = { path = "../mm-solver" }
+mm-verifier = { path = "../mm-verifier" }
+
+# Ratatui 0.30 pins its own Crossterm through a compatibility feature. Selecting
+# `crossterm_0_29` keeps the version this crate uses for events and the one Ratatui uses for
+# rendering on the same line, so terminal state is owned by a single Crossterm.
+ratatui = { version = "0.30", default-features = false, features = [
+    "crossterm",
+    "crossterm_0_29",
+    "layout-cache",
+    "underline-color",
+] }
+crossterm = "0.29"
+ratatui-textarea = { version = "0.9", default-features = false, features = ["crossterm"] }
+
+# Denied for this crate only. The workspace carries pre-existing lints in older crates, so a
+# blanket `-D warnings` on the command line fails on dependencies rather than on this code;
+# scoping it here keeps the new crate enforceably clean without a workspace-wide cleanup.
+[lints.rust]
+warnings = "deny"
+
+[lints.clippy]
+all = "deny"
