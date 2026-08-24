@@ -202,11 +202,15 @@ impl Verifier {
             };
         }
 
-        // 2. Check if result is in possible outputs
+        // 2. Check the claimed result really is one of the rule's outputs.
+        //
+        // Compared symbolically, never numerically: a numeric fallback here would accept an
+        // expression the rule never produced merely because it happened to agree with one at
+        // the sampled points, which is the opposite of what this step is for.
         let possible_results = rule.apply(before, ctx);
         let result_matches = possible_results
             .iter()
-            .any(|r| self.expressions_equal(&r.result, after));
+            .any(|r| self.is_same_expression(&r.result, after));
 
         if !result_matches {
             return VerifyResult::Invalid {
@@ -321,7 +325,7 @@ impl Verifier {
             let rhs_subst = substitute(rhs, variable, solution);
 
             // After substitution, lhs should equal rhs
-            if self.expressions_equal(&lhs_subst, &rhs_subst) {
+            if self.is_same_expression(&lhs_subst, &rhs_subst) {
                 return VerifyResult::Valid {
                     confidence: 1.0,
                     method: VerificationMethod::SymbolicEquivalence,
@@ -347,22 +351,16 @@ impl Verifier {
         }
     }
 
-    /// Check if two expressions are equal.
-    fn expressions_equal(&self, a: &Expr, b: &Expr) -> bool {
-        // First try structural equality
-        if a == b {
-            return true;
-        }
-
-        // Then try canonical form
-        let canon_a = a.canonicalize();
-        let canon_b = b.canonicalize();
-        if canon_a == canon_b {
-            return true;
-        }
-
-        // Finally try numerical
-        a.approx_equals(b, self.num_samples, self.tolerance)
+    /// Whether two expressions are the *same* expression, structurally or after
+    /// canonicalisation.
+    ///
+    /// Deliberately has no numeric fallback. Sampling answers "do these agree at these
+    /// points", which is a claim about equivalence; callers that want that ask for it
+    /// explicitly and get [`VerificationMethod::NumericSampling`] recorded against the
+    /// result. Folding it in here made a numerically-agreeing pair report as symbolic
+    /// equivalence.
+    fn is_same_expression(&self, a: &Expr, b: &Expr) -> bool {
+        a == b || a.canonicalize() == b.canonicalize()
     }
 }
 

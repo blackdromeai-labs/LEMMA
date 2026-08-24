@@ -1,10 +1,38 @@
 # LEMMA Rule Reference
 
-Complete reference of all 450+ mathematical transformation rules for IMO-level theorem proving.
+Reference for the mathematical transformation rules in `mm-rules`.
+
+> **The counts and identifier ranges below are stale.** They were written by hand and never
+> checked. Identifiers have since been renumbered to remove 98 collisions, and the number of
+> rules that do anything has been measured rather than asserted. Treat the tables in this file
+> as prose describing rule *families*, not as an inventory.
+>
+> For the inventory, run the census, which prints a per-module breakdown:
+>
+> ```bash
+> cargo test -p mm-rules --test rule_census -- --nocapture
+> cargo test -p mm-verifier --test rule_acceptance -- --nocapture
+> ```
 
 ---
 
-## Quick Stats
+## Measured summary
+
+572 rules are registered. Against the 228-expression witness corpus:
+
+| Verdict | Count |
+|---|---:|
+| Transforms an expression | 146 |
+| Applicable but never changes anything (stub) | 237 |
+| Not reached by this corpus | 189 |
+
+Of the 146 that transform, 117 produce at least one result the verifier accepts. The
+remaining 29 are refused on every witness and cannot be used by search; they are listed by
+`rule_acceptance.rs`.
+
+---
+
+## Historical category table (stale, kept for orientation)
 
 | Category | Count | ID Range | Description |
 |----------|-------|----------|-------------|
@@ -17,7 +45,6 @@ Complete reference of all 450+ mathematical transformation rules for IMO-level t
 | Number Theory | 100 | 100-199, 700-744 | Divisibility, modular, primes |
 | Combinatorics | 30 | 600-630 | Binomial, Pascal, Catalan |
 | Polynomials | 25 | 640-665 | Vieta's, symmetric, factoring |
-| **Total** | **450** | | |
 
 ---
 

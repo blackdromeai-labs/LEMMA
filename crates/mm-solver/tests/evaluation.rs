@@ -45,11 +45,13 @@ const KNOWN_UNSOLVED: &[&str] = &[
     "x^2 * x^3 * x^4 -> x^9",
     // Requires distributing a binomial product and collecting the middle terms.
     "(x+1)(x+1) -> x^2 + 2x + 1",
-    // Requires dividing both sides by the coefficient; `cancel_multiplication` does not
-    // fire on this shape.
+    // Blocked by the verifier, not by a missing rule. `equations::cancel_multiplication`
+    // correctly rewrites `2x = 10` to `x = 10/2`, but `verify_step` compares the two
+    // equations as expressions, they are not value-equal, and the step is refused before the
+    // search can take it. See crates/mm-verifier/tests/equation_semantics.rs.
     "2x = 10 -> x = 5",
-    // Requires isolating x across both a multiplication and an addition; the search
-    // subtracts 5 from both sides and then stops.
+    // Same cause. The search subtracts 5 from both sides, then needs the division step that
+    // the verifier refuses.
     "3x + 5 = 17 -> x = 4",
 ];
 

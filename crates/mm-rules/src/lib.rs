@@ -8,16 +8,26 @@
 //!
 //! Mathematical transformation rules for the LEMMA system.
 //!
-//! ## Rule Categories (162 working rules)
-//! - Basic algebra and simplification (36 rules)
-//! - Trigonometry (43 rules)
-//! - Number theory (28 working, 56 need implementation)
-//! - Inequalities (20 working, 12 need implementation)
-//! - Calculus derivatives (15 working)
-//! - Integration (9 rules)
-//! - Equations (7 rules)
-//! - Combinatorics (1 working, 45 need implementation)
-//! - Polynomials (3 working, 36 need implementation)
+//! ## How many rules actually work
+//!
+//! 572 rules are registered. That is a count of constructors. Measured against the witness
+//! corpus in [`witness`] (228 expressions), by `tests/rule_census.rs`:
+//!
+//! | Verdict | Count | Meaning |
+//! |---|---:|---|
+//! | transforms | 146 | applicable to some witness and returns a different expression |
+//! | no-op | 237 | applicable, but always returns its input; a stub |
+//! | not reached | 189 | no witness in the corpus makes it applicable |
+//!
+//! Of the 146 that transform, `mm-verifier`'s `tests/rule_acceptance.rs` finds 117 produce at
+//! least one transformation the verifier accepts; the other 29 are refused on every witness
+//! and so cannot be used by search.
+//!
+//! "Not reached" is a statement about the corpus, not proof that a rule is unreachable.
+//! Widening the corpus can only move rules out of that bucket.
+//!
+//! These numbers come from a test run and are pinned there. Do not restate them from memory;
+//! run the census.
 
 pub mod action;
 pub mod algebra;
@@ -40,6 +50,7 @@ pub mod polynomials;
 pub mod quantifier;
 pub mod rule;
 pub mod trig;
+pub mod witness;
 
 pub use action::{
     standard_action_vocabulary, ActionEntry, ActionError, ActionVocabulary,
@@ -54,3 +65,4 @@ pub use rule::{
     standard_rules, try_standard_rules, Domain, Feature, RegistryError, Rule, RuleApplication,
     RuleCategory, RuleContext, RuleId, RuleKey, RuleSet,
 };
+pub use witness::{corpus, WitnessSymbols};

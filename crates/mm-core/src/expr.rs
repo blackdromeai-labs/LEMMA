@@ -272,6 +272,77 @@ impl PartialEq for Expr {
             (Expr::Gt(a1, a2), Expr::Gt(b1, b2)) => a1 == b1 && a2 == b2,
             (Expr::Lte(a1, a2), Expr::Lte(b1, b2)) => a1 == b1 && a2 == b2,
             (Expr::Lt(a1, a2), Expr::Lt(b1, b2)) => a1 == b1 && a2 == b2,
+
+            // Number theory and combinatorics. These arms were missing, so every one of
+            // these variants fell through to `false` and was not even equal to itself.
+            (Expr::GCD(a1, a2), Expr::GCD(b1, b2)) => a1 == b1 && a2 == b2,
+            (Expr::LCM(a1, a2), Expr::LCM(b1, b2)) => a1 == b1 && a2 == b2,
+            (Expr::Mod(a1, a2), Expr::Mod(b1, b2)) => a1 == b1 && a2 == b2,
+            (Expr::Binomial(a1, a2), Expr::Binomial(b1, b2)) => a1 == b1 && a2 == b2,
+            (Expr::Floor(a), Expr::Floor(b)) => a == b,
+            (Expr::Ceiling(a), Expr::Ceiling(b)) => a == b,
+            (Expr::Factorial(a), Expr::Factorial(b)) => a == b,
+
+            // Summation and product notation.
+            (
+                Expr::Summation {
+                    var: v1,
+                    from: f1,
+                    to: t1,
+                    body: b1,
+                },
+                Expr::Summation {
+                    var: v2,
+                    from: f2,
+                    to: t2,
+                    body: b2,
+                },
+            )
+            | (
+                Expr::BigProduct {
+                    var: v1,
+                    from: f1,
+                    to: t1,
+                    body: b1,
+                },
+                Expr::BigProduct {
+                    var: v2,
+                    from: f2,
+                    to: t2,
+                    body: b2,
+                },
+            ) => v1 == v2 && f1 == f2 && t1 == t2 && b1 == b2,
+
+            // Quantifiers and logical connectives.
+            (
+                Expr::ForAll {
+                    var: v1,
+                    domain: d1,
+                    body: b1,
+                },
+                Expr::ForAll {
+                    var: v2,
+                    domain: d2,
+                    body: b2,
+                },
+            )
+            | (
+                Expr::Exists {
+                    var: v1,
+                    domain: d1,
+                    body: b1,
+                },
+                Expr::Exists {
+                    var: v2,
+                    domain: d2,
+                    body: b2,
+                },
+            ) => v1 == v2 && d1 == d2 && b1 == b2,
+            (Expr::And(a1, a2), Expr::And(b1, b2)) => a1 == b1 && a2 == b2,
+            (Expr::Or(a1, a2), Expr::Or(b1, b2)) => a1 == b1 && a2 == b2,
+            (Expr::Implies(a1, a2), Expr::Implies(b1, b2)) => a1 == b1 && a2 == b2,
+            (Expr::Not(a), Expr::Not(b)) => a == b,
+
             _ => false,
         }
     }
@@ -436,6 +507,95 @@ impl Ord for Expr {
             | (Expr::Pow(a1, a2), Expr::Pow(b1, b2)) => a1.cmp(b1).then_with(|| a2.cmp(b2)),
             (Expr::Sum(a), Expr::Sum(b)) => a.cmp(b),
             (Expr::Product(a), Expr::Product(b)) => a.cmp(b),
+
+            // The remaining variants had no arm and fell through to `Equal`, which broke the
+            // `Ord`/`Eq` agreement: `Factorial(1)` compared equal to `Factorial(9)` while
+            // `PartialEq` said they differ. Anything that sorts or deduplicates expressions
+            // was working from that.
+            (Expr::Derivative { expr: e1, var: v1 }, Expr::Derivative { expr: e2, var: v2 })
+            | (Expr::Integral { expr: e1, var: v1 }, Expr::Integral { expr: e2, var: v2 }) => {
+                e1.cmp(e2).then_with(|| v1.cmp(v2))
+            }
+            (Expr::Equation { lhs: l1, rhs: r1 }, Expr::Equation { lhs: l2, rhs: r2 }) => {
+                l1.cmp(l2).then_with(|| r1.cmp(r2))
+            }
+            (Expr::Gte(a1, a2), Expr::Gte(b1, b2))
+            | (Expr::Gt(a1, a2), Expr::Gt(b1, b2))
+            | (Expr::Lte(a1, a2), Expr::Lte(b1, b2))
+            | (Expr::Lt(a1, a2), Expr::Lt(b1, b2))
+            | (Expr::GCD(a1, a2), Expr::GCD(b1, b2))
+            | (Expr::LCM(a1, a2), Expr::LCM(b1, b2))
+            | (Expr::Mod(a1, a2), Expr::Mod(b1, b2))
+            | (Expr::Binomial(a1, a2), Expr::Binomial(b1, b2))
+            | (Expr::And(a1, a2), Expr::And(b1, b2))
+            | (Expr::Or(a1, a2), Expr::Or(b1, b2))
+            | (Expr::Implies(a1, a2), Expr::Implies(b1, b2)) => a1.cmp(b1).then_with(|| a2.cmp(b2)),
+            (Expr::Floor(a), Expr::Floor(b))
+            | (Expr::Ceiling(a), Expr::Ceiling(b))
+            | (Expr::Factorial(a), Expr::Factorial(b))
+            | (Expr::Not(a), Expr::Not(b)) => a.cmp(b),
+            (
+                Expr::Summation {
+                    var: v1,
+                    from: f1,
+                    to: t1,
+                    body: b1,
+                },
+                Expr::Summation {
+                    var: v2,
+                    from: f2,
+                    to: t2,
+                    body: b2,
+                },
+            )
+            | (
+                Expr::BigProduct {
+                    var: v1,
+                    from: f1,
+                    to: t1,
+                    body: b1,
+                },
+                Expr::BigProduct {
+                    var: v2,
+                    from: f2,
+                    to: t2,
+                    body: b2,
+                },
+            ) => v1
+                .cmp(v2)
+                .then_with(|| f1.cmp(f2))
+                .then_with(|| t1.cmp(t2))
+                .then_with(|| b1.cmp(b2)),
+            (
+                Expr::ForAll {
+                    var: v1,
+                    domain: d1,
+                    body: b1,
+                },
+                Expr::ForAll {
+                    var: v2,
+                    domain: d2,
+                    body: b2,
+                },
+            )
+            | (
+                Expr::Exists {
+                    var: v1,
+                    domain: d1,
+                    body: b1,
+                },
+                Expr::Exists {
+                    var: v2,
+                    domain: d2,
+                    body: b2,
+                },
+            ) => v1.cmp(v2).then_with(|| d1.cmp(d2)).then_with(|| b1.cmp(b2)),
+
+            // Pi and E carry no payload; equal discriminants means equal values.
+            (Expr::Pi, Expr::Pi) | (Expr::E, Expr::E) => Ordering::Equal,
+
+            // Unreachable: the discriminant comparison above already returned for mismatched
+            // variants.
             _ => Ordering::Equal,
         }
     }

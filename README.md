@@ -18,8 +18,8 @@ A research prototype exploring neural-guided symbolic mathematics in Rust. Inspi
 ### What LEMMA IS:
 - A **research prototype** exploring hybrid neural-symbolic reasoning
 - A **proof of concept** for AlphaProof-style mathematical search
-- **572 registered transformation rules**, a mix of working rules and unimplemented
-  stubs that never match
+- **572 registered transformation rules**, of which a measured 146 actually transform an
+  expression and 117 produce a result the verifier accepts (see Evaluation)
 - An **MCTS engine** over those rules; it can be guided by a policy network, but no
   trained model ships with the repository
 - A **learning project** for anyone interested in symbolic AI
