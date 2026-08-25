@@ -17,7 +17,7 @@ fn main() {
     println!("LEMMA does not solve these; every ANSWER below was written by a person.");
     println!();
     let rules = standard_rules();
-    let verifier = Verifier::new();
+    let _verifier = Verifier::new();
     println!("✓ Loaded {} rules\n", rules.len());
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -78,8 +78,8 @@ fn main() {
 fn solve_imo2024_p1(rules: &mm_rules::RuleSet) {
     let mut symbols = SymbolTable::new();
     let alpha = symbols.intern("α");
-    let n = symbols.intern("n");
-    let k = symbols.intern("k");
+    let _n = symbols.intern("n");
+    let _k = symbols.intern("k");
 
     println!("APPROACH: Analyze S(n) = Σₖ₌₁ⁿ ⌊kα⌋\n");
 
@@ -96,7 +96,7 @@ fn solve_imo2024_p1(rules: &mm_rules::RuleSet) {
 
     // Build the floor expression
     let floor_alpha = Expr::Floor(Box::new(Expr::Var(alpha)));
-    let floor_2alpha = Expr::Floor(Box::new(Expr::Mul(
+    let _floor_2alpha = Expr::Floor(Box::new(Expr::Mul(
         Box::new(Expr::int(2)),
         Box::new(Expr::Var(alpha)),
     )));
@@ -187,7 +187,7 @@ fn solve_imo2024_p2(rules: &mm_rules::RuleSet) {
     println!("─────────────────────────────────────────────────────");
 }
 
-fn solve_imo2024_p6(rules: &mm_rules::RuleSet) {
+fn solve_imo2024_p6(_rules: &mm_rules::RuleSet) {
     let mut symbols = SymbolTable::new();
     let x = symbols.intern("x");
     let y = symbols.intern("y");

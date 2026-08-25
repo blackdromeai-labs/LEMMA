@@ -10,12 +10,13 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  # Deny warnings so the clean state does not silently rot.
-  RUSTFLAGS: "-D warnings"
 
 jobs:
   check:
     runs-on: ubuntu-latest
+    # candle is a heavy dependency and the build runs serially; without a bound a stuck job
+    # would occupy a runner for six hours.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
@@ -29,12 +30,20 @@ jobs:
       - name: Formatting
         run: cargo fmt --all -- --check
 
+      # `--locked` throughout: Cargo.lock is committed precisely so a run here uses the same
+      # dependency graph as a run on a workstation. Without it, CI silently resolves newer
+      # versions and stops testing what anyone else builds.
+      #
+      # Warnings are denied per-crate through the `[lints]` table rather than with a global
+      # RUSTFLAGS. A blanket deny also applies to path dependencies, so one new compiler
+      # warning anywhere would fail every job, and it would fail on a toolchain upgrade rather
+      # than on a change anyone made.
       - name: Build all targets
         # Serial: parallel all-target compilation has exhausted memory on smaller runners.
-        run: cargo check --workspace --all-targets -j 1
+        run: cargo check --workspace --all-targets --locked -j 1
 
       - name: Library and integration tests
-        run: cargo test --workspace --lib --tests -j 1
+        run: cargo test --workspace --lib --tests --locked -j 1
 
       - name: Documentation tests
-        run: cargo test --workspace --doc -j 1
+        run: cargo test --workspace --doc --locked -j 1

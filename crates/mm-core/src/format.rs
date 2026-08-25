@@ -10,9 +10,30 @@
 //! for `2 * x + 3`. It is unreadable as mathematics and it leaks symbol internals, so it must
 //! not be what a user sees.
 //!
-//! The output here is the same surface syntax [`crate::parse`] accepts, so a rendered
-//! expression can be pasted back in. Parentheses are inserted only where removing them would
-//! change the tree: `(a + b) * c` keeps them, `a + b * c` does not.
+//! Parentheses are inserted only where removing them would change the tree: `(a + b) * c`
+//! keeps them, `a + b * c` does not.
+//!
+//! ## What can be pasted back in
+//!
+//! [`crate::parse`] reads a **smaller** language than this module writes. Arithmetic, powers,
+//! factorials, function calls, `diff`/`int`, and `=` equations round-trip: rendering them and
+//! re-parsing yields the same tree, which [`tests::rendered_output_parses_back_to_the_same_expression`]
+//! checks case by case.
+//!
+//! These do **not** round-trip, because the parser has no syntax for them at all:
+//!
+//! | Rendered as | Why it will not re-parse |
+//! |---|---|
+//! | `\|x\|` | no bar token; the parser spells this `abs(x)` |
+//! | `x > 0`, `x <= y` | no comparison operators |
+//! | `not p`, `p and q`, `p or q`, `p => q` | no logical operators |
+//! | `forall x. p`, `exists x in D. p` | no quantifier syntax |
+//! | `2 * x + y` from a canonical `Sum`/`Product` | re-parses to `Add`/`Mul`, not the n-ary form |
+//!
+//! They are still rendered, because a comparison or a quantifier has to be *displayed*
+//! somehow and a Rust AST dump is worse. But treat this module as a formatter, not as the
+//! inverse of the parser. [`tests::forms_the_parser_cannot_read_are_pinned`] fixes that list,
+//! so extending the parser will fail the test rather than leave this table stale.
 //!
 //! A [`SymbolTable`] resolves variable names. Symbols are indices into a particular table, so
 //! rendering must happen while the table that created them is still available; a symbol from
@@ -909,6 +930,77 @@ mod tests {
 
         assert_eq!(truncate_chars("short", 20), "short");
         assert_eq!(truncate_chars("", 0), "");
+    }
+
+    /// Render, re-parse, and compare trees. `None` if the parser rejected the text.
+    fn round_trip(expr: &Expr, symbols: &mut SymbolTable) -> Option<bool> {
+        use crate::parse::Parser;
+
+        let rendered = format_expr(expr, symbols);
+        let mut parser = Parser::new(symbols);
+        parser.parse(&rendered).ok().map(|back| back == *expr)
+    }
+
+    #[test]
+    fn forms_the_parser_cannot_read_are_pinned() {
+        // The module doc lists what does not round-trip. This keeps that list honest: if the
+        // parser gains comparison or logical operators, these start round-tripping and the
+        // test fails, pointing at the table that needs updating.
+        let mut c = ctx();
+        let x = Expr::Var(c.x);
+        let positive = || Expr::Gt(b(Expr::Var(c.x)), b(int(0)));
+
+        let unreadable: Vec<(&str, Expr)> = vec![
+            ("Abs", Expr::Abs(b(x.clone()))),
+            ("Gt", positive()),
+            ("Lte", Expr::Lte(b(x.clone()), b(Expr::Var(c.y)))),
+            ("Not", Expr::Not(b(positive()))),
+            ("And", Expr::And(b(positive()), b(positive()))),
+            ("Or", Expr::Or(b(positive()), b(positive()))),
+            ("Implies", Expr::Implies(b(positive()), b(positive()))),
+            (
+                "ForAll",
+                Expr::ForAll {
+                    var: c.x,
+                    domain: None,
+                    body: b(positive()),
+                },
+            ),
+            (
+                "Exists",
+                Expr::Exists {
+                    var: c.x,
+                    domain: None,
+                    body: b(positive()),
+                },
+            ),
+            (
+                "Sum",
+                Expr::Sum(vec![Term {
+                    coeff: Rational::new(2, 1),
+                    expr: Expr::Var(c.x),
+                }]),
+            ),
+            (
+                "Product",
+                Expr::Product(vec![Factor {
+                    base: Expr::Var(c.x),
+                    power: int(2),
+                }]),
+            ),
+        ];
+
+        for (name, expr) in unreadable {
+            // Rendering must still work; only re-parsing is out of reach.
+            let rendered = format_expr(&expr, &c.symbols);
+            assert!(!rendered.is_empty(), "{name} must still render");
+
+            assert_ne!(
+                round_trip(&expr, &mut c.symbols),
+                Some(true),
+                "{name} now round-trips as {rendered:?}; update the table in the module docs"
+            );
+        }
     }
 
     #[test]

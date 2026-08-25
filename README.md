@@ -146,6 +146,41 @@ cargo run --release --example train_network
 
 ---
 
+## Terminal Workbench
+
+```bash
+cargo run -p mm-tui
+```
+
+An interactive front end for the three operations the solver actually supports: simplify an
+expression, differentiate it with respect to a variable, or check a candidate value against an
+equation. It takes formal LEMMA syntax, not prose.
+
+The point of it is to make verification legible. Every result carries its
+`VerificationStatus` as a labelled badge with the verifier's own reason, and the trace lists
+each recorded step with its before/after expressions, its stable `module::name` rule identity,
+the rule's justification, and the evidence that step rests on — so a step accepted by rule
+replay is visibly different from one checked symbolically. Only `CHECKED` is described as
+verified.
+
+```
+┌ Result ─────────────────────────┐┌ Trace · 2 steps ─────────────────────────┐
+│x                                ││> 01 algebra::identity_add_zero SYMBOLIC  │
+│                                 ││  02 algebra::identity_mul_one SYMBOLIC   │
+│ ++ CHECKED                      ││                                          │
+│Trace replays from the input to  ││                                          │
+│the result and every step was    ││                                          │
+│independently checked.           ││                                          │
+│2 steps · 14 ms                  ││                                          │
+└─────────────────────────────────┘└──────────────────────────────────────────┘
+```
+
+Needs an 80x24 terminal; below that it shows a size notice rather than a broken layout. Press
+`?` for keys. Equation solving and natural-language input are not offered, because the APIs
+behind them report themselves unimplemented.
+
+---
+
 ## Usage Example
 
 ```rust

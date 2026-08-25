@@ -320,7 +320,7 @@ fn neural_guided_search(
     // 4. Recursively apply rules (breadth-first or best-first search)
     // 5. Check if we've reached a solution (no more integrals)
 
-    let ctx = RuleContext::default();
+    let _ctx = RuleContext::default();
     let mut steps = 0;
     let mut rules_used = Vec::new();
 

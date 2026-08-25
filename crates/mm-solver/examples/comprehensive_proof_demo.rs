@@ -294,7 +294,7 @@ fn prove_cubic_expansion() {
         Box::new(Expr::Pow(Box::new(Expr::Var(b)), Box::new(Expr::int(3)))),
     );
 
-    let goal = Expr::Equation {
+    let _goal = Expr::Equation {
         lhs: Box::new(lhs),
         rhs: Box::new(rhs),
     };
@@ -359,7 +359,7 @@ fn prove_difference_of_cubes() {
         )),
     );
 
-    let goal = Expr::Equation {
+    let _goal = Expr::Equation {
         lhs: Box::new(lhs.clone()),
         rhs: Box::new(rhs),
     };

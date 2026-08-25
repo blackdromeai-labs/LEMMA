@@ -160,6 +160,13 @@ pub struct App {
     /// Frame counter, used only for the running indicator.
     pub ticks: u64,
     next_request_id: u64,
+    /// The request currently in flight.
+    ///
+    /// History is written when the reply arrives, and by then the editors may hold something
+    /// else entirely — the user is free to type while a job runs. Recording the live fields
+    /// would file the new text against the old result. Keeping the request means history
+    /// records what was actually asked.
+    pending: Option<SolveRequest>,
 }
 
 impl Default for App {
@@ -186,6 +193,7 @@ impl App {
             rule_count: 0,
             ticks: 0,
             next_request_id: 0,
+            pending: None,
         }
     }
 
@@ -290,19 +298,22 @@ impl App {
         self.selected_step = 0;
         self.overlay = None;
 
-        Some(SolveRequest {
+        let request = SolveRequest {
             id,
             mode: self.mode,
             expression: self.field(Focus::Expression),
             variable: self.field(Focus::Variable),
             candidate: self.field(Focus::Candidate),
-        })
+        };
+        self.pending = Some(request.clone());
+        Some(request)
     }
 
     fn clear(&mut self) {
         self.expression = single_line_editor("");
         self.candidate = single_line_editor("");
         self.job = Job::Idle;
+        self.pending = None;
         self.selected_step = 0;
         self.focus = Focus::Expression;
     }
@@ -392,10 +403,14 @@ impl App {
             return;
         }
 
+        let request = self.pending.take();
+
         match response.outcome {
             Ok(mut result) => {
                 result.elapsed = response.elapsed;
-                self.remember(&result);
+                if let Some(request) = request {
+                    self.remember(&request, &result);
+                }
                 self.job = Job::Complete(Box::new(result));
             }
             Err(error) => self.job = Job::Failed(error),
@@ -403,12 +418,13 @@ impl App {
         self.selected_step = 0;
     }
 
-    fn remember(&mut self, result: &UiResult) {
+    /// File a completed request in history, described by the inputs it was sent with.
+    fn remember(&mut self, request: &SolveRequest, result: &UiResult) {
         self.history.push_front(HistoryEntry {
-            mode: self.mode,
-            expression: self.field(Focus::Expression),
-            variable: self.field(Focus::Variable),
-            candidate: self.field(Focus::Candidate),
+            mode: request.mode,
+            expression: request.expression.clone(),
+            variable: request.variable.clone(),
+            candidate: request.candidate.clone(),
             result: result.clone(),
         });
         while self.history.len() > HISTORY_LIMIT {
@@ -795,6 +811,50 @@ mod tests {
             app.history.is_empty(),
             "a rejected input is not a completed request"
         );
+    }
+
+    #[test]
+    fn history_records_the_inputs_the_request_was_sent_with() {
+        // A job runs on another thread and the user can keep typing while it does. History is
+        // written when the reply lands, so reading the editors at that moment would file the
+        // newly typed text against the previous run's result.
+        let mut app = App::new();
+        app.expression = single_line_editor("2 + 3");
+
+        let request = app.apply(Action::Submit).unwrap();
+        assert_eq!(request.expression, "2 + 3");
+
+        // The user types something else while the solver is busy.
+        app.expression = single_line_editor("completely different");
+
+        app.accept(SolveResponse {
+            id: request.id,
+            elapsed: Duration::from_millis(3),
+            outcome: Ok(result_with_steps(1)),
+        });
+
+        assert_eq!(
+            app.history[0].expression, "2 + 3",
+            "history must record the submitted input, not whatever is in the editor now"
+        );
+    }
+
+    #[test]
+    fn history_records_the_mode_the_request_was_sent_with() {
+        let mut app = App::new();
+        app.expression = single_line_editor("x^2");
+        app.apply(Action::SetMode(Mode::Differentiate));
+
+        let request = app.apply(Action::Submit).unwrap();
+        assert_eq!(request.mode, Mode::Differentiate);
+
+        app.accept(SolveResponse {
+            id: request.id,
+            elapsed: Duration::from_millis(3),
+            outcome: Ok(result_with_steps(1)),
+        });
+
+        assert_eq!(app.history[0].mode, Mode::Differentiate);
     }
 
     #[test]

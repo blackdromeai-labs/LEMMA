@@ -19,9 +19,10 @@
 //! Requests carry an id and replies echo it. The UI drops replies whose id is not the one it
 //! is waiting for, so a slow job that finishes after the user has moved on cannot overwrite a
 //! newer result.
+//!
+//! Quitting does not wait for the thread. See [`Worker`]'s `Drop`.
 
 use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender};
-use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
 use mm_core::{format_expr, Expr, MathError};
@@ -64,7 +65,6 @@ pub struct SolveResponse {
 pub struct Worker {
     requests: Sender<WorkerMessage>,
     responses: Receiver<SolveResponse>,
-    handle: Option<JoinHandle<()>>,
 }
 
 enum WorkerMessage {
@@ -81,7 +81,8 @@ impl Worker {
         let (request_tx, request_rx) = std::sync::mpsc::channel::<WorkerMessage>();
         let (response_tx, response_rx) = std::sync::mpsc::channel::<SolveResponse>();
 
-        let handle = std::thread::Builder::new()
+        // The handle is dropped, detaching the thread. See `Drop` for why.
+        std::thread::Builder::new()
             .name("mm-tui-solver".to_string())
             .spawn(move || run(request_rx, response_tx))
             .expect("failed to spawn the solver thread");
@@ -89,7 +90,6 @@ impl Worker {
         Self {
             requests: request_tx,
             responses: response_rx,
-            handle: Some(handle),
         }
     }
 
@@ -108,13 +108,18 @@ impl Worker {
 
 impl Drop for Worker {
     fn drop(&mut self) {
-        // Ask the worker to stop, then wait briefly. A job already running cannot be
-        // interrupted — the search takes no cancellation token — so this does not claim to
-        // cancel anything, it just avoids detaching the thread silently.
+        // Ask the thread to stop, and deliberately do not wait for it.
+        //
+        // A job already running cannot be interrupted: the search takes no cancellation
+        // token, so it only notices the shutdown message once it finishes. Joining here would
+        // block the quit path for as long as that job takes, and because the worker is dropped
+        // before the terminal guard, the user would be left staring at a frozen alternate
+        // screen — indistinguishable from a hang.
+        //
+        // The thread holds no resource that needs releasing: its `LemmaSolver` is plain
+        // memory, and the process is exiting. Letting it be reclaimed at exit is correct here,
+        // and it is the only option that keeps quitting immediate.
         let _ = self.requests.send(WorkerMessage::Shutdown);
-        if let Some(handle) = self.handle.take() {
-            let _ = handle.join();
-        }
     }
 }
 
@@ -480,6 +485,63 @@ mod tests {
 
         assert_eq!(response.id, 77);
         assert_eq!(response.outcome.unwrap().output, "5");
+    }
+
+    /// Fill a worker's queue with `count` identical jobs.
+    fn queue_jobs(worker: &Worker, count: u64) {
+        for id in 1..=count {
+            worker.submit(SolveRequest {
+                id,
+                mode: Mode::Simplify,
+                expression: "sin(x)^2 + cos(x)^2 + (x + 0) * 1".to_string(),
+                variable: String::new(),
+                candidate: String::new(),
+            });
+        }
+    }
+
+    #[test]
+    fn dropping_the_worker_does_not_wait_for_queued_work() {
+        // Regression guard for a quit that hung. `Drop` used to join the solver thread, and
+        // the worker is dropped before the terminal is restored, so quitting mid-run left a
+        // frozen alternate screen until the run finished.
+        //
+        // A fixed millisecond threshold would not discriminate: one simplify takes well under
+        // a millisecond, so joining a short queue looks much like not joining. Instead this
+        // measures how long the queue actually takes to drain on this machine, then requires
+        // the drop to be a small fraction of that. It stays meaningful on a fast host and on
+        // a loaded one.
+        const QUEUED: u64 = 2_000;
+
+        // 1. How long does draining the queue take here?
+        let drain = {
+            let worker = Worker::spawn();
+            queue_jobs(&worker, QUEUED);
+
+            let started = Instant::now();
+            let mut seen = 0;
+            while seen < QUEUED {
+                seen += worker.drain().len() as u64;
+                std::thread::sleep(Duration::from_millis(1));
+            }
+            started.elapsed()
+        };
+
+        // 2. How long does dropping take with the same queue outstanding?
+        let drop_time = {
+            let worker = Worker::spawn();
+            queue_jobs(&worker, QUEUED);
+
+            let started = Instant::now();
+            drop(worker);
+            started.elapsed()
+        };
+
+        assert!(
+            drop_time * 10 < drain,
+            "dropping took {drop_time:?} against a drain time of {drain:?}; quitting is \
+             waiting for the solver instead of leaving it to the process exit"
+        );
     }
 
     #[test]

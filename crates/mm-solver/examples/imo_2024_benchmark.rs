@@ -17,10 +17,10 @@ fn main() {
 
     let mut symbols = SymbolTable::new();
     let x = symbols.intern("x");
-    let n = symbols.intern("n");
-    let a = symbols.intern("a");
-    let b = symbols.intern("b");
-    let c = symbols.intern("c");
+    let _n = symbols.intern("n");
+    let _a = symbols.intern("a");
+    let _b = symbols.intern("b");
+    let _c = symbols.intern("c");
 
     let rules = standard_rules();
     let verifier = Verifier::new();
@@ -53,7 +53,7 @@ fn main() {
         Box::new(Expr::int(3)),
     );
 
-    let (result1, passed1) = run_test(
+    let (_result1, passed1) = run_test(
         &mcts,
         am,
         |e| matches!(e, Expr::Const(r) if r == &Rational::from(4)),
@@ -72,7 +72,7 @@ fn main() {
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
     let gcd_test = Expr::GCD(Box::new(Expr::int(12)), Box::new(Expr::int(8)));
-    let (result2, passed2) = run_test(
+    let (_result2, passed2) = run_test(
         &mcts,
         gcd_test,
         |e| matches!(e, Expr::Const(r) if r == &Rational::from(4)),
@@ -96,7 +96,7 @@ fn main() {
         Box::new(Expr::Pow(Box::new(Expr::int(2)), Box::new(Expr::int(10)))),
         Box::new(Expr::int(11)),
     );
-    let (result3, passed3) = run_test(
+    let (_result3, passed3) = run_test(
         &mcts,
         fermat,
         |e| matches!(e, Expr::Const(r) if r == &Rational::from(1)),
@@ -117,7 +117,7 @@ fn main() {
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
     let binomial = Expr::Binomial(Box::new(Expr::int(10)), Box::new(Expr::int(5)));
-    let (result4, passed4) = run_test(
+    let (_result4, passed4) = run_test(
         &mcts,
         binomial,
         |e| matches!(e, Expr::Const(r) if r == &Rational::from(252)),
@@ -141,8 +141,8 @@ fn main() {
         expr: Box::new(Expr::Pow(Box::new(Expr::Var(x)), Box::new(Expr::int(4)))),
         var: x,
     };
-    let (result5, passed5) = run_test(&mcts, deriv, |e| match e {
-        Expr::Mul(coef, base) => {
+    let (_result5, passed5) = run_test(&mcts, deriv, |e| match e {
+        Expr::Mul(coef, _base) => {
             matches!(coef.as_ref(), Expr::Const(r) if r == &Rational::from(4))
         }
         _ => false,
@@ -175,7 +175,7 @@ fn main() {
         )),
         Box::new(Expr::int(1)),
     );
-    let (result6, passed6) = run_test(
+    let (_result6, passed6) = run_test(
         &mcts,
         pythag,
         |e| matches!(e, Expr::Const(r) if r.is_zero()),

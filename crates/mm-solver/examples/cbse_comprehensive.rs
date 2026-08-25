@@ -138,8 +138,8 @@ fn main() {
 /// assert_eq!(total, 1);
 /// ```
 fn test_q2_vectors(
-    symbols: &mut SymbolTable,
-    mcts: &NeuralMCTS,
+    _symbols: &mut SymbolTable,
+    _mcts: &NeuralMCTS,
     passed: &mut i32,
     total: &mut i32,
 ) {
@@ -224,7 +224,7 @@ fn test_q8_optimization(
 
     println!("   Step 1: Compute f'(x) using LEMMA differentiate()");
     let f_prime = differentiate(&f, x);
-    let f_prime_simp = simplify(&f_prime);
+    let _f_prime_simp = simplify(&f_prime);
     println!("   f'(x) = 3x² - 3");
 
     println!("\n   Step 2: Use LEMMA neural search to simplify");
@@ -394,8 +394,8 @@ fn test_q10_integration(
 /// // assert_eq!(total, 1);
 /// ```
 fn test_q11_vectors(
-    symbols: &mut SymbolTable,
-    mcts: &NeuralMCTS,
+    _symbols: &mut SymbolTable,
+    _mcts: &NeuralMCTS,
     passed: &mut i32,
     total: &mut i32,
 ) {
@@ -584,7 +584,7 @@ fn test_q21_differentiation(
 /// assert_eq!(total, 1);
 /// ```
 fn test_q22_trigonometry(
-    symbols: &mut SymbolTable,
+    _symbols: &mut SymbolTable,
     mcts: &NeuralMCTS,
     passed: &mut i32,
     total: &mut i32,
@@ -658,8 +658,8 @@ fn test_q22_trigonometry(
 /// # }
 /// ```
 fn test_q23_vectors_cross(
-    symbols: &mut SymbolTable,
-    mcts: &NeuralMCTS,
+    _symbols: &mut SymbolTable,
+    _mcts: &NeuralMCTS,
     passed: &mut i32,
     total: &mut i32,
 ) {
@@ -710,7 +710,7 @@ fn test_q23_vectors_cross(
 /// ```
 fn test_q24_monotonicity(
     symbols: &mut SymbolTable,
-    mcts: &NeuralMCTS,
+    _mcts: &NeuralMCTS,
     passed: &mut i32,
     total: &mut i32,
 ) {
@@ -741,7 +741,7 @@ fn test_q24_monotonicity(
 
     println!("   Step 1: Compute f'(x) using LEMMA differentiate()");
     let f_prime = differentiate(&f, x);
-    let f_prime_simp = simplify(&f_prime);
+    let _f_prime_simp = simplify(&f_prime);
 
     println!("   f'(x) = (15/2)x^(1/2) - (15/2)x^(3/2)");
     println!("        = (15/2)x^(1/2)(1 - x)");
@@ -778,8 +778,8 @@ fn test_q24_monotonicity(
 /// assert_eq!(total, 1);
 /// ```
 fn test_q25_vectors_case(
-    symbols: &mut SymbolTable,
-    mcts: &NeuralMCTS,
+    _symbols: &mut SymbolTable,
+    _mcts: &NeuralMCTS,
     passed: &mut i32,
     total: &mut i32,
 ) {
@@ -845,8 +845,8 @@ fn test_q25_vectors_case(
 /// assert_eq!(passed, 1);
 /// ```
 fn test_q26_related_rates(
-    symbols: &mut SymbolTable,
-    mcts: &NeuralMCTS,
+    _symbols: &mut SymbolTable,
+    _mcts: &NeuralMCTS,
     passed: &mut i32,
     total: &mut i32,
 ) {
