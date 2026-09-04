@@ -20,23 +20,38 @@ use mm_rules::{corpus, standard_rules, RuleContext, WitnessSymbols};
 
 /// Rules that work but are never offered, pinned.
 ///
-/// Not zero, and not a regression introduced here: these rules carry a `domains` tag that the
-/// analyser never derives for the expressions they match.
+/// This used to be 32: rules whose `domains` tag named a domain that `analyze` never derives
+/// for the expressions they actually match. Two patterns accounted for most of them:
 ///
-/// Two patterns account for all of them:
-///
-/// - Absolute-value manipulation (`inequalities::abs_product`, `abs_neg`, `abs_abs`, ...) is
+/// - Absolute-value manipulation (`inequalities::abs_product`, `abs_neg`, `abs_abs`, ...) was
 ///   tagged `Domain::Inequalities`, but `analyze` sets `has_inequalities` only for `Lt`,
-///   `Lte`, `Gt` and `Gte`. `|a * b|` is not an inequality, so the tag never matches.
+///   `Lte`, `Gt` and `Gte`. `|a * b|` is not an inequality, so the tag never matched.
 /// - Algebraic factoring and factorial identities (`number_theory::diff_squares_factor`,
-///   `square_binomial_expand`, `factorial_zero`, ...) are tagged `Domain::NumberTheory`, but
+///   `square_binomial_expand`, `factorial_zero`, ...) were tagged `Domain::NumberTheory`, but
 ///   `Factorial` sets `has_combinatorics` and a plain `a^2 - b^2` sets no number-theory flag.
 ///
-/// The fix is to re-tag the rules rather than to loosen the filter, since loosening it
-/// reintroduces exactly the cross-domain noise the guardrail exists to prevent. That is a
-/// behavioural change to rule availability and belongs in its own change with its own
-/// evaluation run, so this test measures the set instead of asserting it away.
-const EXPECTED_HIDDEN: usize = 32;
+/// Both patterns share a root cause: these rules take a plain expression and *produce* an
+/// inequality, or manipulate an absolute value or a factoring identity that no domain flag
+/// was ever going to derive from the input shape. 24 of the 32 were re-tagged `domains: &[]`
+/// (no domain requirement) on exactly that reasoning: their `is_applicable` already gates
+/// every application to the correct shape, and their output is a genuine equality, so
+/// widening their reach is safe.
+///
+/// The remaining 8 are still hidden, deliberately: `am_gm_2`, `sum_squares_ge_product`,
+/// `triangle_ineq`, `reverse_triangle`, `abs_nonneg`, `square_nonneg`, `diff_squared_ge_zero`
+/// and `number_theory::euler_phi_prime_power`. Retagging them exposed a second, worse defect:
+/// `Verifier::verify_step` cannot numerically sample an expression containing a derivative or
+/// integral, so it trusts rule replay for *any* rewrite inside one -- and these rules produce
+/// a *bound*, not an equal value (`a+b -> 2sqrt(ab)`), or depend on an unstated precondition
+/// the `Expr` type cannot check (`euler_phi_prime_power` assumes its argument is a prime
+/// power and matches any `Pow` at all). Retagging them made the search apply them to
+/// unrelated intermediate states of a calculus simplification and accept the wrong result
+/// with no check at all -- confirmed by a full `d/dx(x^2 + x^3)` search collapsing to a
+/// constant it had never computed. Fixing `Verifier::verify_step`'s calculus shortcut to stop
+/// trusting an unrelated rule just because a derivative appears somewhere in the tree is a
+/// bigger, separate change; until then these 8 stay behind the domain tag that happens to
+/// keep them away from calculus expressions.
+const EXPECTED_HIDDEN: usize = 8;
 
 fn hidden_rules() -> Vec<String> {
     let rules = standard_rules();

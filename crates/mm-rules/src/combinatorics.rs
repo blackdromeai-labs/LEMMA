@@ -255,6 +255,13 @@ fn counting_rules() -> Vec<Rule> {
             cost: 2,
         },
         // Pigeonhole principle (n+1 items in n boxes)
+        //
+        // A discrete existence fact, not a rewrite of the matched expression: it says nothing
+        // about the specific comparison it fires on. It used to replace any `Gt`/`Gte` with
+        // the unrelated constant 2, which the verifier could only ever accept by the calculus
+        // replay-only shortcut (the two sides are not equal) -- and did, for `Gt`/`Gte` nodes
+        // that had nothing to do with pigeonholes. Left as an informational placeholder until
+        // it can state the fact about the actual counts involved.
         Rule {
             id: RuleId(27009),
             name: "pigeonhole",
@@ -263,9 +270,9 @@ fn counting_rules() -> Vec<Rule> {
             domains: &[Domain::Combinatorics],
             requires: &[],
             is_applicable: |expr, _ctx| matches!(expr, Expr::Gt(_, _) | Expr::Gte(_, _)),
-            apply: |_expr, _ctx| {
+            apply: |expr, _ctx| {
                 vec![RuleApplication {
-                    result: Expr::Const(Rational::from_integer(2)),
+                    result: expr.clone(),
                     justification:
                         "Pigeonhole: n+1 items in n boxes => at least one box has 2+ items"
                             .to_string(),
@@ -770,6 +777,10 @@ fn stars_and_bars() -> Rule {
 }
 
 // n+1 pigeons in n holes => at least 2 in one hole
+//
+// Same fix as `pigeonhole`: a discrete existence fact, not a rewrite. It used to replace any
+// `Gt`/`Gte` with the unrelated constant 2, accepted only through the calculus replay-only
+// shortcut. Left as an informational placeholder.
 fn pigeonhole_principle() -> Rule {
     Rule {
         id: RuleId(612),
@@ -779,9 +790,9 @@ fn pigeonhole_principle() -> Rule {
         domains: &[Domain::Combinatorics],
         requires: &[],
         is_applicable: |expr, _ctx| matches!(expr, Expr::Gt(_, _) | Expr::Gte(_, _)),
-        apply: |_expr, _ctx| {
+        apply: |expr, _ctx| {
             vec![RuleApplication {
-                result: Expr::Const(Rational::from_integer(2)),
+                result: expr.clone(),
                 justification: "Pigeonhole: n+1 items in n containers => at least 2 share"
                     .to_string(),
             }]
@@ -882,6 +893,10 @@ fn binomial_sum_2n() -> Rule {
 }
 
 // Σ (-1)^k * C(n,k) = 0 for n > 0
+// Never actually detects the alternating binomial sum it names: `is_applicable` matched any
+// `Add` or `Mul` at all and `apply` replaced it with 0 unconditionally, accepted only through
+// the calculus replay-only shortcut when it fired inside an unrelated derivative or integral.
+// Left as an informational placeholder until it can recognise the real shape.
 fn binomial_alternating_sum() -> Rule {
     Rule {
         id: RuleId(619),
@@ -891,9 +906,9 @@ fn binomial_alternating_sum() -> Rule {
         domains: &[Domain::Combinatorics],
         requires: &[Feature::Combinatorics],
         is_applicable: |expr, _ctx| matches!(expr, Expr::Add(_, _) | Expr::Mul(_, _)),
-        apply: |_expr, _ctx| {
+        apply: |expr, _ctx| {
             vec![RuleApplication {
-                result: Expr::int(0),
+                result: expr.clone(),
                 justification: "Σ (-1)^k * C(n,k) = 0 for n > 0".to_string(),
             }]
         },

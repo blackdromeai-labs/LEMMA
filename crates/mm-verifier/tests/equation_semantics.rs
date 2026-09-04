@@ -1,27 +1,26 @@
-//! Known limitation: equation rewrites are checked with expression semantics.
+//! Equation rewrites are checked against the solution set, not just the expression value.
 //!
 //! `verify_step` establishes that a transformation preserves *value*: the two sides must
 //! agree symbolically, or agree at sampled points. That is the right criterion for rewriting
-//! a term. It is the wrong criterion for rewriting an equation, where the property to
-//! preserve is the solution set.
+//! a term. It used to be applied unchanged to equations too, where the property to preserve
+//! is the solution set, not the expression value -- `2x = 10` and `x = 10/2` have the same
+//! solution, but as expressions they are not equal: canonicalisation does not relate them
+//! and sampling `x` gives different values on each side. That made the verifier refuse a
+//! correct step from `equations::cancel_multiplication`, and `2x = 10 -> x = 5` was listed as
+//! unsolved in `mm-solver`'s evaluation suite as a result.
 //!
-//! `2x = 10` and `x = 10/2` have the same solution, but as expressions they are not equal:
-//! canonicalisation does not relate them and sampling `x` gives different values on each
-//! side. So the verifier refuses the step, the search never gets the node, and dividing both
-//! sides of an equation is unavailable in practice even though `equations::cancel_
-//! multiplication` implements it correctly.
+//! `verify_step` and `verify_equivalence` now try an equation-specific check
+//! (`mm_verifier::numerical::verify_equation_equivalent`) whenever both sides of the step are
+//! equations: it samples the ratio between `lhs - rhs` of each equation and accepts the step
+//! when that ratio is the same nonzero constant at every sample, which is what "add the same
+//! term to both sides" or "scale both sides by a nonzero constant" actually preserves.
 //!
-//! This is why `2x = 10 -> x = 5` and `3x + 5 = 17 -> x = 4` are listed as unsolved in
-//! `mm-solver`'s evaluation suite. The rules exist and work; the check rejects them.
-//!
-//! These tests pin the current behaviour so it cannot change silently. When equation-aware
-//! verification is implemented they will fail, which is the intended signal: the evaluation
-//! suite's `KNOWN_UNSOLVED` list should be revisited at the same time.
+//! These tests pin the current behaviour so a regression here is caught immediately.
 
 use mm_core::{Expr, SymbolTable};
 use mm_rules::rule::RuleKey;
 use mm_rules::{standard_rules, RuleContext, RuleSet};
-use mm_verifier::{Verifier, VerifyResult};
+use mm_verifier::{VerificationMethod, Verifier, VerifyResult};
 
 fn equations_rule<'a>(rules: &'a RuleSet, name: &str) -> &'a mm_rules::Rule {
     rules
@@ -34,7 +33,7 @@ fn equations_rule<'a>(rules: &'a RuleSet, name: &str) -> &'a mm_rules::Rule {
 }
 
 #[test]
-fn dividing_both_sides_is_produced_correctly_but_refused() {
+fn dividing_both_sides_is_produced_correctly_and_accepted() {
     let mut symbols = SymbolTable::new();
     let x = symbols.intern("x");
     let rules = standard_rules();
@@ -64,23 +63,26 @@ fn dividing_both_sides_is_produced_correctly_but_refused() {
         }
     );
 
-    // And the verifier refuses it, because the two equations are not the same expression.
+    // The verifier now recognises this as the same equation's solution set, not the same
+    // expression value.
     let result = Verifier::new().verify_step(&before, after, rule, &ctx);
     match result {
-        VerifyResult::Invalid { .. } => {}
-        other => panic!(
-            "equation-aware verification appears to have been implemented (got {other:?}). \
-             Revisit KNOWN_UNSOLVED in crates/mm-solver/tests/evaluation.rs."
-        ),
+        VerifyResult::Valid {
+            method: VerificationMethod::NumericSampling,
+            ..
+        } => {}
+        other => {
+            panic!("expected the equation-aware numeric check to accept this step, got {other:?}")
+        }
     }
 }
 
 #[test]
-fn adding_to_both_sides_is_accepted_only_because_it_happens_to_balance() {
-    // `x + 3 = 7 -> x = 4` is accepted, which is why that case does solve. It is not accepted
-    // because the verifier understands equations: it is accepted because the rule's output
-    // compares equal under the same expression semantics that reject the division case. The
-    // asymmetry is the bug, not the acceptance.
+fn adding_to_both_sides_is_accepted() {
+    // `x + 3 = 7 -> x = 4` was always accepted, but only by accident: adding the same term to
+    // both sides happens to leave `lhs - rhs` literally unchanged, so it passed under plain
+    // expression semantics even before the equation-aware check existed. It still passes now,
+    // this time because the ratio check also holds (ratio 1).
     let mut symbols = SymbolTable::new();
     let x = symbols.intern("x");
     let rules = standard_rules();

@@ -473,7 +473,7 @@ fn absolute_value_rules() -> Vec<Rule> {
             name: "abs_product",
             category: RuleCategory::Simplification,
             description: "|a·b| = |a|·|b|",
-            domains: &[Domain::Inequalities],
+            domains: &[],
             requires: &[],
             is_applicable: |expr, _ctx| {
                 if let Expr::Abs(inner) = expr {
@@ -504,7 +504,7 @@ fn absolute_value_rules() -> Vec<Rule> {
             name: "abs_quotient",
             category: RuleCategory::Simplification,
             description: "|a/b| = |a|/|b|",
-            domains: &[Domain::Inequalities],
+            domains: &[],
             requires: &[],
             is_applicable: |expr, _ctx| {
                 if let Expr::Abs(inner) = expr {
@@ -535,7 +535,7 @@ fn absolute_value_rules() -> Vec<Rule> {
             name: "abs_neg",
             category: RuleCategory::Simplification,
             description: "|-a| = |a|",
-            domains: &[Domain::Inequalities],
+            domains: &[],
             requires: &[],
             is_applicable: |expr, _ctx| {
                 if let Expr::Abs(inner) = expr {
@@ -563,7 +563,7 @@ fn absolute_value_rules() -> Vec<Rule> {
             name: "abs_abs",
             category: RuleCategory::Simplification,
             description: "||a|| = |a|",
-            domains: &[Domain::Inequalities],
+            domains: &[],
             requires: &[],
             is_applicable: |expr, _ctx| {
                 if let Expr::Abs(inner) = expr {
@@ -950,7 +950,7 @@ fn abs_power() -> Rule {
         name: "abs_power",
         category: RuleCategory::Simplification,
         description: "|a^n| = |a|^n",
-        domains: &[Domain::Inequalities],
+        domains: &[],
         requires: &[Feature::Inequality],
         is_applicable: |expr, _ctx| {
             if let Expr::Abs(inner) = expr {
@@ -1350,8 +1350,15 @@ fn schur_inequality() -> Rule {
 // Nesbitt's inequality
 /// Nesbitt's inequality rule that yields the constant 3/2 as a lower bound.
 ///
-/// When applied to expressions of the form a/(b+c) + b/(a+c) + c/(a+b), this rule produces
-/// an application with result 3/2 and a justification string referencing Nesbitt's inequality.
+/// Applies only to the specific shape `a/(b+c) + b/(a+c) + c/(a+b)` (any associativity of the
+/// outer sum, denominators in either order): previously `is_applicable` matched any `Add` or
+/// `Div` at all and `apply` returned 3/2 unconditionally, so it silently replaced unrelated
+/// expressions -- including intermediate states of an unrelated derivative simplification --
+/// with a constant that had nothing to do with them. See
+/// `crates/mm-verifier/tests/adversarial.rs` for why a rule this broad is dangerous
+/// specifically inside a calculus expression: the verifier cannot numerically sample past a
+/// derivative or integral, so it trusts rule replay there, and an overbroad rule is exactly
+/// what that trust assumes will not happen.
 fn nesbitt_inequality() -> Rule {
     Rule {
         id: RuleId(522),
@@ -1360,16 +1367,54 @@ fn nesbitt_inequality() -> Rule {
         description: "Nesbitt: a/(b+c) + b/(a+c) + c/(a+b) >= 3/2",
         domains: &[Domain::Inequalities],
         requires: &[Feature::Inequality],
-        is_applicable: |expr, _ctx| matches!(expr, Expr::Add(_, _) | Expr::Div(_, _)),
-        apply: |_expr, _ctx| {
-            vec![RuleApplication {
-                result: Expr::Div(Box::new(Expr::int(3)), Box::new(Expr::int(2))),
-                justification: "Nesbitt's inequality: a/(b+c) + b/(a+c) + c/(a+b) >= 3/2"
-                    .to_string(),
-            }]
+        is_applicable: |expr, _ctx| nesbitt_terms(expr).is_some(),
+        apply: |expr, _ctx| {
+            if nesbitt_terms(expr).is_some() {
+                return vec![RuleApplication {
+                    result: Expr::Div(Box::new(Expr::int(3)), Box::new(Expr::int(2))),
+                    justification: "Nesbitt's inequality: a/(b+c) + b/(a+c) + c/(a+b) >= 3/2"
+                        .to_string(),
+                }];
+            }
+            vec![]
         },
         reversible: false,
         cost: 3,
+    }
+}
+
+/// Recognises `a/(b+c) + b/(a+c) + c/(a+b)`, in either associativity of the outer sum and
+/// either order within each denominator. Returns `None` for anything else, including a
+/// three-term sum of fractions that is not this specific cyclic shape.
+fn nesbitt_terms(expr: &Expr) -> Option<(Expr, Expr, Expr)> {
+    fn as_fraction(e: &Expr) -> Option<(&Expr, &Expr, &Expr)> {
+        if let Expr::Div(num, denom) = e {
+            if let Expr::Add(x, y) = denom.as_ref() {
+                return Some((num.as_ref(), x.as_ref(), y.as_ref()));
+            }
+        }
+        None
+    }
+
+    let (t1, t2, t3) = match expr {
+        Expr::Add(left, right) => match (left.as_ref(), right.as_ref()) {
+            (Expr::Add(a, b), c) => (a.as_ref(), b.as_ref(), c),
+            (a, Expr::Add(b, c)) => (a, b.as_ref(), c.as_ref()),
+            _ => return None,
+        },
+        _ => return None,
+    };
+
+    let (a, d1a, d1b) = as_fraction(t1)?;
+    let (b, d2a, d2b) = as_fraction(t2)?;
+    let (c, d3a, d3b) = as_fraction(t3)?;
+
+    let denom_is =
+        |d1: &Expr, d2: &Expr, x: &Expr, y: &Expr| (d1 == x && d2 == y) || (d1 == y && d2 == x);
+    if denom_is(d1a, d1b, b, c) && denom_is(d2a, d2b, a, c) && denom_is(d3a, d3b, a, b) {
+        Some((a.clone(), b.clone(), c.clone()))
+    } else {
+        None
     }
 }
 

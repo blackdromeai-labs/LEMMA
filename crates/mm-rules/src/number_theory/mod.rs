@@ -76,7 +76,7 @@ fn divisibility_rules() -> Vec<Rule> {
             name: "divides_self",
             category: RuleCategory::Simplification,
             description: "n/n = 1 for any n ≠ 0",
-            domains: &[Domain::NumberTheory],
+            domains: &[],
             requires: &[],
             is_applicable: |expr, _ctx| {
                 if let Expr::Div(a, b) = expr {
@@ -244,7 +244,7 @@ fn divisibility_rules() -> Vec<Rule> {
             name: "diff_squares_factor",
             category: RuleCategory::Factoring,
             description: "a² - b² = (a+b)(a-b)",
-            domains: &[Domain::NumberTheory],
+            domains: &[],
             requires: &[],
             is_applicable: |expr, _ctx| {
                 if let Expr::Sub(a, b) = expr {
@@ -277,7 +277,7 @@ fn divisibility_rules() -> Vec<Rule> {
             name: "diff_cubes_factor",
             category: RuleCategory::Factoring,
             description: "a³ - b³ = (a-b)(a² + ab + b²)",
-            domains: &[Domain::NumberTheory],
+            domains: &[],
             requires: &[],
             is_applicable: |expr, _ctx| {
                 if let Expr::Sub(a, b) = expr {
@@ -316,7 +316,7 @@ fn divisibility_rules() -> Vec<Rule> {
             name: "sum_cubes_factor",
             category: RuleCategory::Factoring,
             description: "a³ + b³ = (a+b)(a² - ab + b²)",
-            domains: &[Domain::NumberTheory],
+            domains: &[],
             requires: &[],
             is_applicable: |expr, _ctx| {
                 if let Expr::Add(a, b) = expr {
@@ -355,7 +355,7 @@ fn divisibility_rules() -> Vec<Rule> {
             name: "square_binomial_expand",
             category: RuleCategory::Expansion,
             description: "(a+b)² = a² + 2ab + b²",
-            domains: &[Domain::NumberTheory],
+            domains: &[],
             requires: &[],
             is_applicable: |expr, _ctx| {
                 if let Expr::Pow(base, exp) = expr {
@@ -394,7 +394,7 @@ fn divisibility_rules() -> Vec<Rule> {
             name: "square_binomial_sub_expand",
             category: RuleCategory::Expansion,
             description: "(a-b)² = a² - 2ab + b²",
-            domains: &[Domain::NumberTheory],
+            domains: &[],
             requires: &[],
             is_applicable: |expr, _ctx| {
                 if let Expr::Pow(base, exp) = expr {
@@ -781,6 +781,9 @@ fn modular_rules() -> Vec<Rule> {
             cost: 4,
         },
         // Primitive root finder
+        //
+        // The found primitive root `g` is generally not equal to `n` (e.g. n=7 -> g=3), so
+        // replacing `n` with `g` was not a rewrite. Left as an informational placeholder.
         Rule {
             id: RuleId(128),
             name: "primitive_root_find",
@@ -860,7 +863,7 @@ fn modular_rules() -> Vec<Rule> {
                     for g in 2..n_val {
                         if is_primitive_root(g, n_val, phi) {
                             return vec![RuleApplication {
-                                result: Expr::Const(Rational::from_integer(g)),
+                                result: expr.clone(),
                                 justification: format!(
                                     "Primitive root: {} is smallest primitive root mod {}",
                                     g, n_val
@@ -1134,7 +1137,7 @@ fn perfect_power_rules() -> Vec<Rule> {
             name: "sqrt_square",
             category: RuleCategory::Simplification,
             description: "√(a²) = |a|",
-            domains: &[Domain::NumberTheory],
+            domains: &[],
             requires: &[],
             is_applicable: |expr, _ctx| {
                 if let Expr::Sqrt(inner) = expr {
@@ -1226,7 +1229,7 @@ fn perfect_power_rules() -> Vec<Rule> {
             name: "sqrt_quotient",
             category: RuleCategory::Simplification,
             description: "√(a/b) = √a/√b",
-            domains: &[Domain::NumberTheory],
+            domains: &[],
             requires: &[],
             is_applicable: |expr, _ctx| {
                 if let Expr::Sqrt(inner) = expr {
@@ -1612,7 +1615,7 @@ fn factorial_rules() -> Vec<Rule> {
             name: "factorial_zero",
             category: RuleCategory::Simplification,
             description: "0! = 1",
-            domains: &[Domain::NumberTheory],
+            domains: &[],
             requires: &[],
             is_applicable: |expr, _ctx| {
                 if let Expr::Factorial(inner) = expr {
@@ -1640,7 +1643,7 @@ fn factorial_rules() -> Vec<Rule> {
             name: "factorial_one",
             category: RuleCategory::Simplification,
             description: "1! = 1",
-            domains: &[Domain::NumberTheory],
+            domains: &[],
             requires: &[],
             is_applicable: |expr, _ctx| {
                 if let Expr::Factorial(inner) = expr {
@@ -1668,7 +1671,7 @@ fn factorial_rules() -> Vec<Rule> {
             name: "factorial_recurse",
             category: RuleCategory::Expansion,
             description: "n! = n · (n-1)!",
-            domains: &[Domain::NumberTheory],
+            domains: &[],
             requires: &[],
             is_applicable: |expr, _ctx| matches!(expr, Expr::Factorial(_)),
             apply: |expr, _ctx| {
@@ -2207,6 +2210,10 @@ fn prime_counting_approx() -> Rule {
 }
 
 // For n > 1, there exists prime p with n < p < 2n
+// Matched any `Gt`/`Lt` at all and replaced it with the constant 1 unconditionally, regardless
+// of whether the comparison had anything to do with primes -- accepted only through the
+// calculus replay-only shortcut when it fired inside an unrelated derivative or integral.
+// Left as an informational placeholder until it can recognise `n < p < 2n` specifically.
 fn bertrand_postulate() -> Rule {
     Rule {
         id: RuleId(710),
@@ -2219,9 +2226,9 @@ fn bertrand_postulate() -> Rule {
             // Match: Lt(n, Mul(2, n)) or Gt pattern for range
             matches!(expr, Expr::Gt(_, _) | Expr::Lt(_, _))
         },
-        apply: |_expr, _ctx| {
+        apply: |expr, _ctx| {
             vec![RuleApplication {
-                result: Expr::Const(Rational::from_integer(1)), // True
+                result: expr.clone(),
                 justification: "Bertrand's postulate: For n > 1, ∃ prime p with n < p < 2n"
                     .to_string(),
             }]
@@ -2631,13 +2638,14 @@ fn mersenne_prime_condition() -> Rule {
 }
 
 // σ(n) = Σ d for d|n
-/// Computes the sum-of-divisors function σ(n) for small positive integer constants and otherwise
-/// produces a descriptive, non-evaluated result.
-///
-/// For an expression that is a positive integer constant less than 1000, the rule's `apply` returns
-/// a `Const` expression containing the integer σ(n) (the sum of all positive divisors of n) and a
-/// justification string. For any other expression the rule is applicable only as a descriptive
-/// transformation and returns the original expression with a generic justification.
+//
+// Replacing `n` with σ(n) is not a rewrite of `n` -- σ(n) ≠ n in general (σ(2) = 3) -- it is
+// computing a different number-theoretic property and putting it in `n`'s place. Any positive
+// integer constant under 1000 matched, which is most small integers that ever appear
+// mid-search, and the substitution was accepted only through the calculus replay-only
+// shortcut whenever it happened to fire inside an unrelated derivative or integral. Left as
+// an informational placeholder; the computation itself (kept below) is still correct, it is
+// just not offered as an equivalence.
 fn sum_of_divisors() -> Rule {
     Rule {
         id: RuleId(726),
@@ -2658,7 +2666,6 @@ fn sum_of_divisors() -> Rule {
                 if n.is_integer() {
                     let num = n.numer();
                     if num > 0 && num < 1000 {
-                        // Compute sum of divisors
                         let mut sum = 0i64;
                         for d in 1..=num {
                             if num % d == 0 {
@@ -2666,7 +2673,7 @@ fn sum_of_divisors() -> Rule {
                             }
                         }
                         return vec![RuleApplication {
-                            result: Expr::Const(Rational::from_integer(sum)),
+                            result: expr.clone(),
                             justification: format!(
                                 "Sum of divisors: σ({}) = {} (sum of all divisors)",
                                 num, sum
@@ -2686,11 +2693,9 @@ fn sum_of_divisors() -> Rule {
 }
 
 // τ(n) = number of divisors
-/// Computes the number of positive divisors τ(n) for small positive integer constants.
-///
-/// This rule applies only when the expression is a positive integer constant less than 1000;
-/// in that case it returns a concrete constant equal to the count of all positive divisors of n.
-/// Otherwise the rule leaves the expression unchanged and provides a descriptive justification.
+//
+// Same issue as `sum_of_divisors`: τ(n) ≠ n in general, so replacing `n` with τ(n) is not a
+// rewrite. Left as an informational placeholder for the same reason.
 fn number_of_divisors() -> Rule {
     Rule {
         id: RuleId(727),
@@ -2710,7 +2715,6 @@ fn number_of_divisors() -> Rule {
                 if n.is_integer() {
                     let num = n.numer();
                     if num > 0 && num < 1000 {
-                        // Count divisors
                         let mut count = 0i64;
                         for d in 1..=num {
                             if num % d == 0 {
@@ -2718,7 +2722,7 @@ fn number_of_divisors() -> Rule {
                             }
                         }
                         return vec![RuleApplication {
-                            result: Expr::Const(Rational::from_integer(count)),
+                            result: expr.clone(),
                             justification: format!(
                                 "Number of divisors: τ({}) = {} (count of all divisors)",
                                 num, count

@@ -238,7 +238,9 @@ impl Verifier {
 
         match self.level {
             VerificationLevel::Numerical => {
-                if numerical::verify_equivalent(before, after, self.num_samples, self.tolerance) {
+                if numerical::verify_equivalent(before, after, self.num_samples, self.tolerance)
+                    || self.equations_have_the_same_solution_set(before, after)
+                {
                     VerifyResult::Valid {
                         confidence: 0.999,
                         method: VerificationMethod::NumericSampling,
@@ -260,7 +262,8 @@ impl Verifier {
                     after,
                     self.num_samples,
                     self.tolerance,
-                ) {
+                ) || self.equations_have_the_same_solution_set(before, after)
+                {
                     VerifyResult::Valid {
                         confidence: 0.999,
                         method: VerificationMethod::NumericSampling,
@@ -300,7 +303,9 @@ impl Verifier {
             };
         }
 
-        if numerical::verify_equivalent(before, after, self.num_samples, self.tolerance) {
+        if numerical::verify_equivalent(before, after, self.num_samples, self.tolerance)
+            || self.equations_have_the_same_solution_set(before, after)
+        {
             VerifyResult::Valid {
                 confidence: 0.999,
                 method: VerificationMethod::NumericSampling,
@@ -310,6 +315,20 @@ impl Verifier {
                 reason: "expressions are not equivalent".to_string(),
             }
         }
+    }
+
+    /// Whether `before` and `after` are both equations with the same solution set.
+    ///
+    /// [`numerical::verify_equivalent`] treats an equation as the value `lhs - rhs` and asks
+    /// whether that value matches between the two sides -- the right question for a term
+    /// rewrite, the wrong one for a rewritten equation, where "divide both sides by 2" turns
+    /// `2x - 10` into `x - 5` and the two disagree at every point but the shared root. See
+    /// [`numerical::verify_equation_equivalent`] for what this checks instead.
+    fn equations_have_the_same_solution_set(&self, before: &Expr, after: &Expr) -> bool {
+        matches!(
+            (before, after),
+            (Expr::Equation { .. }, Expr::Equation { .. })
+        ) && numerical::verify_equation_equivalent(before, after, self.num_samples, self.tolerance)
     }
 
     /// Verify that a solution satisfies an equation.
