@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="title desc">
+  <title id="title">LEMMA by Blackdrome AI Labs</title>
+  <desc id="desc">A dark blue research banner with a symbolic expression graph.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#080d1c"/>
+      <stop offset="0.55" stop-color="#111b36"/>
+      <stop offset="1" stop-color="#071b25"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#7c8cff"/>
+      <stop offset="1" stop-color="#42e8c5"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="7" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="1200" height="360" rx="24" fill="url(#bg)"/>
+  <path d="M0 300 C260 220 420 390 700 285 S1030 215 1200 270" fill="none" stroke="#273457" stroke-width="1.5" opacity=".7"/>
+  <circle cx="1020" cy="62" r="190" fill="#156b73" opacity=".12"/>
+  <circle cx="840" cy="310" r="160" fill="#5c62d6" opacity=".1"/>
+
+  <g font-family="Inter,Segoe UI,Arial,sans-serif">
+    <text x="74" y="76" fill="#91a0c0" font-size="16" font-weight="700" letter-spacing="4">BLACKDROME AI LABS · OPEN RESEARCH</text>
+    <text x="70" y="190" fill="#f3f6ff" font-size="104" font-weight="800" letter-spacing="8">LEMMA</text>
+    <rect x="73" y="214" width="430" height="4" rx="2" fill="url(#accent)"/>
+    <text x="74" y="258" fill="#c9d2e8" font-size="23">Inspectable mathematical search.</text>
+    <text x="74" y="292" fill="#7f90b4" font-size="18">Explicit rules · replayable traces · evidence-aware verification</text>
+  </g>
+
+  <g fill="none" stroke="#52658d" stroke-width="2">
+    <path d="M720 180 L827 110 L945 174 L1052 104"/>
+    <path d="M720 180 L836 250 L945 174 L1063 255"/>
+  </g>
+  <g filter="url(#glow)">
+    <circle cx="720" cy="180" r="12" fill="#7c8cff"/>
+    <circle cx="827" cy="110" r="9" fill="#a2adff"/>
+    <circle cx="836" cy="250" r="9" fill="#6d9fff"/>
+    <circle cx="945" cy="174" r="14" fill="#42e8c5"/>
+    <circle cx="1052" cy="104" r="8" fill="#61f0d2"/>
+    <circle cx="1063" cy="255" r="8" fill="#61f0d2"/>
+  </g>
+  <g fill="#dce5fa" font-family="JetBrains Mono,Consolas,monospace" font-size="16">
+    <text x="687" y="155">input</text>
+    <text x="795" y="83">rule</text>
+    <text x="804" y="284">search</text>
+    <text x="907" y="144">verify</text>
+    <text x="1024" y="78">result</text>
+    <text x="1033" y="290">trace</text>
+  </g>
+</svg>

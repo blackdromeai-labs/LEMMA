@@ -1,51 +1,50 @@
 <div align="center">
 
+![LEMMA — a Blackdrome AI Labs open research project](docs/assets/lemma-banner.svg)
+
 # LEMMA
 
-### Logical Engine for Multi-domain Mathematical Analysis
+**Logical Engine for Multi-domain Mathematical Analysis**
 
-**An evidence-aware, neuro-symbolic mathematics research platform written in Rust.**
+An evidence-aware, neuro-symbolic mathematics research platform in Rust.
 
 [![CI](https://github.com/blackdromeai-labs/LEMMA/actions/workflows/ci.yml/badge.svg)](https://github.com/blackdromeai-labs/LEMMA/actions/workflows/ci.yml)
-[![Rust](https://img.shields.io/badge/Rust-stable-orange?logo=rust)](https://www.rust-lang.org/)
-[![License: MPL 2.0](https://img.shields.io/badge/License-MPL--2.0-blue.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/status-research%20prototype-6f42c1)](#project-status)
+[![Rust](https://img.shields.io/badge/Rust-stable-f46623?logo=rust&logoColor=white)](https://www.rust-lang.org/)
+[![License](https://img.shields.io/badge/license-MPL--2.0-42e8c5)](LICENSE)
+[![Research](https://img.shields.io/badge/status-research%20prototype-7c8cff)](#project-status)
 
-[Quick start](#quick-start) · [Workbench](#terminal-workbench) · [Architecture](#architecture) · [Evaluation](#evaluation) · [Contributing](CONTRIBUTING.md)
+Developed by **[Blackdrome AI Labs](https://github.com/blackdromeai-labs)**
 
-<img src="docs/assets/splash.png" alt="LEMMA boot screen: the wordmark swept in ocean blue, teal, and coral, under &quot;SYMBOLIC WORKBENCH&quot; and &quot;by BlackdromeAI Labs&quot;" width="720">
+[Get started](#quick-start) · [Explore the workbench](#terminal-workbench) · [Understand the system](#how-lemma-works) · [Read the docs](docs/architecture.md) · [Contribute](CONTRIBUTING.md)
 
 </div>
 
 ---
 
-LEMMA explores a simple question: **can learned search guide explicit mathematical
-transformations without hiding what was applied or overstating what was verified?**
+## Mathematical search you can inspect
 
-The workspace combines a typed expression language, a registry of mathematical rules,
-beam/MCTS search, optional neural policy components, and a verifier that carries evidence
-through to the final result. A terminal workbench makes the expression, trace, stable rule
-identity, and verification status visible in one place.
+LEMMA explores how learned search can guide explicit symbolic transformations without
+hiding the derivation or overstating the evidence behind an answer.
 
-> LEMMA is a research prototype, not a complete computer algebra system or theorem prover.
-> It accepts formal expressions rather than natural-language problems, and no trained model
-> is distributed with the repository.
+Instead of generating an opaque solution, LEMMA searches a stable registry of mathematical
+rules, records every applied transformation, and returns the result with a precise
+verification status.
+
+| Explicit reasoning | Evidence-aware verification | Search research |
+| :--- | :--- | :--- |
+| Named rules and replayable before/after steps | Checked, heuristic, unverified, and unsupported are distinct outcomes | Beam search, MCTS, and optional neural policy guidance |
+
+> [!IMPORTANT]
+> LEMMA is an experimental research platform—not a complete CAS, theorem prover, or
+> natural-language mathematics assistant. No pretrained policy model ships with the repository.
 
 ## Terminal workbench
+
+Run the interactive interface and inspect a result alongside its derivation:
 
 ```bash
 cargo run -p mm-tui
 ```
-
-The workbench supports three honest operations:
-
-- simplify a formal expression;
-- differentiate with respect to a variable; and
-- verify a proposed value for an equation.
-
-<img src="docs/assets/workbench.png" alt="LEMMA workbench showing (x + 0) * 1 simplified to x, marked CHECKED, with a one-step replayable trace" width="720">
-
-A plain-text rendering of the same layout, for anywhere the image above doesn't load:
 
 ```text
  LEMMA · SYMBOLIC WORKBENCH                         572 rules · formal input
@@ -60,46 +59,40 @@ A plain-text rendering of the same layout, for anywhere the image above doesn't 
 └────────────────────────────────────┘└───────────────────────────────────────┘
 ```
 
-Press `?` in the application for the full key map. The responsive layout requires at least
-an 80 × 24 terminal.
+<p align="center">
+  <img src="docs/assets/workbench.png" alt="LEMMA terminal workbench simplifying an expression and showing its checked trace" width="900">
+</p>
 
-## Why LEMMA
-
-- **Explicit transformations** — search chooses from a named rule registry instead of
-  generating an untracked derivation.
-- **Replayable traces** — every step records its before/after expressions, rule identity,
-  justification, and evidence.
-- **Evidence-aware results** — `VerificationStatus` distinguishes checked, heuristic,
-  unverified, and unsupported outcomes.
-- **Pluggable search** — beam search and MCTS share the symbolic substrate; policy guidance
-  is optional and uniform priors are used when no trained model is available.
-- **Fail-closed evaluation** — correctness tests assert exact expected expressions and fail
-  when a required result or replayable trace is missing.
+The workbench supports formal-expression simplification, differentiation, and candidate
+verification. It exposes stable rule identities, justifications, evidence, history, and a
+responsive layout. Use an 80 × 24 terminal or larger and press `?` for the key map.
 
 ## Quick start
 
-### Requirements
-
-- a stable Rust toolchain;
-- Git; and
-- an 80 × 24 terminal to use the workbench.
+### 1. Clone and build
 
 ```bash
 git clone https://github.com/blackdromeai-labs/LEMMA.git
 cd LEMMA
-
-# Build every workspace target
 cargo build --workspace
+```
 
-# Launch the interactive workbench
+### 2. Launch LEMMA
+
+```bash
 cargo run -p mm-tui
+```
 
-# Run the same core gates used by CI
+### 3. Run the test suite
+
+```bash
 cargo check --workspace --all-targets --locked -j 1
 cargo test --workspace --lib --tests --locked -j 1
 ```
 
-## Library example
+**Requirements:** Git, a stable Rust toolchain, and an 80 × 24 terminal for the workbench.
+
+## Use LEMMA as a library
 
 ```rust
 use mm_solver::LemmaSolver;
@@ -115,87 +108,130 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-`LemmaSolver::differentiate` evaluates derivative expressions and
-`LemmaSolver::verify_solution` checks a supplied candidate. General equation solving through
-`solve_for` and natural-language solving are deliberately reported as unsupported.
+The high-level API also provides `differentiate` and `verify_solution`. General equation
+solving through `solve_for` and natural-language solving report themselves as unsupported.
 
-## Architecture
+## How LEMMA works
 
-A typed expression AST flows through a stable rule registry and beam/MCTS search, with
-optional neural priors, into a symbolic/numerical verifier that produces the result together
-with its trace and evidence status. Ten crates, each with one job — see
-[`docs/architecture.md`](docs/architecture.md) for the diagram and the crate-by-crate
-breakdown.
+```mermaid
+flowchart LR
+    A["Formal expression"] --> B["Parser and typed AST"]
+    B --> C["Beam or MCTS search"]
+    D["Stable rule registry"] --> C
+    E["Optional neural policy"] -. "search priors" .-> C
+    C --> F["Symbolic and numerical verifier"]
+    F --> G["Result + trace + evidence status"]
+```
 
-## Verification model
+1. **Parse** the input into a typed expression tree.
+2. **Search** transformations from the explicit rule registry.
+3. **Verify** candidate steps using the available symbolic or numerical checks.
+4. **Return** the result with a replayable trace and evidence status.
 
-Every result carries a `VerificationStatus` (`Checked` / `Heuristic` / `Unverified` /
-`Unsupported`), not a boolean. This is equivalence checking, not a machine-checked proof —
-there is no SMT backend. See [`docs/verification.md`](docs/verification.md) for what each
-status means and for the calculus rule-replay boundary that keeps the verifier from
-over-trusting a rule near an unevaluable expression.
+The neural layer can rank actions, but it never replaces rule execution or verification. When
+no trained model is available, search uses uniform priors and reports that provenance.
 
-## Evaluation
+For crate boundaries and data flow, see the [architecture guide](docs/architecture.md).
 
-Fail-closed by design — exact expected values, replayable traces, and a witness census
-measured by test, not asserted by hand. 572 rules registered; 138 transform at least one
-witness in the current 228-expression corpus, 244 are no-ops, 190 are unreached. See
-[`docs/evaluation.md`](docs/evaluation.md) for the commands, the current numbers, and the
-seeded random-evaluation harness.
+## Verification, without the hand-waving
+
+| Status | What it guarantees |
+| :--- | :--- |
+| **Checked** | The trace replays from the exact input and every step was independently checked. |
+| **Heuristic** | The trace replays, but one or more steps rely on weaker evidence such as rule replay or numerical sampling. |
+| **Unverified** | A required replay or verification check failed. |
+| **Unsupported** | The requested verification mode is not implemented. |
+
+Verification here means equivalence checking by LEMMA's implemented symbolic checks, with
+numerical sampling available as weaker evidence. It does not mean machine-checked formal proof,
+and LEMMA currently has no SMT backend.
+
+See [verification](docs/verification.md) for the complete evidence contract and verifier
+boundaries.
+
+## Workspace
+
+| Layer | Crates | Responsibility |
+| :--- | :--- | :--- |
+| Foundation | `mm-core`, `mm-macro` | Expressions, parsing, canonicalization, evaluation, proof types, and macros |
+| Reasoning | `mm-rules`, `mm-verifier`, `mm-boink` | Transformations, evidence checks, action vocabulary, and domain guardrails |
+| Search | `mm-search`, `mm-brain` | Beam/MCTS exploration, policy learning, encoders, and model provenance |
+| Product | `mm-solver`, `mm-tui` | Public solver API, orchestration, and terminal workbench |
+| Data | `mm-synth` | Synthetic mathematical problem generation |
+
+## Measured capability
+
+LEMMA reports what its executable rules demonstrate on a pinned witness corpus—not how many
+mathematical identities happen to be registered.
+
+| 228-expression witness census | Rules |
+| :--- | ---: |
+| Registered | **572** |
+| Transform at least one witness | **138** |
+| Applicable but produce no changed expression | **244** |
+| Not reached by this corpus | **190** |
+
+Reproduce the census and verifier acceptance measurements:
+
+```bash
+cargo test -p mm-rules --test rule_census -- --nocapture
+cargo test -p mm-verifier --test rule_acceptance -- --nocapture
+cargo test -p mm-solver --test evaluation -- --nocapture
+```
+
+These figures describe one versioned corpus, not complete mathematical coverage. Earlier
+headline benchmark scores were withdrawn after an audit found that the scripts could report
+passes without failing the run and accepted overly broad output shapes.
+
+The [evaluation guide](docs/evaluation.md) documents the current harnesses, provenance, and
+research-integrity requirements.
 
 ## Project status
 
-What works today:
+### Available today
 
-- parsing and formatting formal mathematical expressions;
-- exact arithmetic and a measured subset of algebraic, calculus, trigonometric, equation,
-  inequality, integration, number-theory, polynomial, and combinatoric transformations;
-- beam/MCTS exploration with stable rule identities;
-- replayable solution traces and explicit evidence levels; and
-- an interactive TUI with render, end-to-end, and terminal-restoration tests.
+- Formal mathematical expression parsing and formatting
+- Exact arithmetic and a measured subset of symbolic transformations
+- Beam search, MCTS, bidirectional exploration, and stable rule identities
+- Replayable traces with explicit evidence levels
+- Interactive Ratatui workbench with render and terminal-restoration tests
 
-Known boundaries:
+### Current boundaries
 
-- many registered entries are informational or no-op rules rather than executable
-  transformations;
-- witness coverage is incomplete, especially for geometry and advanced identities;
-- general equation solving, natural-language problem solving, integration as a complete
-  subsystem, limits, ODEs, and formal proof are not supported end to end;
-- no pretrained policy artifact ships with the repository; and
-- search is incomplete and may miss a valid transformation chain.
+- Many registered entries remain informational or non-transforming
+- Witness coverage is incomplete, particularly for geometry and advanced identities
+- General equation solving, natural-language input, complete integration/limits/ODE support,
+  and formal proof are not implemented end to end
+- No pretrained neural-policy artifact is distributed
+- Search is incomplete and can miss valid transformation chains
 
-## Development
+## Contributing
 
-```bash
-# Formatting
-cargo fmt --all -- --check
+Contributions that improve executable rules, verification, witness coverage, search quality,
+or documentation are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md).
 
-# All targets and tests
-cargo check --workspace --all-targets --locked -j 1
-cargo test --workspace --lib --tests --locked -j 1
-cargo test --workspace --doc --locked -j 1
+For a rule change, include:
 
-# Stable, non-interactive render snapshots of the TUI
-cargo run -p mm-tui --example capture_layouts
-```
+- a stable `module::name` identity;
+- a representative witness or focused test;
+- an exact expected transformation; and
+- the expected verification outcome.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) before adding rules or changing verifier behavior.
-Every executable rule should include a targeted witness/test, a stable identity, and an
-expected verification outcome.
-
-## Research integrity
-
-Report results with the command, revision, and exact test output that produced them — see
-[`docs/evaluation.md`](docs/evaluation.md#research-integrity).
+Please report experimental results with the revision, command, configuration, model
+provenance, and exact output used to produce them.
 
 ## License
 
-LEMMA is available under the [Mozilla Public License 2.0](LICENSE).
+LEMMA is open source under the [Mozilla Public License 2.0](LICENSE). MPL-2.0 keeps changes to
+covered source files open when distributed while allowing LEMMA to be combined with separately
+licensed—including proprietary—code.
 
 ---
 
 <div align="center">
 
-Built as an open research platform for inspectable mathematical search.
+**Blackdrome AI Labs**
+
+Building inspectable systems for mathematical reasoning.
 
 </div>
