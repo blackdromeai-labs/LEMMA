@@ -62,12 +62,8 @@ version.workspace = true
 edition.workspace = true
 
 [[example]]
-name = "boink_demo"
-path = "examples/boink_demo.rs"
-
-[[example]]
-name = "jee_test"
-path = "examples/jee_test.rs"
+name = "domain_filtering_demo"
+path = "examples/domain_filtering_demo.rs"
 
 [dependencies]
 mm-core = { path = "crates/mm-core" }

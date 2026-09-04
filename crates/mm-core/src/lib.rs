@@ -50,7 +50,6 @@ pub mod format;
 pub mod parse;
 pub mod proof;
 pub mod rational;
-pub mod search;
 pub mod symbol;
 
 pub use error::MathError;
@@ -61,5 +60,4 @@ pub use proof::{
     ProofState, ProofStep, Variable,
 };
 pub use rational::Rational;
-pub use search::{NeuralHint, ProofSearchEngine, SearchConfig, SearchStats};
 pub use symbol::{Symbol, SymbolTable};

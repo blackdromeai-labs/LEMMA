@@ -288,7 +288,10 @@ impl Expr {
 
     /// Check if this expression approximately equals another at random points.
     ///
-    /// Useful for quick verification that two expressions are equivalent.
+    /// Useful for quick verification that two expressions are equivalent. Returns `false`,
+    /// not `true`, if every sample failed to evaluate on at least one side (for example, both
+    /// expressions contain a derivative or integral, which cannot be evaluated at all): with
+    /// no successful comparison ever made, "equivalent" is not something this established.
     pub fn approx_equals(&self, other: &Expr, num_tests: usize, tolerance: f64) -> bool {
         use rand::Rng;
         let mut rng = rand::thread_rng();
@@ -307,6 +310,8 @@ impl Expr {
             }
         }
 
+        let mut compared = 0usize;
+
         for _ in 0..num_tests {
             // Generate random environment
             let mut env = Env::new();
@@ -320,12 +325,14 @@ impl Expr {
             // Evaluate both
             match (self.evaluate(&env), other.evaluate(&env)) {
                 (Some(v1), Some(v2)) => {
+                    compared += 1;
                     if (v1 - v2).abs() > tolerance * (1.0 + v1.abs().max(v2.abs())) {
                         return false;
                     }
                 }
                 (None, None) => {
-                    // Both undefined at this point - could be equivalent
+                    // Both undefined at this point - could be equivalent, but this sample
+                    // proved nothing either way.
                     continue;
                 }
                 _ => {
@@ -335,7 +342,9 @@ impl Expr {
             }
         }
 
-        true
+        // If every sample failed to evaluate on both sides, nothing was ever actually
+        // compared -- this is not "no counterexample found", it is "no evidence either way".
+        compared > 0
     }
 
     /// Collect all variable symbols in this expression.

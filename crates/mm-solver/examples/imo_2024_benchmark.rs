@@ -1,6 +1,14 @@
-//! IMO 2024 Benchmark Test
+//! Six toy computations loosely themed after each IMO 2024 problem's domain.
 //!
-//! Tests LEMMA on actual IMO 2024 problems to evaluate performance.
+//! None of these are the actual IMO 2024 problems -- they are grade-school-level warm-ups
+//! (an arithmetic mean, a gcd, a modular power, a binomial coefficient, a power-rule
+//! derivative, the Pythagorean identity) chosen only because each sits in the same broad
+//! domain as one of the six real problems. The closing "Coverage Analysis" said as much
+//! ("P3 (Geometry): Requires geometric primitives (not implemented)") while the header above
+//! it claimed "LEMMA vs Competition Problems" and handed out a medal-emoji verdict
+//! ("EXCELLENT" / "GOOD" / ...) for solving the warm-ups. Retitled rather than deleted: the
+//! six checks are legitimate pass/fail tests against an exact expected value, just mislabeled
+//! as competition performance.
 //!
 //! Run: cargo run --release --example imo_2024_benchmark
 
@@ -12,7 +20,7 @@ use std::time::Instant;
 
 fn main() {
     println!("\n╔════════════════════════════════════════════════════════════════════╗");
-    println!("║           IMO 2024 BENCHMARK - LEMMA vs Competition Problems       ║");
+    println!("║   Six warm-ups themed after IMO 2024's domains (not the problems)   ║");
     println!("╚════════════════════════════════════════════════════════════════════╝\n");
 
     let mut symbols = SymbolTable::new();
@@ -190,47 +198,29 @@ fn main() {
     let score = ((solved as f64 + partial as f64 * 0.25) / total as f64) * 100.0;
 
     println!("\n╔════════════════════════════════════════════════════════════════════╗");
-    println!("║                        BENCHMARK RESULTS                           ║");
+    println!("║                      WARM-UP RESULTS                                ║");
     println!("╠════════════════════════════════════════════════════════════════════╣");
     println!(
-        "║  Problems Fully Solved:  {}/{}                                       ║",
+        "║  Fully Solved:  {}/{}                                                 ║",
         solved, total
     );
     println!(
-        "║  Partial Progress:       {}/{}                                       ║",
+        "║  Partial:       {}/{}                                                 ║",
         partial, total
     );
     println!(
-        "║  Total Score:            {:.0}%                                        ║",
+        "║  Score:         {:.0}%                                                  ║",
         score
     );
-    println!("╠════════════════════════════════════════════════════════════════════╣");
-
-    if solved >= 5 {
-        println!("║  🥇 EXCELLENT - Strong IMO foundation capabilities               ║");
-    } else if solved >= 3 {
-        println!("║  🥈 GOOD - Core operations working well                          ║");
-    } else if solved >= 1 {
-        println!("║  🥉 DEVELOPING - Basic operations functional                     ║");
-    } else {
-        println!("║  ⚙️  IN PROGRESS - Engine needs rule implementation              ║");
-    }
-
     println!("╚════════════════════════════════════════════════════════════════════╝");
 
-    println!("\n📋 IMO 2024 Coverage Analysis:");
-    println!("   • P1 (Floor function sums): Needs floor/ceiling in constant folding");
-    println!("   • P2 (GCD sequences): GCD works, sequence reasoning needed");
-    println!("   • P3 (Geometry): Requires geometric primitives (not implemented)");
-    println!("   • P4 (Functional equations): Needs equation solving extension");
-    println!("   • P5 (Combinatorics): Binomial coefficients supported");
-    println!("   • P6 (Geometry): Requires angle/triangle reasoning");
-
-    println!("\n🎯 Next steps for IMO Gold:");
-    println!("   1. Implement floor/ceiling constant folding");
-    println!("   2. Add sequence/recurrence reasoning");
-    println!("   3. Create geometry module (angles, triangles, circles)");
-    println!("   4. Enhance equation solving for functional equations");
+    println!("\nThis score describes six toy expressions, not competition performance.");
+    println!("Actually attempting IMO 2024's six problems would need, at minimum:");
+    println!("   - floor/ceiling reasoning over an unbounded family of n (P1)");
+    println!("   - sequence/recurrence reasoning, not a single gcd evaluation (P2, P3)");
+    println!("   - a geometry module: angles, triangles, incircles (P4, P6)");
+    println!("   - functional-equation solving beyond a single substitution (P6)");
+    println!("None of that is exercised above.");
 }
 
 fn run_test<F>(mcts: &NeuralMCTS, expr: Expr, check: F) -> (Expr, bool)

@@ -97,10 +97,31 @@ impl VerifyResult {
     }
 }
 
+/// Whether a step's `before` or `after` is *itself* a derivative or integral node.
+///
+/// Every calculus rule in `mm-rules` requires this: each one's `is_applicable` starts with
+/// `if let Expr::Derivative { .. } = expr` (or `Integral`), so a genuine calculus rewrite
+/// always has the derivative or integral at the top of what was passed in, not merely present
+/// somewhere inside it. That distinction matters because `mm-search` also rewrites arbitrary
+/// sub-terms of a larger expression (`NeuralMCTS::rewrite_subterms`), and can end up calling
+/// `verify_step` with a `before` like `Add(Derivative{x}, Derivative{5})` — a plain addition
+/// whose *children* happen to be derivatives, not a calculus rewrite itself. Trusting rule
+/// replay there let an unrelated, broken rule (`nesbitt_inequality`, matching any `Add`)
+/// silently replace that whole node with an unrelated constant during a derivative search,
+/// accepted with no check at all because a derivative existed somewhere in the tree. See
+/// `crates/mm-search/tests/guardrail_reachability.rs` for how that surfaced.
+fn is_calculus_rewrite(before: &Expr, after: &Expr) -> bool {
+    fn is_derivative_or_integral(expr: &Expr) -> bool {
+        matches!(expr, Expr::Derivative { .. } | Expr::Integral { .. })
+    }
+    is_derivative_or_integral(before) || is_derivative_or_integral(after)
+}
+
 /// Whether an expression contains a derivative or integral anywhere inside it.
 ///
 /// Such expressions cannot be sampled by the numeric evaluator, so steps involving them can
-/// only be established by rule replay.
+/// only be established by rule replay -- and only when the step is itself a calculus rewrite;
+/// see [`is_calculus_rewrite`].
 fn is_calculus_expr(expr: &Expr) -> bool {
     match expr {
         Expr::Derivative { .. } | Expr::Integral { .. } => true,
@@ -227,9 +248,13 @@ impl Verifier {
             };
         }
 
-        // 4. Expressions containing a derivative or integral cannot be evaluated numerically,
-        //    so nothing beyond the replay in step 2 can be established about them. Say so.
-        if is_calculus_expr(before) || is_calculus_expr(after) {
+        // 4. A genuine calculus rewrite (the derivative or integral being rewritten is what
+        //    `before`/`after` themselves are) cannot be evaluated numerically, so nothing
+        //    beyond the replay in step 2 can be established about it. Say so. A rule that
+        //    merely fired on a node whose *child* happens to contain a derivative does not
+        //    get this pass -- see `is_calculus_rewrite` for why that distinction is load-
+        //    bearing, not pedantic.
+        if is_calculus_rewrite(before, after) {
             return VerifyResult::Valid {
                 confidence: 0.95,
                 method: VerificationMethod::RuleReplayOnly,

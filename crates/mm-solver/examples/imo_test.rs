@@ -1,5 +1,13 @@
-// LEMMA Real IMO-Level Problems
-// These are actual competition-level problems requiring multi-step reasoning
+// LEMMA and IMO-flavored expressions
+//
+// Ten expressions shaped like classic competition identities and bounds. Only three of them
+// (Fermat-Little, Wilson, Gauss-Sum) ever had a real check: the other seven called `test`
+// with `|_| true`, a predicate that accepts any result, so their printed checkmark meant
+// nothing. `inspect` below replaces that: it runs `simplify` and prints the result with no
+// claim of having verified anything, instead of a checkmark that always says yes. The bound
+// claims (AM-GM, Cauchy-Schwarz, Nesbitt) are not equalities to begin with -- `mcts.simplify`
+// has no way to confirm "a+b >= 2*sqrt(ab)" even in principle, only "these two expressions are
+// equal" -- so there is no honest pass/fail to report for those regardless.
 
 use mm_core::{Expr, SymbolTable};
 use mm_rules::rule::standard_rules;
@@ -9,7 +17,7 @@ use std::time::Instant;
 
 fn main() {
     println!("╔═══════════════════════════════════════════════════════════════╗");
-    println!("║     LEMMA - Real IMO-Level Competition Problems               ║");
+    println!("║     LEMMA - Expressions Shaped Like IMO-Level Identities       ║");
     println!("╚═══════════════════════════════════════════════════════════════╝\n");
 
     let mut symbols = SymbolTable::new();
@@ -56,7 +64,7 @@ fn main() {
         )))),
     );
 
-    test(&mcts, "AM-GM", am_gm_diff, |_| true);
+    inspect(&mcts, "AM-GM", am_gm_diff);
 
     // IMO 2: Cauchy-Schwarz: (a² + b²)(c² + d²) ≥ (ac + bd)²
     // Show LHS - RHS = (ad - bc)² ≥ 0
@@ -85,7 +93,7 @@ fn main() {
     );
 
     let cauchy_schwarz = Expr::Sub(Box::new(lhs), Box::new(rhs));
-    test(&mcts, "Cauchy-Schwarz", cauchy_schwarz, |_| true);
+    inspect(&mcts, "Cauchy-Schwarz", cauchy_schwarz);
 
     // IMO 3: Nesbitt's Inequality (IMO 1961 Problem)
     // For positive a, b, c: a/(b+c) + b/(a+c) + c/(a+b) ≥ 3/2
@@ -113,7 +121,7 @@ fn main() {
         )),
         Box::new(Expr::Div(Box::new(Expr::int(3)), Box::new(Expr::int(2)))),
     );
-    test(&mcts, "Nesbitt", nesbitt, |_| true);
+    inspect(&mcts, "Nesbitt", nesbitt);
 
     println!("═══════════════════════════════════════════════════════════════");
     println!("       ALGEBRAIC IDENTITIES (IMO Algebraic Style)");
@@ -131,7 +139,7 @@ fn main() {
             Box::new(Expr::Pow(Box::new(Expr::Var(b)), Box::new(Expr::int(4)))),
         )),
     );
-    test(&mcts, "Sophie-Germain", sophie_germain, |_| true);
+    inspect(&mcts, "Sophie-Germain", sophie_germain);
 
     // IMO 5: x³ + y³ + z³ - 3xyz = (x+y+z)(x² + y² + z² - xy - yz - xz)
     // This is a key factorization for many IMO problems
@@ -155,7 +163,7 @@ fn main() {
             )),
         )),
     );
-    test(&mcts, "Three-Cubes", three_cubes, |_| true);
+    inspect(&mcts, "Three-Cubes", three_cubes);
 
     println!("═══════════════════════════════════════════════════════════════");
     println!("       NUMBER THEORY (IMO Style)");
@@ -227,7 +235,7 @@ fn main() {
         Box::new(Expr::Pow(Box::new(Expr::Var(x)), Box::new(Expr::int(2)))),
         Box::new(Expr::Pow(Box::new(Expr::Var(y)), Box::new(Expr::int(2)))),
     );
-    test(&mcts, "Newton-p2", newton_p2, |_| true);
+    inspect(&mcts, "Newton-p2", newton_p2);
 
     // IMO 10: Power sum p₃ = e₁³ - 3e₁e₂ + 3e₃
     // x³ + y³ + z³ expression
@@ -241,17 +249,17 @@ fn main() {
         )),
         Box::new(Expr::Pow(Box::new(Expr::Var(c)), Box::new(Expr::int(3)))),
     );
-    test(&mcts, "Power-Sum-p3", power_sum_3, |_| true);
+    inspect(&mcts, "Power-Sum-p3", power_sum_3);
 
     println!("═══════════════════════════════════════════════════════════════");
     println!("                    SUMMARY");
     println!("═══════════════════════════════════════════════════════════════\n");
 
-    println!("These are representative of actual IMO competition problems.");
-    println!("Full solutions require multi-step algebraic manipulation,");
-    println!("inequality bounds, and sophisticated reasoning patterns.");
-    println!("\nLEMMA provides the building blocks; full IMO solutions");
-    println!("typically require human-guided search or specialized tactics.");
+    println!("Ten expressions in the shape of classic competition identities and bounds --");
+    println!("Nesbitt's is the one verbatim IMO problem (1961) among them; the rest are");
+    println!("named after the identity they resemble, not transcribed from a specific year.");
+    println!("Three had a real expected value to check (Fermat-Little, Wilson, Gauss-Sum);");
+    println!("the other seven are printed for inspection only, with no pass/fail claimed.");
 }
 
 fn test<F>(mcts: &NeuralMCTS, name: &str, expr: Expr, check: F)
@@ -265,6 +273,22 @@ where
 
     let status = if passed { "✅" } else { "🔸" };
     println!("{} {}", status, name);
+    println!(
+        "   Steps: {}  |  Time: {:.1}ms",
+        result.steps.len(),
+        elapsed
+    );
+    println!("   Result: {:?}\n", result.result);
+}
+
+/// Like `test`, but for expressions with no expected value to check against: prints what
+/// `simplify` did without a checkmark that would otherwise claim it matched something.
+fn inspect(mcts: &NeuralMCTS, name: &str, expr: Expr) {
+    let start = Instant::now();
+    let result = mcts.simplify(expr);
+    let elapsed = start.elapsed().as_secs_f64() * 1000.0;
+
+    println!("- {name} (not checked against an expected value)");
     println!(
         "   Steps: {}  |  Time: {:.1}ms",
         result.steps.len(),

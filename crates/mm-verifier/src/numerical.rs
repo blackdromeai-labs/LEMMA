@@ -98,11 +98,16 @@ pub fn verify_equation_equivalent(
 }
 
 /// Check if an expression evaluates to zero.
+///
+/// Returns `false` if every sample failed to evaluate (for example, `expr` contains a
+/// derivative or integral): with no successful evaluation, "zero" was never established, and
+/// defaulting to `true` would report that as if it had been.
 pub fn is_zero(expr: &Expr, num_samples: usize, tolerance: f64) -> bool {
     let mut rng = rand::thread_rng();
 
     // Get all variables
     let vars = expr.free_vars();
+    let mut evaluated = 0usize;
 
     for _ in 0..num_samples {
         // Generate random environment
@@ -120,6 +125,7 @@ pub fn is_zero(expr: &Expr, num_samples: usize, tolerance: f64) -> bool {
 
         // Evaluate
         if let Some(val) = expr.evaluate(&env) {
+            evaluated += 1;
             if val.abs() > tolerance {
                 return false;
             }
@@ -127,7 +133,7 @@ pub fn is_zero(expr: &Expr, num_samples: usize, tolerance: f64) -> bool {
         // If evaluation fails, skip this sample
     }
 
-    true
+    evaluated > 0
 }
 
 #[cfg(test)]

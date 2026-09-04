@@ -6,42 +6,23 @@
 
 //! # mm-boink
 //!
-//! **BOINK** - Budget-Optimized Inference with Neural Knowledge
+//! Domain-based rule filtering for `mm-search`'s `NeuralMCTS`.
 //!
-//! This crate implements LEMMA's self-regulating supervisor layer that:
-//! - Analyzes problems and allocates credit budgets
-//! - Tracks rule application costs
-//! - Manages a global credit bank with savings/penalties
-//! - Provides guardrails to filter irrelevant rules by domain
-//! - Pattern matching for fast-path solutions
+//! [`analyze`] walks an expression into a [`ProblemProfile`] (which domains it touches:
+//! trigonometry, calculus, number theory, ...), and [`filter_rules`] offers a rule only when
+//! its declared `domains` overlap the profile (or it declares none, meaning universal). This
+//! is a coarse pre-filter, not a correctness check: a rule's own `is_applicable` still gates
+//! every application. See `mm-search/tests/guardrail_reachability.rs` for what this measures
+//! and for a record of rules a bad domain tag made unreachable.
 //!
-//! ## Architecture
-//!
-//! ```text
-//! ┌─────────────────────────────────────────────────────────────┐
-//! │                   BOINK SUPERVISOR                           │
-//! │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐    │
-//! │  │ Analyzer │→ │ Budget   │→ │ Tracker  │→ │ Bank     │    │
-//! │  │          │  │ Allocator│  │          │  │          │    │
-//! │  └──────────┘  └──────────┘  └──────────┘  └──────────┘    │
-//! └─────────────────────────────────────────────────────────────┘
-//! ```
-//!
-//! ## Credit System
-//!
-//! - Each rule has a `cost: u32`
-//! - Problems get budgets based on detected domains
-//! - Unused credits go to a global bank
-//! - At 20,000 credits: unlock premium features
+//! This crate previously also carried a credit-tracking layer (`Bank`, `Budget`,
+//! `BoinkSupervisor`) and a fast-path integral-pattern matcher (`patterns`), wired together by
+//! `mm-search`'s `BoinkMCTS`. None of it was reachable from `mm-solver` or `mm-tui` — the
+//! actual product only ever called `mm_boink::{analyze, filter_rules}` directly from
+//! `NeuralMCTS` — and none of it had a test anywhere in this crate. It was removed rather than
+//! wired in or documented as a caveat, since neither this crate nor `BoinkMCTS` made it
+//! visible that solving a problem never touched the budget or credit numbers they reported.
 
-pub mod bank;
-pub mod budget;
 pub mod guardrail;
-pub mod patterns;
-pub mod supervisor;
 
-pub use bank::{Bank, TradeOption};
-pub use budget::{Budget, Difficulty};
 pub use guardrail::{analyze, filter_rules, is_rule_applicable, ProblemProfile};
-pub use patterns::{match_integral_pattern, IntegralForm};
-pub use supervisor::{BoinkSupervisor, RunResult};

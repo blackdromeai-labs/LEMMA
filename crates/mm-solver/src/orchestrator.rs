@@ -720,9 +720,14 @@ impl ProofOrchestrator {
         assumption: &Expr,
         steps: &mut Vec<ProofStep>,
     ) -> bool {
-        // For case analysis, use the assumption to simplify the goal
+        // This does not actually reason from `assumption` for the `x^2 >= 0` shape below: the
+        // fact is true regardless of which case triggered it, so the match ignores the
+        // assumption entirely (`_`) rather than deriving the conclusion from it. The per-case
+        // narration this produces ("Under assumption x > 0, goal follows") describes a
+        // structure the code does not follow -- there is one hardcoded fact, checked once per
+        // case for no reason since the check does not depend on the case.
         match (goal, assumption) {
-            // If goal is x² ≥ 0 and we're in any case, it's true
+            // If goal is x² ≥ 0, it holds regardless of x's sign.
             (Expr::Gte(lhs, rhs), _) => {
                 if matches!(rhs.as_ref(), Expr::Const(r) if r.is_zero()) {
                     if let Expr::Pow(_, exp) = lhs.as_ref() {
