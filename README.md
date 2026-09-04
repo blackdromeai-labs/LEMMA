@@ -13,6 +13,8 @@
 
 [Quick start](#quick-start) · [Workbench](#terminal-workbench) · [Architecture](#architecture) · [Evaluation](#evaluation) · [Contributing](CONTRIBUTING.md)
 
+<img src="docs/assets/splash.png" alt="LEMMA boot screen: the wordmark swept in ocean blue, teal, and coral, under &quot;SYMBOLIC WORKBENCH&quot; and &quot;by BlackdromeAI Labs&quot;" width="720">
+
 </div>
 
 ---
@@ -40,6 +42,10 @@ The workbench supports three honest operations:
 - simplify a formal expression;
 - differentiate with respect to a variable; and
 - verify a proposed value for an equation.
+
+<img src="docs/assets/workbench.png" alt="LEMMA workbench showing (x + 0) * 1 simplified to x, marked CHECKED, with a one-step replayable trace" width="720">
+
+A plain-text rendering of the same layout, for anywhere the image above doesn't load:
 
 ```text
  LEMMA · SYMBOLIC WORKBENCH                         572 rules · formal input

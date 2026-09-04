@@ -19,10 +19,17 @@ use std::panic;
 use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
 use crossterm::execute;
 use crossterm::terminal::{
-    disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
+    disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen, SetTitle,
 };
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
+
+/// Window/tab title while the workbench is running.
+///
+/// Set once, on entry, and deliberately not restored on exit: `SetTitle` has no matching
+/// "read the current title" so there is nothing to put back, and every terminal emulator this
+/// was tried against already replaces it with the shell's own title once this process exits.
+const TITLE: &str = "LEMMA — Symbolic Workbench (BlackdromeAI Labs)";
 
 /// Terminal handle whose `Drop` restores the console.
 pub struct Guard {
@@ -38,7 +45,12 @@ impl Guard {
         let mut stdout = io::stdout();
         // Mouse capture is enabled only so the terminal does not pass drag-selection through
         // as escape sequences; no mouse handling is implemented.
-        execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+        execute!(
+            stdout,
+            EnterAlternateScreen,
+            EnableMouseCapture,
+            SetTitle(TITLE)
+        )?;
 
         let terminal = Terminal::new(CrosstermBackend::new(stdout))?;
         Ok(Self { terminal })

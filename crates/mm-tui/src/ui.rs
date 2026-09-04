@@ -27,11 +27,12 @@ use mm_core::truncate_chars;
 
 use crate::app::{App, Focus, Job, Overlay, MIN_HEIGHT, MIN_WIDTH, WIDE_WIDTH};
 use crate::presentation::{ErrorField, Mode, StatusBadge, UiResult, UiStep};
+use crate::theme;
 
 /// Accent used for focus and navigation. Exactly one, on purpose.
-const ACCENT: Color = Color::Cyan;
+const ACCENT: Color = theme::OCEAN;
 /// Border colour for unfocused panes.
-const DIM: Color = Color::DarkGray;
+const DIM: Color = theme::DIM;
 
 /// Draw the whole application.
 pub fn draw(frame: &mut Frame, app: &App) {
@@ -225,7 +226,7 @@ fn draw_field(frame: &mut Frame, area: Rect, app: &App, focus: Focus, label: &st
             frame.render_widget(
                 Paragraph::new(Line::from(Span::styled(
                     truncate_chars(&error.message, split[1].width.max(1) as usize),
-                    Style::default().fg(Color::Red),
+                    Style::default().fg(theme::CORAL),
                 ))),
                 split[1],
             );
@@ -316,7 +317,7 @@ fn draw_result(frame: &mut Frame, area: Rect, app: &App) {
             Line::from(""),
             Line::from(Span::styled(
                 format!("{}: {}", error.field.label(), error.message),
-                Style::default().fg(Color::Red),
+                Style::default().fg(theme::CORAL),
             )),
             Line::from(""),
             Line::from(Span::styled(
@@ -397,14 +398,18 @@ fn badge_line(badge: StatusBadge) -> Line<'static> {
 
 fn badge_color(badge: StatusBadge) -> Color {
     match badge {
-        StatusBadge::Checked | StatusBadge::CandidateValid => Color::Green,
-        StatusBadge::Partial => Color::Yellow,
-        StatusBadge::Heuristic => Color::Cyan,
+        // Strongest outcome: independently checked, not just replayed.
+        StatusBadge::Checked | StatusBadge::CandidateValid => theme::TEAL,
+        // Replays, but on weaker evidence than Checked — kept in the blue family rather than
+        // sharing Checked's teal, so the two remain visually distinct at a glance.
+        StatusBadge::Partial | StatusBadge::Heuristic => theme::OCEAN,
+        // Failure states: the one deliberate departure from blue, so "this did not work"
+        // never has to compete with the same hue as everything that did.
         StatusBadge::Unverified | StatusBadge::CandidateInvalid | StatusBadge::InputError => {
-            Color::Red
+            theme::CORAL
         }
         StatusBadge::Unsupported => Color::Gray,
-        StatusBadge::NotFound => Color::Yellow,
+        StatusBadge::NotFound => theme::CORAL,
     }
 }
 
@@ -458,12 +463,12 @@ fn draw_trace(frame: &mut Frame, area: Rect, app: &App) {
         .map(|step| {
             let style = if step.evidence.checked {
                 if step.evidence.independent {
-                    Style::default().fg(Color::Green)
+                    Style::default().fg(theme::TEAL)
                 } else {
-                    Style::default().fg(Color::Cyan)
+                    Style::default().fg(theme::OCEAN)
                 }
             } else {
-                Style::default().fg(Color::Red)
+                Style::default().fg(theme::CORAL)
             };
             ListItem::new(Line::from(Span::styled(
                 truncate_chars(&step.summary(), width.saturating_sub(2).max(1)),
@@ -526,12 +531,12 @@ fn detail_lines(step: &UiStep) -> Vec<Line<'static>> {
 
     let evidence_style = if step.evidence.checked {
         if step.evidence.independent {
-            Style::default().fg(Color::Green)
+            Style::default().fg(theme::TEAL)
         } else {
-            Style::default().fg(Color::Cyan)
+            Style::default().fg(theme::OCEAN)
         }
     } else {
-        Style::default().fg(Color::Red)
+        Style::default().fg(theme::CORAL)
     };
 
     vec![

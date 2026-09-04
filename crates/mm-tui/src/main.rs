@@ -12,6 +12,7 @@ use std::time::{Duration, Instant};
 use crossterm::event::{self, Event};
 
 use mm_tui::app::{action_for_key, App, Overlay};
+use mm_tui::splash;
 use mm_tui::terminal::Guard;
 use mm_tui::ui;
 use mm_tui::worker::Worker;
@@ -38,7 +39,12 @@ fn main() -> io::Result<()> {
 }
 
 fn run(guard: &mut Guard) -> io::Result<()> {
+    // Purely cosmetic and self-contained: it reads and changes nothing `App` or `Worker` own,
+    // so starting the worker first lets the solver's rule registry warm up while the
+    // animation plays instead of after it.
     let worker = Worker::spawn();
+    splash::run(guard)?;
+
     let mut app = App::new();
 
     // Displayed in the header. Counting the registry here rather than asking the worker keeps

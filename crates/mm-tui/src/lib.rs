@@ -27,9 +27,13 @@
 //! - [`ui`] draws a frame from [`app::App`] and nothing else.
 //! - [`terminal`] owns raw mode and the alternate screen, and restores them on every exit
 //!   path including a panic.
+//! - [`theme`] names the handful of colours the rest of this crate draws with.
+//! - [`splash`] is the boot screen `main` shows before the first frame of the workbench.
 
 pub mod app;
 pub mod presentation;
+pub mod splash;
 pub mod terminal;
+pub mod theme;
 pub mod ui;
 pub mod worker;
