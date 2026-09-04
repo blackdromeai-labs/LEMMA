@@ -1,0 +1,10 @@
+{
+  "name": "jee-advanced-2025-paper2",
+  "description": "JEE (Advanced) 2025 Paper 2 question text, used as a source of real exam-style problems for keyword/topic classification demos (see crates/mm-solver/examples/imo_2024_official.rs for the pattern this data feeds).",
+  "source": "JEE (Advanced), a competitive entrance examination administered jointly by the Indian Institutes of Technology (IITs)",
+  "license": "Not redistributed here. Exam papers published by the IITs / JEE (Advanced) organizing body are not under a license that permits redistribution in this repository; treat as all-rights-reserved by the publishing authority unless you have independently verified otherwise.",
+  "original_filename": "JEE (Advanced) 2025 Paper 2.txt",
+  "sha256": "183b94094a18972308975dea685194c33c88b3ecfe18011ac064755a4890711a",
+  "retrieval": "Obtain the official paper from the JEE (Advanced) organizing body's published archive for the relevant year and extract text locally. This repository does not host or link a specific mirror.",
+  "removed_from_repo": "2026-09-04"
+}

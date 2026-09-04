@@ -1,61 +1,69 @@
 # Contributing to LEMMA
 
-Thank you for considering contributing to LEMMA! This document provides guidelines and templates to help you get started.
+Thank you for considering contributing to LEMMA! This document reflects the current codebase
+— if something here disagrees with the source, the source wins; open an issue or fix this
+file in the same PR.
 
 ---
 
 ## Ways to Contribute
 
-### 1. Add New Mathematical Rules (Most Needed!)
+### 1. Add New Mathematical Rules
 
-LEMMA's power comes from its rule library. Adding rules is the easiest way to contribute.
-
-**High-Priority Rules We Need:**
-- Chain rule: `d/dx(f(g(x))) -> f'(g(x)) * g'(x)`
-- Integration rules: `integral(x^n dx) -> x^(n+1)/(n+1)`
-- More trig identities: `tan^2(x) + 1 -> sec^2(x)`
-- Logarithm rules: `log(ab) -> log(a) + log(b)`
-- Exponential rules: `e^a * e^b -> e^(a+b)`
+LEMMA's power comes from its rule library, but a rule only counts once it's reachable and
+verifiable — see [`docs/rules/overview.md`](docs/rules/overview.md) before adding one.
 
 ### 2. Report Bugs
 
-Found an expression that LEMMA simplifies incorrectly? Open an issue with:
+Found an expression LEMMA simplifies incorrectly, or a rule the census says transforms
+something but the verifier never accepts? Open an issue with:
 - Input expression
 - Expected output
 - Actual output
-- Steps printed (if any)
+- The relevant `cargo test` command and its output (see [Evaluation](docs/evaluation.md))
 
 ### 3. Add Test Cases
 
 More test coverage = more confidence. Add cases to:
-- `examples/benchmark.rs` - basic tests
-- `examples/benchmark_advanced.rs` - multi-step tests
-- `examples/stress_test.rs` - complex cases
+- `crates/mm-solver/tests/evaluation.rs` — exact expected values, checked by canonical form
+  and by replayable trace (`assess_trace`). This is the fail-closed correctness suite; see its
+  module doc for what "fail closed" means here.
+- `crates/mm-solver/examples/seeded_eval.rs` — a seeded random-problem generator, useful for
+  finding cases hand-picked tests miss. Extend a problem family or add a new one; keep the
+  expected-answer computation independent of LEMMA (never derive ground truth by calling the
+  solver and trusting its own answer).
+- `crates/mm-rules/tests/rule_census.rs` and `crates/mm-verifier/tests/rule_acceptance.rs` —
+  pinned counts. If your change moves a rule between "transforms" / "no-op" / "not reached" or
+  between "accepted" / "rejected", these tests will fail until you update the pinned constant
+  — that's the intended signal, not a bug in the test.
 
 ### 4. Improve Documentation
 
 - Fix typos
 - Add examples
 - Clarify confusing sections
+- If you find a factual error in `docs/rules/catalog.md`, fix it in place — that document was
+  assembled from older notes and hasn't been re-verified rule by rule.
 
 ---
 
 ## Development Setup
 
 ```bash
-# Clone
-git clone https://github.com/Pushp-Kharat1/LEMMA.git
+git clone https://github.com/blackdromeai-labs/LEMMA.git
 cd LEMMA
 
-# Build
-cargo build --release
+# Build every workspace target
+cargo build --workspace
 
-# Test everything
-cargo test --workspace
+# Launch the interactive workbench
+cargo run -p mm-tui
 
-# Run benchmarks
-cargo run --release --example benchmark_advanced
-cargo run --release --example stress_test
+# Run the same gates CI runs
+cargo fmt --all -- --check
+cargo check --workspace --all-targets --locked -j 1
+cargo test --workspace --lib --tests --locked -j 1
+cargo test --workspace --doc --locked -j 1
 ```
 
 ---
@@ -64,213 +72,119 @@ cargo run --release --example stress_test
 
 ### Step 1: Choose the Right File
 
-| Rule Type | File |
-|-----------|------|
-| Algebraic | `crates/mm-rules/src/algebra.rs` |
-| Calculus | `crates/mm-rules/src/calculus.rs` |
-| Trigonometry | `crates/mm-rules/src/trig.rs` |
-| Equation Solving | `crates/mm-rules/src/equations.rs` |
+Rules live under `crates/mm-rules/src/`, organized by topic:
 
-### Step 2: Copy This Template
+| Rule Type | Location |
+|-----------|----------|
+| Algebra | `algebra/` |
+| Calculus | `calculus/` |
+| Trigonometry | `trig/` |
+| Geometry | `geometry/` |
+| Equation solving | `equations.rs` |
+| Inequalities | `inequalities.rs`, `inequality_chain.rs` |
+| Number theory | `number_theory/` |
+| Combinatorics | `combinatorics.rs` |
+| Polynomials | `polynomial.rs`, `polynomials.rs` |
+| Integration | `integration.rs` |
+
+### Step 2: Write the Rule
 
 ```rust
-// ============================================================================
-// Rule XX: Your Rule Name
-// ============================================================================
-
 fn your_rule_name() -> Rule {
     Rule {
-        id: RuleId(XX),  // Pick next available ID
+        id: RuleId(/* pick the next unused ID; the registry test rejects duplicates */),
         name: "your_rule_name",
-        category: RuleCategory::Simplification,  // or Expansion, EquationSolving, etc.
+        category: RuleCategory::Simplification, // see the full list below
         description: "Human readable: pattern -> result",
-        
+        domains: &[], // empty = applicable regardless of detected problem domain;
+                      // see docs/rules/overview.md before restricting this
+        requires: &[],
+
         is_applicable: |expr, _ctx| {
-            // Return true if this rule can apply to `expr`
-            // Use pattern matching on the Expr enum
             match expr {
                 Expr::Add(a, b) => {
-                    // Your condition here
+                    // your condition, matching the *specific* shape this rule handles —
+                    // a rule that matches too broadly (e.g. "any Add") and returns a value
+                    // unrelated to the match has caused real, live bugs in this codebase.
                     false
                 }
                 _ => false,
             }
         },
-        
+
         apply: |expr, _ctx| {
-            // Transform the expression
-            // Return Vec<RuleApplication> - usually just one
             if let Expr::Add(a, b) = expr {
                 return vec![RuleApplication {
-                    result: /* your transformed expression */,
+                    result: /* your transformed expression, built from a and b */,
                     justification: "explanation".to_string(),
                 }];
             }
             vec![]
         },
-        
-        reversible: false,  // true if rule can be applied backwards
-        cost: 1,  // 1-3, lower = preferred
+
+        reversible: false, // true if the rule can be validly applied backwards
+        cost: 1,           // lower = preferred by search
     }
 }
 ```
+
+A rule's `apply` output must actually depend on the matched sub-structure. If a rule can't
+compute a real value yet (a theorem statement without an executable rewrite), have it return
+`expr.clone()` unchanged rather than a placeholder value — that keeps it correctly classified
+as a no-op by the census instead of miscounted as "transforms".
 
 ### Step 3: Register the Rule
 
-Add your rule to the appropriate function:
+Add it to the module's collector function (e.g. `algebra_rules()`, `trig_rules()`) alongside
+the other rules in that file.
 
-```rust
-// In algebra.rs
-pub fn algebra_rules() -> Vec<Rule> {
-    vec![
-        constant_fold(),
-        identity_add_zero(),
-        // ... existing rules ...
-        your_rule_name(),  // ADD HERE
-    ]
-}
-```
+### Step 4: Add a Witness and a Test
 
-### Step 4: Add a Test
+- Add an expression to `crates/mm-rules/src/witness.rs`'s corpus that actually exercises your
+  rule, if none of the existing witnesses do — `rule_census` will otherwise report it as "not
+  reached by this corpus".
+- Add a case to `crates/mm-solver/tests/evaluation.rs` with the exact expected result.
 
-```rust
-// In examples/benchmark.rs or stress_test.rs
-test(&mcts, "N", "your_rule description",
-    Expr::...,  // input expression
-    |e| matches!(e, Expr::...)  // expected output pattern
-);
-```
-
-### Step 5: Run Tests
+### Step 5: Run the checks
 
 ```bash
-cargo test --workspace
-cargo run --release --example benchmark_advanced
+cargo test --workspace --lib --tests --locked -j 1
+cargo test -p mm-rules --test rule_census -- --nocapture
+cargo test -p mm-verifier --test rule_acceptance -- --nocapture
 ```
 
----
-
-## Rule Examples
-
-### Simple Rule: x^0 -> 1
-
-```rust
-fn power_of_zero() -> Rule {
-    Rule {
-        id: RuleId(12),
-        name: "power_of_zero",
-        category: RuleCategory::Simplification,
-        description: "x^0 = 1 (where x != 0)",
-        
-        is_applicable: |expr, _ctx| {
-            matches!(expr, Expr::Pow(_, exp) 
-                if matches!(exp.as_ref(), Expr::Const(r) if r.is_zero()))
-        },
-        
-        apply: |expr, _ctx| {
-            if let Expr::Pow(_, _) = expr {
-                vec![RuleApplication {
-                    result: Expr::int(1),
-                    justification: "x^0 = 1".to_string(),
-                }]
-            } else {
-                vec![]
-            }
-        },
-        
-        reversible: false,
-        cost: 1,
-    }
-}
-```
-
-### Derivative Rule: d/dx(sin x) -> cos x
-
-```rust
-fn sin_derivative() -> Rule {
-    Rule {
-        id: RuleId(15),
-        name: "sin_derivative",
-        category: RuleCategory::Simplification,
-        description: "d/dx(sin(x)) = cos(x)",
-        
-        is_applicable: |expr, _ctx| {
-            if let Expr::Derivative { expr: inner, var } = expr {
-                if let Expr::Sin(arg) = inner.as_ref() {
-                    // Check that sin's argument is just the variable
-                    return matches!(arg.as_ref(), Expr::Var(v) if *v == *var);
-                }
-            }
-            false
-        },
-        
-        apply: |expr, _ctx| {
-            if let Expr::Derivative { expr: inner, var } = expr {
-                if let Expr::Sin(arg) = inner.as_ref() {
-                    return vec![RuleApplication {
-                        result: Expr::Cos(arg.clone()),
-                        justification: "d/dx(sin(x)) = cos(x)".to_string(),
-                    }];
-                }
-            }
-            vec![]
-        },
-        
-        reversible: false,
-        cost: 1,
-    }
-}
-```
+If your rule moved the pinned counts in either census test, update the constant in the same
+PR with a comment saying what moved and why.
 
 ---
 
 ## Expression Types
 
-```rust
-pub enum Expr {
-    // Constants and variables
-    Const(Rational),      // Exact rational number
-    Var(Symbol),          // Variable like x, y
-    
-    // Basic operations
-    Add(Box<Expr>, Box<Expr>),
-    Sub(Box<Expr>, Box<Expr>),
-    Mul(Box<Expr>, Box<Expr>),
-    Div(Box<Expr>, Box<Expr>),
-    Pow(Box<Expr>, Box<Expr>),
-    Neg(Box<Expr>),
-    
-    // Functions
-    Sin(Box<Expr>),
-    Cos(Box<Expr>),
-    Tan(Box<Expr>),
-    Exp(Box<Expr>),
-    Ln(Box<Expr>),
-    Log(Box<Expr>, Box<Expr>),  // log_base(arg)
-    Sqrt(Box<Expr>),
-    Abs(Box<Expr>),
-    
-    // Calculus
-    Derivative { expr: Box<Expr>, var: Symbol },
-    Integral { expr: Box<Expr>, var: Symbol },
-    
-    // Equations
-    Equation { lhs: Box<Expr>, rhs: Box<Expr> },
-}
-```
-
----
+`Expr` (`crates/mm-core/src/expr.rs`) is the AST every rule matches against. It's larger than
+a quick sketch can usefully show — read the source. Notable groups: arithmetic
+(`Add`/`Sub`/`Mul`/`Div`/`Pow`/`Neg`), transcendental functions (`Sin`/`Cos`/`Tan`/`Exp`/`Ln`/
+inverse trig), calculus (`Derivative`/`Integral`), number theory (`GCD`/`LCM`/`Mod`/
+`Binomial`/`Factorial`), comparisons and logic (`Equation`/`Gt`/`Gte`/`Lt`/`Lte`/`And`/`Or`/
+`Not`/`Implies`), and quantifiers (`ForAll`/`Exists`).
 
 ## Rule Categories
 
 ```rust
 pub enum RuleCategory {
     Simplification,   // Makes expression simpler: x+0 -> x
-    Expansion,        // Expands: a(b+c) -> ab+ac
-    Factoring,        // Factors: ab+ac -> a(b+c)
-    EquationSolving,  // Solves: x+3=7 -> x=4
-    TrigIdentity,     // Trig: sin^2+cos^2 -> 1
-    Calculus,         // Derivatives, integrals
+    Factoring,         // Factors: ab+ac -> a(b+c)
+    Expansion,         // Expands: a(b+c) -> ab+ac
+    AlgebraicSolving,  // General algebraic manipulation
+    EquationSolving,   // Solves: x+3=7 -> x=4
+    TrigIdentity,      // Trig: sin^2+cos^2 -> 1
+    Derivative,        // Differentiation
+    Integral,          // Integration
+    Limit,             // Limit evaluation
+    Inequality,        // AM-GM, Cauchy-Schwarz, bounds
+    Complex,           // Complex number rules
+    LogExp,            // Logarithm and exponential rules
+    Sequence,          // Sequence and series rules
+    NumberTheory,      // Number theory rules
 }
 ```
 
@@ -278,37 +192,38 @@ pub enum RuleCategory {
 
 ## Common Pitfalls
 
-### 1. Infinite Loops
+### 1. A rule that matches too broadly
 
-If your rule's output can trigger another rule that produces the original input:
+If `is_applicable` matches a generic shape (any `Add`, any `Gt`) instead of the specific
+pattern the rule's math actually requires, and `apply` returns a value that doesn't depend on
+the match, the rule can silently hijack unrelated search states. This has happened and was a
+real, live bug — see `is_calculus_rewrite` in `crates/mm-verifier/src/lib.rs` for the incident
+and the fix. Match the narrowest shape that's actually correct.
+
+### 2. Infinite Loops
+
+If a rule's output can trigger another rule that produces the original input:
 ```
 distribute: a(b+c) -> ab+ac
 factor_common: ab+ac -> a(b+c)
 ```
+Prefer simpler outputs and set an appropriate `cost` to avoid this.
 
-LEMMA has loop detection, but try to avoid this by:
-- Making rules prefer simpler outputs
-- Setting appropriate `cost` values
+### 3. Forgetting `Box`
 
-### 2. Forgetting Box
-
-Expressions are boxed for recursion:
 ```rust
 // Wrong
 Expr::Add(a, b)
-
 // Right
 Expr::Add(Box::new(a), Box::new(b))
 ```
 
-### 3. Not Cloning
+### 4. Not Cloning
 
-Expressions need to be cloned when reused:
 ```rust
 // Wrong
 result: base
-
-// Right  
+// Right
 result: base.clone()
 ```
 
@@ -318,32 +233,23 @@ result: base.clone()
 
 Before submitting a PR:
 
-- [ ] `cargo test --workspace` passes
-- [ ] `cargo run --release --example benchmark_advanced` shows 100%
-- [ ] New rule has at least one test case
-- [ ] Rule description is clear and accurate
-- [ ] Rule ID is unique (check existing IDs)
+- [ ] `cargo fmt --all -- --check` passes
+- [ ] `cargo test --workspace --lib --tests --locked -j 1` passes
+- [ ] New rule has a witness that exercises it and a test with an exact expected value
+- [ ] `is_applicable` matches the specific shape the rule's math requires, not a broad category
+- [ ] Rule ID is unique
+- [ ] Any pinned-count test that moved (`rule_census`, `rule_acceptance`,
+      `guardrail_reachability`) has its constant updated, with a comment saying what moved
 
 ---
 
 ## Questions?
 
-- Open an issue with the `question` label
-- Check existing issues for similar questions
-
----
+Open an issue with the `question` label.
 
 ## Code of Conduct
 
 Be respectful. We're all here to learn and build something useful.
-
----
-
-## Contact
-
-For questions or discussions:
-- **Email**: kharatpushp16@outlook.com
-- **GitHub Issues**: Open an issue with the `question` label
 
 ---
 

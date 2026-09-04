@@ -18,7 +18,7 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Pushpak Sharma"]
 license = "MPL-2.0"
-repository = "https://github.com/Pushp-Kharat1/LEMMA"
+repository = "https://github.com/blackdromeai-labs/LEMMA"
 description = "Logical Engine for Multi-domain Mathematical Analysis"
 
 [workspace.dependencies]
@@ -62,8 +62,8 @@ version.workspace = true
 edition.workspace = true
 
 [[example]]
-name = "domain_filtering_demo"
-path = "examples/domain_filtering_demo.rs"
+name = "domain_filtering"
+path = "examples/domain_filtering.rs"
 
 [dependencies]
 mm-core = { path = "crates/mm-core" }

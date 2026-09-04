@@ -1,56 +1,18 @@
-# LEMMA Rule Reference
+# Rule catalog
 
-Reference for the mathematical transformation rules in `mm-rules`.
+A by-topic map of the rules registered in `mm-rules`, organized by ID range and family. This
+is a map for finding where a rule lives, not an inventory of what works — it was written by
+hand from the rule definitions and has not been individually re-verified against every entry.
+**Read [`overview.md`](overview.md) first**: it explains what "registered" does and does not
+imply, and gives the commands that measure the real, current numbers.
 
-> **The counts and identifier ranges below are stale.** They were written by hand and never
-> checked. Identifiers have since been renumbered to remove 98 collisions, and the number of
-> rules that do anything has been measured rather than asserted. Treat the tables in this file
-> as prose describing rule *families*, not as an inventory.
->
-> For the inventory, run the census, which prints a per-module breakdown:
->
-> ```bash
-> cargo test -p mm-rules --test rule_census -- --nocapture
-> cargo test -p mm-verifier --test rule_acceptance -- --nocapture
-> ```
+ID ranges are historical and not fully contiguous; some IDs listed as ranges have gaps.
 
 ---
 
-## Measured summary
+## Algebra (ID 1–15, 300–369)
 
-572 rules are registered. Against the 228-expression witness corpus:
-
-| Verdict | Count |
-|---|---:|
-| Transforms an expression | 146 |
-| Applicable but never changes anything (stub) | 237 |
-| Not reached by this corpus | 189 |
-
-Of the 146 that transform, 117 produce at least one result the verifier accepts. The
-remaining 29 are refused on every witness and cannot be used by search; they are listed by
-`rule_acceptance.rs`.
-
----
-
-## Historical category table (stale, kept for orientation)
-
-| Category | Count | ID Range | Description |
-|----------|-------|----------|-------------|
-| Algebra (Core) | 50 | 1-15, 300-319 | Identities, expansion, factoring |
-| Algebra (Phase 4) | 50 | 320-369 | Log/exp, radicals, inequalities |
-| Trigonometry (Core) | 50 | 19-50, 200-219 | Pythagorean, angle formulas |
-| Trigonometry (Phase 4) | 50 | 220-269 | Hyperbolic, inverse, Chebyshev |
-| Calculus (Derivatives) | 45 | 11-18, 51-90 | Power, chain, product rules |
-| Calculus (Phase 4) | 50 | 420-469 | Integration, limits, Taylor, vector |
-| Number Theory | 100 | 100-199, 700-744 | Divisibility, modular, primes |
-| Combinatorics | 30 | 600-630 | Binomial, Pascal, Catalan |
-| Polynomials | 25 | 640-665 | Vieta's, symmetric, factoring |
-
----
-
-## Algebra Rules (ID 1-15, 300-369)
-
-### Core Identities (ID 1-15)
+### Core identities (1–15)
 | ID | Name | Formula |
 |----|------|---------|
 | 1 | `const_fold` | Evaluate constant expressions |
@@ -64,7 +26,7 @@ remaining 29 are refused on every witness and cannot be used by search; they are
 | 9 | `commutative_add` | a + b = b + a |
 | 10 | `commutative_mul` | a × b = b × a |
 
-### Exponent Rules (ID 300-319)
+### Exponents (300–319)
 | ID | Name | Formula |
 |----|------|---------|
 | 300 | `power_add` | xᵃ × xᵇ = xᵃ⁺ᵇ |
@@ -78,7 +40,7 @@ remaining 29 are refused on every witness and cannot be used by search; they are
 | 308 | `power_quotient` | (a/b)ⁿ = aⁿ/bⁿ |
 | 309 | `sqrt_as_power` | √x = x^(1/2) |
 
-### Logarithm Rules (ID 320-334)
+### Logarithms and exponentials (320–332)
 | ID | Name | Formula |
 |----|------|---------|
 | 320 | `log_product` | log(ab) = log(a) + log(b) |
@@ -95,7 +57,7 @@ remaining 29 are refused on every witness and cannot be used by search; they are
 | 331 | `exp_ln` | e^(ln x) = x |
 | 332 | `ln_exp` | ln(eˣ) = x |
 
-### Radical Rules (ID 333-344)
+### Radicals (333–344)
 | ID | Name | Formula |
 |----|------|---------|
 | 333 | `sqrt_product` | √(ab) = √a × √b |
@@ -108,15 +70,32 @@ remaining 29 are refused on every witness and cannot be used by search; they are
 | 340 | `sum_of_cubes` | a³ + b³ = (a+b)(a² - ab + b²) |
 | 341 | `diff_of_cubes` | a³ - b³ = (a-b)(a² + ab + b²) |
 
-### Polynomial Theorems (ID 345-359)
+### Polynomial theorems (345–354)
+Mostly stated as facts rather than executable rewrites (noted where so) — see `overview.md`
+on what "informational" means for reachability.
+| ID | Name | Formula | |
+|----|------|---------|---|
+| 345 | `vieta_sum` | r₁ + r₂ = -b/a for ax²+bx+c=0 | informational |
+| 346 | `vieta_product` | r₁ · r₂ = c/a for ax²+bx+c=0 | informational |
+| 347 | `factor_quadratic` | ax² + bx + c = a(x-r₁)(x-r₂) | informational |
+| 348 | `rational_root_test` | rational roots are ±(factors of a₀)/(factors of aₙ) | informational |
+| 349 | `synthetic_division` | efficient division by (x-a) | informational |
+| 350 | `polynomial_division` | P(x)/Q(x) = S(x) + R(x)/Q(x), deg(R) < deg(Q) | informational |
+| 351 | `remainder_theorem` | remainder of P(x)/(x-a) is P(a) | informational |
+| 352 | `factor_theorem` | (x-a) divides P(x) ⟺ P(a) = 0 | informational |
+| 353 | `bezout_identity` | gcd(a,b) = ax + by for some integers x,y | informational |
+| 354 | `euclidean_division` | a = bq + r, 0 ≤ r < b | informational |
+
+### Fraction operations (355–359)
 | ID | Name | Formula |
 |----|------|---------|
-| 345 | `remainder_theorem` | P(a) = remainder when P(x)/(x-a) |
-| 346 | `factor_theorem` | (x-a) divides P(x) ⟺ P(a) = 0 |
-| 347 | `vieta_sum_2` | r₁ + r₂ = -b/a |
-| 348 | `vieta_product_2` | r₁ × r₂ = c/a |
+| 355 | `fraction_add` | a/b + c/d = (ad+bc)/bd |
+| 356 | `fraction_mul` | (a/b)(c/d) = ac/bd |
+| 357 | `fraction_div` | (a/b)/(c/d) = ad/bc |
+| 358 | `cross_multiply` | a/b = c/d ⟹ ad = bc |
+| 359 | `lcd_combine` | combine fractions via lowest common denominator (informational) |
 
-### Inequality Rules (ID 360-369)
+### Inequalities (360–369)
 | ID | Name | Formula |
 |----|------|---------|
 | 360 | `abs_nonnegative` | \|x\| ≥ 0 |
@@ -128,30 +107,36 @@ remaining 29 are refused on every witness and cannot be used by search; they are
 | 366 | `qm_am` | √((a² + b²)/2) ≥ (a + b)/2 |
 | 367 | `cauchy_schwarz_2` | (ab + cd)² ≤ (a² + c²)(b² + d²) |
 | 368 | `holders_inequality` | Σaᵢbᵢ ≤ (Σaᵢᵖ)^(1/p)(Σbᵢᵠ)^(1/q) |
-| 369 | `minkowski` | (Σ(aᵢ + bᵢ)ᵖ)^(1/p) ≤ (Σaᵢᵖ)^(1/p) + (Σbᵢᵖ)^(1/p) |
+| 369 | `minkowski` | (Σ(aᵢ+bᵢ)ᵖ)^(1/p) ≤ (Σaᵢᵖ)^(1/p) + (Σbᵢᵖ)^(1/p) |
+
+> As of the current guardrail (see `mm-search/tests/guardrail_reachability.rs`), several
+> inequality rules — those that produce a *bound* rather than an equal value — are
+> deliberately kept guardrail-hidden rather than exposed universally, because the verifier
+> cannot safely extend rule-replay trust to them near calculus expressions. Check that test's
+> doc comment for the current list.
 
 ---
 
-## Trigonometry Rules (ID 19-50, 200-269)
+## Trigonometry (ID 19–50, 200–269)
 
-### Pythagorean Identities (ID 19-23)
+### Pythagorean identities (19–23)
 | ID | Name | Formula |
 |----|------|---------|
 | 19 | `pythagorean_sin_cos` | sin²x + cos²x = 1 |
 | 20 | `pythagorean_tan_sec` | 1 + tan²x = sec²x |
 | 21 | `pythagorean_cot_csc` | 1 + cot²x = csc²x |
 
-### Basic Identities (ID 24-35)
+### Angle sum/difference (24–29)
 | ID | Name | Formula |
 |----|------|---------|
 | 24 | `sin_sum` | sin(a+b) = sin(a)cos(b) + cos(a)sin(b) |
 | 25 | `sin_diff` | sin(a-b) = sin(a)cos(b) - cos(a)sin(b) |
 | 26 | `cos_sum` | cos(a+b) = cos(a)cos(b) - sin(a)sin(b) |
 | 27 | `cos_diff` | cos(a-b) = cos(a)cos(b) + sin(a)sin(b) |
-| 28 | `tan_sum` | tan(a+b) = (tan a + tan b)/(1 - tan a tan b) |
-| 29 | `tan_diff` | tan(a-b) = (tan a - tan b)/(1 + tan a tan b) |
+| 28 | `tan_sum` | tan(a+b) = (tan a + tan b)/(1 - tan a·tan b) |
+| 29 | `tan_diff` | tan(a-b) = (tan a - tan b)/(1 + tan a·tan b) |
 
-### Double Angle (ID 200-205)
+### Double angle (200–205)
 | ID | Name | Formula |
 |----|------|---------|
 | 200 | `sin_2x` | sin(2x) = 2sin(x)cos(x) |
@@ -160,7 +145,7 @@ remaining 29 are refused on every witness and cannot be used by search; they are
 | 203 | `cos_2x_v3` | cos(2x) = 1 - 2sin²x |
 | 204 | `tan_2x` | tan(2x) = 2tan(x)/(1 - tan²x) |
 
-### Hyperbolic Functions (ID 220-231)
+### Hyperbolic functions (220–231)
 | ID | Name | Formula |
 |----|------|---------|
 | 220 | `sinh_def` | sinh(x) = (eˣ - e⁻ˣ)/2 |
@@ -172,7 +157,7 @@ remaining 29 are refused on every witness and cannot be used by search; they are
 | 226 | `sinh_2x` | sinh(2x) = 2sinh(x)cosh(x) |
 | 227 | `cosh_2x` | cosh(2x) = cosh²x + sinh²x |
 
-### Inverse Trig (ID 232-237)
+### Inverse trig (232–236)
 | ID | Name | Formula |
 |----|------|---------|
 | 232 | `arcsin_sin` | arcsin(sin x) = x for x ∈ [-π/2, π/2] |
@@ -181,37 +166,25 @@ remaining 29 are refused on every witness and cannot be used by search; they are
 | 235 | `sin_arcsin` | sin(arcsin x) = x |
 | 236 | `arcsin_arccos` | arcsin(x) + arccos(x) = π/2 |
 
-### Triple Angle (ID 238-241)
+### Triple/half angle, product-sum (238–259)
 | ID | Name | Formula |
 |----|------|---------|
 | 238 | `sin_3x` | sin(3x) = 3sin(x) - 4sin³(x) |
 | 239 | `cos_3x` | cos(3x) = 4cos³(x) - 3cos(x) |
 | 240 | `tan_3x` | tan(3x) = (3tan(x) - tan³(x))/(1 - 3tan²(x)) |
-
-### Half Angle (ID 242-247)
-| ID | Name | Formula |
-|----|------|---------|
 | 242 | `sin_half` | sin(x/2) = ±√((1 - cos x)/2) |
 | 243 | `cos_half` | cos(x/2) = ±√((1 + cos x)/2) |
 | 244 | `tan_half_v1` | tan(x/2) = sin(x)/(1 + cos x) |
 | 245 | `tan_half_v2` | tan(x/2) = (1 - cos x)/sin(x) |
-
-### Product-to-Sum (ID 248-253)
-| ID | Name | Formula |
-|----|------|---------|
 | 248 | `cos_cos_prod` | cos(a)cos(b) = ½[cos(a-b) + cos(a+b)] |
 | 249 | `sin_sin_prod` | sin(a)sin(b) = ½[cos(a-b) - cos(a+b)] |
 | 250 | `sin_cos_prod` | sin(a)cos(b) = ½[sin(a+b) + sin(a-b)] |
-
-### Sum-to-Product (ID 254-259)
-| ID | Name | Formula |
-|----|------|---------|
 | 254 | `sin_sum_to_prod` | sin(a) + sin(b) = 2sin((a+b)/2)cos((a-b)/2) |
 | 255 | `sin_diff_to_prod` | sin(a) - sin(b) = 2cos((a+b)/2)sin((a-b)/2) |
 | 256 | `cos_sum_to_prod` | cos(a) + cos(b) = 2cos((a+b)/2)cos((a-b)/2) |
 | 257 | `cos_diff_to_prod` | cos(a) - cos(b) = -2sin((a+b)/2)sin((a-b)/2) |
 
-### Chebyshev Polynomials (ID 266-269)
+### Chebyshev polynomials (266–269)
 | ID | Name | Formula |
 |----|------|---------|
 | 266 | `chebyshev_T0` | T₀(x) = 1 |
@@ -221,9 +194,9 @@ remaining 29 are refused on every witness and cannot be used by search; they are
 
 ---
 
-## Calculus Rules (ID 11-18, 51-90, 420-469)
+## Calculus (ID 11–18, 51–90, 420–469)
 
-### Basic Derivatives (ID 11-18)
+### Basic derivatives (11–18)
 | ID | Name | Formula |
 |----|------|---------|
 | 11 | `power_rule` | d/dx(xⁿ) = n·xⁿ⁻¹ |
@@ -235,7 +208,7 @@ remaining 29 are refused on every witness and cannot be used by search; they are
 | 17 | `chain_rule_cos` | d/dx(cos f) = -sin(f)·f' |
 | 18 | `exp_rule` | d/dx(eˣ) = eˣ |
 
-### Advanced Derivatives (ID 51-90)
+### Advanced derivatives (51–58)
 | ID | Name | Formula |
 |----|------|---------|
 | 51 | `ln_rule` | d/dx(ln x) = 1/x |
@@ -247,7 +220,7 @@ remaining 29 are refused on every witness and cannot be used by search; they are
 | 57 | `arccos_derivative` | d/dx(arccos x) = -1/√(1-x²) |
 | 58 | `arctan_derivative` | d/dx(arctan x) = 1/(1+x²) |
 
-### Integration Rules (ID 420-435)
+### Integration (420–435)
 | ID | Name | Formula |
 |----|------|---------|
 | 420 | `integral_power` | ∫xⁿ dx = xⁿ⁺¹/(n+1) + C |
@@ -263,11 +236,11 @@ remaining 29 are refused on every witness and cannot be used by search; they are
 | 430 | `integral_sinh` | ∫sinh(x) dx = cosh(x) + C |
 | 431 | `integral_cosh` | ∫cosh(x) dx = sinh(x) + C |
 | 432 | `integration_by_parts` | ∫u dv = uv - ∫v du |
-| 433 | `u_substitution` | ∫f(g(x))g'(x)dx = ∫f(u)du |
-| 434 | `partial_fractions` | Partial fractions decomposition |
-| 435 | `trig_substitution` | Trigonometric substitution |
+| 433 | `u_substitution` | ∫f(g(x))g'(x) dx = ∫f(u) du |
+| 434 | `partial_fractions` | partial fractions decomposition |
+| 435 | `trig_substitution` | trigonometric substitution |
 
-### Limits (ID 436-442)
+### Limits (436–442)
 | ID | Name | Formula |
 |----|------|---------|
 | 436 | `limit_constant` | lim c = c |
@@ -278,27 +251,27 @@ remaining 29 are refused on every witness and cannot be used by search; they are
 | 441 | `lhopitals_rule` | lim(f/g) = lim(f'/g') for 0/0 or ∞/∞ |
 | 442 | `squeeze_theorem` | g ≤ f ≤ h, lim g = lim h = L ⟹ lim f = L |
 
-### Taylor Series (ID 443-450)
+### Taylor series and power series (443–450)
 | ID | Name | Formula |
 |----|------|---------|
 | 443 | `taylor_exp` | eˣ = Σ xⁿ/n! |
 | 444 | `taylor_sin` | sin(x) = Σ (-1)ⁿ x²ⁿ⁺¹/(2n+1)! |
 | 445 | `taylor_cos` | cos(x) = Σ (-1)ⁿ x²ⁿ/(2n)! |
 | 446 | `taylor_ln` | ln(1+x) = Σ (-1)ⁿ⁺¹ xⁿ/n |
-| 447 | `maclaurin_geometric` | 1/(1-x) = Σ xⁿ for \|x\|<1 |
-| 448 | `geometric_series` | Σ arⁿ = a/(1-r) for \|r\|<1 |
+| 447 | `maclaurin_geometric` | 1/(1-x) = Σ xⁿ, \|x\|<1 |
+| 448 | `geometric_series` | Σ arⁿ = a/(1-r), \|r\|<1 |
 | 449 | `power_series_diff` | d/dx(Σaₙxⁿ) = Σ n·aₙxⁿ⁻¹ |
-| 450 | `power_series_int` | ∫(Σaₙxⁿ)dx = Σ aₙxⁿ⁺¹/(n+1) |
+| 450 | `power_series_int` | ∫(Σaₙxⁿ) dx = Σ aₙxⁿ⁺¹/(n+1) |
 
-### Vector Calculus (ID 451-469)
+### Vector calculus (451–469)
 | ID | Name | Formula |
 |----|------|---------|
-| 451 | `partial_x` | ∂f/∂x partial derivative |
-| 452 | `partial_y` | ∂f/∂y partial derivative |
-| 453 | `partial_z` | ∂f/∂z partial derivative |
+| 451 | `partial_x` | ∂f/∂x |
+| 452 | `partial_y` | ∂f/∂y |
+| 453 | `partial_z` | ∂f/∂z |
 | 454 | `gradient` | ∇f = (∂f/∂x, ∂f/∂y, ∂f/∂z) |
 | 455 | `divergence` | ∇·F = ∂Fₓ/∂x + ∂Fᵧ/∂y + ∂Fᵤ/∂z |
-| 456 | `curl` | ∇×F = (∂Fᵤ/∂y - ∂Fᵧ/∂z, ...) |
+| 456 | `curl` | ∇×F |
 | 457 | `laplacian` | ∇²f = ∂²f/∂x² + ∂²f/∂y² + ∂²f/∂z² |
 | 462 | `double_integral` | ∬f dA |
 | 463 | `triple_integral` | ∭f dV |
@@ -307,13 +280,13 @@ remaining 29 are refused on every witness and cannot be used by search; they are
 | 466 | `greens_theorem` | ∮_C P dx + Q dy = ∬_D (∂Q/∂x - ∂P/∂y) dA |
 | 467 | `stokes_theorem` | ∮_C F·dr = ∬_S (∇×F)·dS |
 | 468 | `divergence_theorem` | ∭_V ∇·F dV = ∬_S F·dS |
-| 469 | `jacobian_transform` | dxdy = |J| dudv |
+| 469 | `jacobian_transform` | dx dy = \|J\| du dv |
 
 ---
 
-## Number Theory Rules (ID 100-199, 700-744)
+## Number theory (ID 100–199, 700–744)
 
-### Divisibility (ID 100-109)
+### Divisibility and modular arithmetic (100–119)
 | ID | Name | Formula |
 |----|------|---------|
 | 100 | `divides_zero` | n \| 0 for all n |
@@ -321,16 +294,12 @@ remaining 29 are refused on every witness and cannot be used by search; they are
 | 102 | `divides_transitive` | a\|b ∧ b\|c ⟹ a\|c |
 | 103 | `divisibility_sum` | a\|b ∧ a\|c ⟹ a\|(b+c) |
 | 104 | `divisibility_product` | a\|b ⟹ a\|(bc) |
-
-### Modular Arithmetic (ID 110-119)
-| ID | Name | Formula |
-|----|------|---------|
 | 110 | `mod_add` | (a+b) mod n = ((a mod n) + (b mod n)) mod n |
 | 111 | `mod_mul` | (ab) mod n = ((a mod n)(b mod n)) mod n |
 | 112 | `mod_power` | aᵇ mod n = ((a mod n)ᵇ) mod n |
 | 113 | `mod_sub` | (a-b) mod n = ((a mod n) - (b mod n) + n) mod n |
 
-### GCD/LCM (ID 120-129)
+### GCD/LCM (120–126)
 | ID | Name | Formula |
 |----|------|---------|
 | 120 | `gcd_commutative` | gcd(a,b) = gcd(b,a) |
@@ -341,35 +310,35 @@ remaining 29 are refused on every witness and cannot be used by search; they are
 | 125 | `gcd_lcm_product` | gcd(a,b) × lcm(a,b) = ab |
 | 126 | `bezouts_identity` | gcd(a,b) = ax + by for some x,y |
 
-### Famous Theorems (ID 700-710)
+### Famous theorems (700–703)
 | ID | Name | Formula |
 |----|------|---------|
-| 700 | `fermats_little` | aᵖ⁻¹ ≡ 1 (mod p) for prime p, gcd(a,p)=1 |
-| 701 | `eulers_theorem` | a^φ(n) ≡ 1 (mod n) for gcd(a,n)=1 |
-| 702 | `wilsons_theorem` | (p-1)! ≡ -1 (mod p) for prime p |
-| 703 | `chinese_remainder` | System of congruences has unique solution mod product |
+| 700 | `fermats_little` | aᵖ⁻¹ ≡ 1 (mod p), p prime, gcd(a,p)=1 |
+| 701 | `eulers_theorem` | a^φ(n) ≡ 1 (mod n), gcd(a,n)=1 |
+| 702 | `wilsons_theorem` | (p-1)! ≡ -1 (mod p), p prime |
+| 703 | `chinese_remainder` | a system of congruences has a unique solution mod the product |
 
-### Totient Function (ID 720-729)
+### Totient function (720–723)
 | ID | Name | Formula |
 |----|------|---------|
-| 720 | `totient_prime` | φ(p) = p - 1 for prime p |
+| 720 | `totient_prime` | φ(p) = p - 1, p prime |
 | 721 | `totient_prime_power` | φ(pᵏ) = pᵏ - pᵏ⁻¹ |
-| 722 | `totient_multiplicative` | φ(mn) = φ(m)φ(n) for gcd(m,n)=1 |
+| 722 | `totient_multiplicative` | φ(mn) = φ(m)φ(n), gcd(m,n)=1 |
 | 723 | `totient_sum` | Σ_{d\|n} φ(d) = n |
 
-### Quadratic Residues (ID 730-739)
+### Quadratic residues (730–733)
 | ID | Name | Formula |
 |----|------|---------|
 | 730 | `euler_criterion` | a^((p-1)/2) ≡ (a/p) (mod p) |
-| 731 | `legendre_symbol_1` | (a/p) = 1 if a is QR mod p |
-| 732 | `legendre_symbol_neg1` | (a/p) = -1 if a is non-QR mod p |
+| 731 | `legendre_symbol_1` | (a/p) = 1 if a is a QR mod p |
+| 732 | `legendre_symbol_neg1` | (a/p) = -1 if a is a non-QR mod p |
 | 733 | `quadratic_reciprocity` | (p/q)(q/p) = (-1)^((p-1)(q-1)/4) |
 
 ---
 
-## Combinatorics Rules (ID 600-630)
+## Combinatorics (ID 600–630)
 
-### Binomial Coefficients (ID 600-609)
+### Binomial coefficients (600–609)
 | ID | Name | Formula |
 |----|------|---------|
 | 600 | `binomial_zero` | C(n,0) = 1 |
@@ -383,16 +352,16 @@ remaining 29 are refused on every witness and cannot be used by search; they are
 | 608 | `vandermonde` | C(m+n,r) = Σ C(m,k)C(n,r-k) |
 | 609 | `hockey_stick` | Σᵢ₌ᵣⁿ C(i,r) = C(n+1,r+1) |
 
-### Factorials (ID 610-619)
+### Factorials (610–614)
 | ID | Name | Formula |
 |----|------|---------|
 | 610 | `factorial_zero` | 0! = 1 |
 | 611 | `factorial_one` | 1! = 1 |
 | 612 | `factorial_recurrence` | n! = n × (n-1)! |
 | 613 | `permutation` | P(n,k) = n!/(n-k)! |
-| 614 | `double_factorial_odd` | (2n-1)!! = (2n)!/(2ⁿ n!) |
+| 614 | `double_factorial_odd` | (2n-1)!! = (2n)!/(2ⁿn!) |
 
-### Catalan & Special (ID 620-630)
+### Catalan, Fibonacci, and special numbers (620–627)
 | ID | Name | Formula |
 |----|------|---------|
 | 620 | `catalan_formula` | Cₙ = C(2n,n)/(n+1) |
@@ -400,24 +369,13 @@ remaining 29 are refused on every witness and cannot be used by search; they are
 | 622 | `fibonacci_recurrence` | Fₙ = Fₙ₋₁ + Fₙ₋₂ |
 | 623 | `fibonacci_binet` | Fₙ = (φⁿ - ψⁿ)/√5 |
 | 624 | `lucas_identity` | Fₘ₊ₙ = FₘFₙ₊₁ + Fₘ₋₁Fₙ |
-| 625 | `stirling_first` | s(n,k) = first kind Stirling |
-| 626 | `stirling_second` | S(n,k) = second kind Stirling |
+| 625 | `stirling_first` | s(n,k), first kind |
+| 626 | `stirling_second` | S(n,k), second kind |
 | 627 | `inclusion_exclusion` | \|A∪B\| = \|A\| + \|B\| - \|A∩B\| |
 
 ---
 
-## Summary by IMO Topics
-
-| IMO Topic | Relevant Rule IDs | Count |
-|-----------|-------------------|-------|
-| **Algebra** | 1-15, 300-369 | ~80 |
-| **Number Theory** | 100-199, 700-744 | ~100 |
-| **Combinatorics** | 600-630 | ~30 |
-| **Geometry (Trig)** | 19-50, 200-269 | ~100 |
-| **Inequalities** | 360-369 | ~50 |
-
----
-
-*Last updated: January 3, 2026*
-*Total Rules: 450*
-*Target: 500+ for IMO Gold*
+*This catalog was assembled from two earlier documents (a hand-written topic table and a
+per-rule development changelog) and has not been re-verified line by line against the
+current rule definitions. If you find an entry that's wrong, fix it in place — don't restore
+the changelog format, and don't re-add a "files updated" log; git history already has that.*

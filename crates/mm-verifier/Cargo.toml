@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
-description = "Step verification system for Math Monster"
+description = "Step verification system for LEMMA"
 
 [dependencies]
 mm-core = { path = "../mm-core" }

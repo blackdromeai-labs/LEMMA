@@ -6,7 +6,7 @@ Fine-tunes DistilBERT to predict useful substitutions for IMO problems.
 Exports model to ONNX for Rust inference.
 
 Usage:
-    python train_substitution_model.py --data annotated_problems.json --output model/
+    python train_substitution_model.py --data data/annotated_problems.json --output model/
     
 Requirements:
     pip install transformers torch datasets onnx onnxruntime

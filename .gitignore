@@ -2,6 +2,10 @@
 /target/
 */target/
 
+# Cross-agent handoff notes: local scratch memory for AI agents working on this repo.
+# Deliberately never pushed.
+/AGENT_MEMORY.md
+
 # Cargo.lock is committed: this workspace ships runnable applications (the `lemma` root
 # package and a dozen research binaries), and evaluation results are only comparable
 # between runs if the dependency graph is pinned. The usual "libraries do not commit a

@@ -1,0 +1,10 @@
+{
+  "name": "cbse-mathematics-65-1-1",
+  "description": "A CBSE Class XII Mathematics board exam paper (set code 65/1/1), used as source material for exam-style problem text.",
+  "source": "Central Board of Secondary Education (CBSE), India",
+  "license": "Not redistributed here. CBSE question papers are not under a license that permits redistribution in this repository; treat as all-rights-reserved by CBSE unless you have independently verified otherwise.",
+  "original_filename": "65_1_1_Mathematics_d569667003991120d64544febdb8b58d.pdf",
+  "sha256": "1394b053605ca83c59fcdc8599a3cfee713862891dad73a2564ffa294429d32a",
+  "retrieval": "Obtain the official paper from CBSE's published archive for the relevant year and set code. This repository does not host or link a specific mirror.",
+  "removed_from_repo": "2026-09-04"
+}

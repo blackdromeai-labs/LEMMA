@@ -1,0 +1,10 @@
+{
+  "name": "jeeadvanced",
+  "description": "A JEE (Advanced) exam paper PDF, used as source material for exam-style problem text (same purpose as jee-advanced-2025-paper2).",
+  "source": "JEE (Advanced), a competitive entrance examination administered jointly by the Indian Institutes of Technology (IITs)",
+  "license": "Not redistributed here. Exam papers published by the IITs / JEE (Advanced) organizing body are not under a license that permits redistribution in this repository; treat as all-rights-reserved by the publishing authority unless you have independently verified otherwise.",
+  "original_filename": "jeeadvanced.pdf",
+  "sha256": "97a61c887188cc6c5f653b2ba6339a6df77f9a4f2b09dba2558b892e2775b672",
+  "retrieval": "Obtain the official paper from the JEE (Advanced) organizing body's published archive for the relevant year. This repository does not host or link a specific mirror.",
+  "removed_from_repo": "2026-09-04"
+}

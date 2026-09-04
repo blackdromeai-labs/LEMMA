@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
-description = "Unified solver API for Math Monster"
+description = "Unified solver API for LEMMA"
 
 [dependencies]
 mm-core = { path = "../mm-core" }
@@ -16,6 +16,8 @@ mm-macro = { path = "../mm-macro" }
 thiserror.workspace = true
 candle-core.workspace = true
 candle-nn.workspace = true
+rand.workspace = true
+rand_chacha.workspace = true
 
 [[example]]
 name = "solve_quadratic"
@@ -26,57 +28,37 @@ name = "derivative"
 path = "examples/derivative.rs"
 
 [[example]]
-name = "debug_rules"
-path = "examples/debug_rules.rs"
-
-[[example]]
 name = "train_network"
 path = "examples/train_network.rs"
-
-[[example]]
-name = "neural_mcts"
-path = "examples/neural_mcts.rs"
-
-[[example]]
-name = "test_new_rules"
-path = "examples/test_new_rules.rs"
-
-[[example]]
-name = "train_beast"
-path = "examples/train_beast.rs"
 
 [[example]]
 name = "neural_mcts_demo"
 path = "examples/neural_mcts_demo.rs"
 
 [[example]]
-name = "imo_2024_official"
-path = "examples/imo_2024_official.rs"
+name = "imo_integrated"
+path = "examples/imo_integrated.rs"
 
 [[example]]
-name = "imo_solver"
-path = "examples/imo_solver.rs"
+name = "imo_2024_official"
+path = "examples/imo_2024_official.rs"
 
 [[example]]
 name = "imo_2024_solve"
 path = "examples/imo_2024_solve.rs"
 
 [[example]]
-name = "bidirectional_demo"
-path = "examples/bidirectional_demo.rs"
+name = "imo_2024_benchmark"
+path = "examples/imo_2024_benchmark.rs"
 
 [[example]]
-name = "comprehensive_proof_demo"
-path = "examples/comprehensive_proof_demo.rs"
+name = "imo_test"
+path = "examples/imo_test.rs"
 
 [[example]]
 name = "proof_solver_demo"
 path = "examples/proof_solver_demo.rs"
 
 [[example]]
-name = "honest_capability_test"
-path = "examples/honest_capability_test.rs"
-
-[[example]]
-name = "cbse_math_test"
-path = "examples/cbse_math_test.rs"
+name = "seeded_eval"
+path = "examples/seeded_eval.rs"

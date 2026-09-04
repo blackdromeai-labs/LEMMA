@@ -2,333 +2,194 @@
 
 # LEMMA
 
-**Logical Engine for Multi-domain Mathematical Analysis**
+### Logical Engine for Multi-domain Mathematical Analysis
 
-A research prototype exploring neural-guided symbolic mathematics in Rust. Inspired by AlphaProof and AlphaZero.
+**An evidence-aware, neuro-symbolic mathematics research platform written in Rust.**
 
-[![License: MPL 2.0](https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg?style=for-the-badge)](https://opensource.org/licenses/MPL-2.0)
-[![Rust](https://img.shields.io/badge/Rust-1.75+-orange.svg?style=for-the-badge)](https://www.rust-lang.org/)
+[![CI](https://github.com/blackdromeai-labs/LEMMA/actions/workflows/ci.yml/badge.svg)](https://github.com/blackdromeai-labs/LEMMA/actions/workflows/ci.yml)
+[![Rust](https://img.shields.io/badge/Rust-stable-orange?logo=rust)](https://www.rust-lang.org/)
+[![License: MPL 2.0](https://img.shields.io/badge/License-MPL--2.0-blue.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/status-research%20prototype-6f42c1)](#project-status)
+
+[Quick start](#quick-start) · [Workbench](#terminal-workbench) · [Architecture](#architecture) · [Evaluation](#evaluation) · [Contributing](CONTRIBUTING.md)
 
 </div>
 
 ---
 
-## What This Project IS and IS NOT
+LEMMA explores a simple question: **can learned search guide explicit mathematical
+transformations without hiding what was applied or overstating what was verified?**
 
-### What LEMMA IS:
-- A **research prototype** exploring hybrid neural-symbolic reasoning
-- A **proof of concept** for AlphaProof-style mathematical search
-- **572 registered transformation rules**, of which a measured 146 actually transform an
-  expression and 117 produce a result the verifier accepts (see Evaluation)
-- An **MCTS engine** over those rules; it can be guided by a policy network, but no
-  trained model ships with the repository
-- A **learning project** for anyone interested in symbolic AI
+The workspace combines a typed expression language, a registry of mathematical rules,
+beam/MCTS search, optional neural policy components, and a verifier that carries evidence
+through to the final result. A terminal workbench makes the expression, trace, stable rule
+identity, and verification status visible in one place.
 
-### What LEMMA is NOT:
-- **Not a Wolfram Alpha replacement** - we handle basic calculus, not arbitrary math
-- **Not production-ready** - this is research code
-- **Not a complete CAS** - missing integration, limits, ODEs, and advanced features
-- **Not magic** - it applies explicit rules, nothing more
+> LEMMA is a research prototype, not a complete computer algebra system or theorem prover.
+> It accepts formal expressions rather than natural-language problems, and no trained model
+> is distributed with the repository.
 
----
-
-## Current Capabilities
-
-### Working Features (Tested)
-
-| Category | Examples | Status |
-|----------|----------|--------|
-| **Arithmetic** | `(2+3)*(4+5) -> 45` | Working |
-| **Identities** | `((x+0)*1)+0 -> x` | Working |
-| **Power Rules** | `x^2 * x^3 * x^4 -> x^9` | Working |
-| **Basic Derivatives** | `d/dx(x^3) -> 3x^2` | Working |
-| **Sum Rule** | `d/dx(x^2 + x^3) -> 2x + 3x^2` | Working |
-| **Trig Derivatives** | `d/dx(sin x) -> cos x` | Working |
-| **Linear Equations** | `3x + 5 = 17 -> x = 4` | Working |
-| **Pythagorean** | `sin^2(x) + cos^2(x) -> 1` | Working |
-| **Like Terms** | `2(x+y) + 3(x+y) -> 5(x+y)` | Working |
-
-### New Features (Added Jan 2026)
-
-| Category | Count | Examples |
-|----------|-------|----------|
-| **Integration** | 9 | `∫x^n dx → x^(n+1)/(n+1)` |
-| **Number Theory** | 80+ | Divisibility, GCD, modular arithmetic |
-| **Inequalities** | 40+ | AM-GM, Cauchy-Schwarz, Triangle |
-| **Combinatorics** | 50+ | Binomial, Pascal, Catalan, generating functions |
-| **Polynomials** | 40+ | Vieta's, symmetric polys, factoring |
-
----
-
-## Architecture
-
-```
-+------------------------------------------------------------------+
-|                      Neural Policy Network                       |
-|              (Transformer, suggests which rule to try)           |
-+------------------------------+-----------------------------------+
-                               |
-                               v
-+-----------+     +-----------------------------+     +-----------+
-|  Problem  |---->|      MCTS Search Engine     |---->| Solution  |
-|   Expr    |     |   (AlphaZero-style UCB)     |     | + Proof   |
-+-----------+     +--------------+--------------+     +-----------+
-                                 |
-                                 v
-                  +-----------------------------+
-                  |       Rule Library          |
-                  |     (572 registered rules)  |
-                  +--------------+--------------+
-                                 |
-                                 v
-                  +-----------------------------+
-                  |         Verifier            |
-                  |  (Numerical + Symbolic)     |
-                  +-----------------------------+
-```
-
-### Approach
-
-Unlike LLMs that predict text statistically, LEMMA:
-1. **Only applies rules from an explicit registry** - it cannot invent a transformation
-2. **Records a trace** - every result carries the steps that produced it, and a
-   `VerificationStatus` saying what was actually checked (see below)
-3. **Can be guided by a policy network** - with no trained model present the search uses
-   uniform priors and says so, rather than reading randomly initialised weights
-
-Verification here means equivalence checking (canonical form, with numeric sampling as a
-fallback), not machine-checked proof. There is no SMT backend; `VerificationLevel::Formal`
-reports that it is unsupported instead of returning a verdict.
-
----
-
-## Crate Structure
-
-| Crate | Purpose | Lines of Code |
-|-------|---------|---------------|
-| `mm-core` | Expression AST, parsing, evaluation | ~3,700 |
-| `mm-rules` | 550+ transformation rules | ~22,700 |
-| `mm-verifier` | Numerical and symbolic verification | ~600 |
-| `mm-search` | Beam search, Neural MCTS | ~1,800 |
-| `mm-brain` | Transformer network (Candle) | ~2,400 |
-| `mm-solver` | Unified API | ~1,400 |
-
----
-
-## Quick Start
-
-### Requirements
-- Rust 1.75+
-- ~500MB disk space for dependencies
-
-### Build and Test
-
-```bash
-git clone https://github.com/Pushp-Kharat1/LEMMA.git
-cd LEMMA
-
-# Build everything
-cargo build --release
-
-# Run the correctness evaluation (fail-closed: a regression fails the run)
-cargo test -p mm-solver --test evaluation -- --nocapture
-
-# Run everything
-cargo test --workspace --lib --tests
-```
-
-### Train the Neural Network
-
-```bash
-# Generates ~17k synthetic examples, trains for 50 epochs
-cargo run --release --example train_network
-```
-
----
-
-## Terminal Workbench
+## Terminal workbench
 
 ```bash
 cargo run -p mm-tui
 ```
 
-An interactive front end for the three operations the solver actually supports: simplify an
-expression, differentiate it with respect to a variable, or check a candidate value against an
-equation. It takes formal LEMMA syntax, not prose.
+The workbench supports three honest operations:
 
-The point of it is to make verification legible. Every result carries its
-`VerificationStatus` as a labelled badge with the verifier's own reason, and the trace lists
-each recorded step with its before/after expressions, its stable `module::name` rule identity,
-the rule's justification, and the evidence that step rests on — so a step accepted by rule
-replay is visibly different from one checked symbolically. Only `CHECKED` is described as
-verified.
+- simplify a formal expression;
+- differentiate with respect to a variable; and
+- verify a proposed value for an equation.
 
-```
-┌ Result ─────────────────────────┐┌ Trace · 2 steps ─────────────────────────┐
-│x                                ││> 01 algebra::identity_add_zero SYMBOLIC  │
-│                                 ││  02 algebra::identity_mul_one SYMBOLIC   │
-│ ++ CHECKED                      ││                                          │
-│Trace replays from the input to  ││                                          │
-│the result and every step was    ││                                          │
-│independently checked.           ││                                          │
-│2 steps · 14 ms                  ││                                          │
-└─────────────────────────────────┘└──────────────────────────────────────────┘
+```text
+ LEMMA · SYMBOLIC WORKBENCH                         572 rules · formal input
+  1 Simplify   2 Differentiate   3 Verify candidate   [? Help]
+┌ Input ──────────────────────────────────────────────────────────────────────┐
+│ expression  (x + 0) * 1                                                    │
+└────────────────────────────────────────────────────────────────────────────┘
+┌ Result ─────────────────────────────┐┌ Trace · 2 steps ─────────────────────┐
+│ x                                  ││ 01 algebra::identity_add_zero        │
+│ ++ CHECKED                         ││ 02 algebra::identity_mul_one         │
+│ 2 steps · 14 ms                    ││    symbolic equivalence              │
+└────────────────────────────────────┘└───────────────────────────────────────┘
 ```
 
-Needs an 80x24 terminal; below that it shows a size notice rather than a broken layout. Press
-`?` for keys. Equation solving and natural-language input are not offered, because the APIs
-behind them report themselves unimplemented.
+Press `?` in the application for the full key map. The responsive layout requires at least
+an 80 × 24 terminal.
 
----
+## Why LEMMA
 
-## Usage Example
+- **Explicit transformations** — search chooses from a named rule registry instead of
+  generating an untracked derivation.
+- **Replayable traces** — every step records its before/after expressions, rule identity,
+  justification, and evidence.
+- **Evidence-aware results** — `VerificationStatus` distinguishes checked, heuristic,
+  unverified, and unsupported outcomes.
+- **Pluggable search** — beam search and MCTS share the symbolic substrate; policy guidance
+  is optional and uniform priors are used when no trained model is available.
+- **Fail-closed evaluation** — correctness tests assert exact expected expressions and fail
+  when a required result or replayable trace is missing.
+
+## Quick start
+
+### Requirements
+
+- a stable Rust toolchain;
+- Git; and
+- an 80 × 24 terminal to use the workbench.
+
+```bash
+git clone https://github.com/blackdromeai-labs/LEMMA.git
+cd LEMMA
+
+# Build every workspace target
+cargo build --workspace
+
+# Launch the interactive workbench
+cargo run -p mm-tui
+
+# Run the same core gates used by CI
+cargo check --workspace --all-targets --locked -j 1
+cargo test --workspace --lib --tests --locked -j 1
+```
+
+## Library example
 
 ```rust
-use mm_core::{Expr, SymbolTable};
-use mm_rules::rule::standard_rules;
-use mm_search::{MCTSConfig, NeuralMCTS};
-use mm_verifier::Verifier;
+use mm_solver::LemmaSolver;
 
-fn main() {
-    let mut symbols = SymbolTable::new();
-    let x = symbols.intern("x");
-    
-    // Setup the solver
-    let rules = standard_rules();
-    let verifier = Verifier::new();
-    let mcts = NeuralMCTS::new(rules, verifier);
-    
-    // Solve: x + 3 = 7
-    let equation = Expr::Equation {
-        lhs: Box::new(Expr::Add(Box::new(Expr::Var(x)), Box::new(Expr::int(3)))),
-        rhs: Box::new(Expr::int(7)),
-    };
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut solver = LemmaSolver::new();
+    let solution = solver.simplify("(x + 0) * 1")?;
 
-    let solution = mcts.simplify(equation);
-
-    // solution.result  -> x = 4
-    // solution.steps   -> the transitions that produced it, each with its evidence
-    // solution.status  -> what is actually known about the result. Only
-    //                     `VerificationStatus::Checked` means the trace replays from the
-    //                     exact input and every step was independently checked.
-    println!("{:?} ({})", solution.result, solution.status);
+    println!("result: {:?}", solution.result);
+    println!("status: {}", solution.status);
+    println!("steps: {}", solution.num_steps());
+    Ok(())
 }
 ```
 
-Not every problem in this shape is solved. `3x + 5 = 17` is one the search does not currently
-finish; the evaluation suite lists such cases explicitly rather than omitting them.
+`LemmaSolver::differentiate` evaluates derivative expressions and
+`LemmaSolver::verify_solution` checks a supplied candidate. General equation solving through
+`solve_for` and natural-language solving are deliberately reported as unsupported.
+
+## Architecture
+
+A typed expression AST flows through a stable rule registry and beam/MCTS search, with
+optional neural priors, into a symbolic/numerical verifier that produces the result together
+with its trace and evidence status. Ten crates, each with one job — see
+[`docs/architecture.md`](docs/architecture.md) for the diagram and the crate-by-crate
+breakdown.
+
+## Verification model
+
+Every result carries a `VerificationStatus` (`Checked` / `Heuristic` / `Unverified` /
+`Unsupported`), not a boolean. This is equivalence checking, not a machine-checked proof —
+there is no SMT backend. See [`docs/verification.md`](docs/verification.md) for what each
+status means and for the calculus rule-replay boundary that keeps the verifier from
+over-trusting a rule near an unevaluable expression.
 
 ## Evaluation
 
-## Evaluation Notice (Research Integrity Update){Edited on 6 Feb 2026}
-An internal audit identified issues in earlier evaluation scripts and neural-rule integration that invalidated previous competitive benchmark claims.
-Those historical results are deprecated.
-See Issue #8 for technical details and remediation work.
+Fail-closed by design — exact expected values, replayable traces, and a witness census
+measured by test, not asserted by hand. 572 rules registered; 138 transform at least one
+witness in the current 228-expression corpus, 244 are no-ops, 190 are unreached. See
+[`docs/evaluation.md`](docs/evaluation.md) for the commands, the current numbers, and the
+seeded random-evaluation harness.
 
-The `benchmark`, `benchmark_advanced` and `stress_test` examples that produced the previously
-quoted 20/21, 10/10 and 10/10 figures have been removed. They printed pass counts but exited
-zero whether or not a case failed, accepted output *shapes* instead of values (one case
-accepted every possible output), and gated on a `verified` flag that several code paths set
-unconditionally. Those numbers are withdrawn and are not replaced here.
+## Project status
 
-Correctness is now measured by a fail-closed test:
+What works today:
+
+- parsing and formatting formal mathematical expressions;
+- exact arithmetic and a measured subset of algebraic, calculus, trigonometric, equation,
+  inequality, integration, number-theory, polynomial, and combinatoric transformations;
+- beam/MCTS exploration with stable rule identities;
+- replayable solution traces and explicit evidence levels; and
+- an interactive TUI with render, end-to-end, and terminal-restoration tests.
+
+Known boundaries:
+
+- many registered entries are informational or no-op rules rather than executable
+  transformations;
+- witness coverage is incomplete, especially for geometry and advanced identities;
+- general equation solving, natural-language problem solving, integration as a complete
+  subsystem, limits, ODEs, and formal proof are not supported end to end;
+- no pretrained policy artifact ships with the repository; and
+- search is incomplete and may miss a valid transformation chain.
+
+## Development
 
 ```bash
-cargo test -p mm-solver --test evaluation -- --nocapture
+# Formatting
+cargo fmt --all -- --check
+
+# All targets and tests
+cargo check --workspace --all-targets --locked -j 1
+cargo test --workspace --lib --tests --locked -j 1
+cargo test --workspace --doc --locked -j 1
+
+# Stable, non-interactive render snapshots of the TUI
+cargo run -p mm-tui --example capture_layouts
 ```
 
-Every case states an exact expected expression, cases the engine does not solve are listed by
-name in the suite itself, and a solved case must also produce a trace that replays from the
-input to the reported result. The run prints the rule count, the action-vocabulary digest and
-the model provenance it was produced under. Read the numbers from a run, not from this file.
+See [CONTRIBUTING.md](CONTRIBUTING.md) before adding rules or changing verifier behavior.
+Every executable rule should include a targeted witness/test, a stable identity, and an
+expected verification outcome.
 
----
+## Research integrity
 
-## Design Philosophy
-
-### Why Not Just Use an LLM?
-
-LLMs are amazing at many tasks, but they can:
-- Produce plausible-looking but incorrect derivations
-- Skip steps or make sign errors
-- Not explain why a transformation is valid
-
-LEMMA trades generality for **reliability**:
-- Every step is a provable transformation
-- The verifier catches errors
-- Complete proof traces for debugging
-
-### Why Rust?
-
-1. **Performance** - MCTS explores thousands of nodes; speed matters
-2. **Memory Safety** - No GC pauses during search
-3. **Type System** - Expression trees are naturally typed
-4. **Ecosystem** - Candle for neural networks, excellent tooling
-
----
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
-
-**Quick version:**
-1. Fork the repo
-2. Add a rule to `mm-rules/src/algebra.rs`
-3. Add a test case
-4. Submit a PR
-
-We especially welcome:
-- New mathematical rules
-- Bug reports with reproducible examples
-- Documentation improvements
-- Benchmark problems that fail
-
----
+Report results with the command, revision, and exact test output that produced them — see
+[`docs/evaluation.md`](docs/evaluation.md#research-integrity).
 
 ## License
 
-Mozilla Public License 2.0 - see [LICENSE](LICENSE)
+LEMMA is available under the [Mozilla Public License 2.0](LICENSE).
 
 ---
 
-## Acknowledgments
+<div align="center">
 
-- [AlphaZero](https://www.nature.com/articles/nature24270) - MCTS + Neural guidance
-- [AlphaProof](https://deepmind.google/discover/blog/ai-solves-imo-problems-at-silver-medal-level/) - Inspiration for math reasoning
-- [Candle](https://github.com/huggingface/candle) - Rust ML framework
-- [SimSIMD](https://github.com/ashvardanian/SimSIMD) / [USearch](https://github.com/unum-cloud/usearch) - Ash Vardanian's ecosystem
+Built as an open research platform for inspectable mathematical search.
 
----
-
-## Insights From the Creator :-
-### LEMMA is a neuro-symbolic reasoning architecture prototype that *explores*:
-
-1) rule-based symbolic transformation
-2) domain-aware rule gating
-3) credit-constrained search control
-4) reinforcement-style meta-reward feedback
-5) hybrid symbolic + learned policy guidance
-
-It is *NOT*:
-1) a CAS
-2) an LLM
-3) a IMO/JEE/MATH paper solver
-4) a theorem prover 
-5) a Magic Box
-.... yet
-
-It’s a research platform/Prototype for studying/Understanding how symbolic systems can be guided, constrained, and optimized Through Neural Guidance.
-
----
-
-## Contact
-
-- **Author**: Pushp Kharat
-- **Email**: kharatpushp16@outlook.com
-- **GitHub**: [@Pushp-Kharat1](https://github.com/Pushp-Kharat1)
-
----
-
-LEMMA is a research project. Use it to learn, experiment, and contribute - not as your only source of mathematical truth.
-
-bUY ME A COFFEE : https://buymeacoffee.com/kharatpushg
+</div>

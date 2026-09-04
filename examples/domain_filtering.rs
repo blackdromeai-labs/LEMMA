@@ -8,7 +8,7 @@
 //! (`BoinkMCTS`) had no test anywhere in its own crate. It has been removed; what remains in
 //! `mm-boink` is only the domain-profile analyzer this example actually exercises.
 //!
-//! Run: cargo run --example domain_filtering_demo
+//! Run: cargo run --example domain_filtering
 
 use mm_boink::analyze;
 use mm_core::{Expr, SymbolTable};
