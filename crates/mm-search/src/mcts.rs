@@ -229,6 +229,20 @@ pub struct SearchOutcome {
     pub solution: Solution,
     /// Whether the final state satisfies the goal predicate.
     pub reached_goal: bool,
+    /// Total nodes in the search tree when the budget was exhausted (or 1, if the start state
+    /// already satisfied the goal and no simulation ran at all).
+    ///
+    /// Pure post-hoc counting over the finished tree -- it does not read anything `simulate`,
+    /// `expand`, or `select_child` do not already produce, and adding it changes no selection
+    /// or expansion decision. This is a size metric, not a claim about which nodes mattered;
+    /// two searches that visit the same nodes a different number of times report the same
+    /// count here.
+    pub nodes_expanded: usize,
+}
+
+/// Count of nodes in a tree, root included.
+fn count_nodes(node: &MCTSNode) -> usize {
+    1 + node.children.iter().map(|c| count_nodes(c)).sum::<usize>()
 }
 
 impl NeuralMCTS {
@@ -292,6 +306,7 @@ impl NeuralMCTS {
             return SearchOutcome {
                 solution: Solution::assess(start.clone(), start, vec![]),
                 reached_goal: true,
+                nodes_expanded: 1,
             };
         }
 
@@ -300,7 +315,10 @@ impl NeuralMCTS {
             self.simulate(&mut root, &goal, 0);
         }
 
-        self.extract(&root, &start, &goal)
+        let total_nodes = count_nodes(&root);
+        let mut outcome = self.extract(&root, &start, &goal);
+        outcome.nodes_expanded = total_nodes;
+        outcome
     }
 
     /// Run one MCTS simulation (SELECT, EXPAND, EVALUATE, BACKUP).
@@ -341,6 +359,60 @@ impl NeuralMCTS {
         let value = self.simulate(&mut node.children[best], goal, depth + 1);
         node.back_up(value);
         value
+    }
+
+    /// Renormalize child priors over the legal action set.
+    ///
+    /// The policy head is a softmax over the whole action vocabulary (573 classes), but only a
+    /// few of those actions are legal at any given state -- the rule must be offered by the
+    /// guardrail, apply to this expression, change it, and survive verification. PUCT requires
+    /// the priors it consumes to be a distribution over *legal* actions, which is why
+    /// AlphaZero-style implementations mask illegal moves and renormalize.
+    ///
+    /// Without this step the exploration term's absolute scale is arbitrary: if the network
+    /// puts most of its mass on actions that are not legal here, every legal child's raw
+    /// probability sits far below the nominal `1/573`, which changes how the exploration term
+    /// trades off against the value term as visits accumulate. This is worth doing on general
+    /// PUCT-hygiene grounds.
+    ///
+    /// It is NOT, on its own, a fix for a measured trained-vs-uniform regression this project
+    /// hit (a trained policy scoring 72/200 on its own training families while matching uniform
+    /// at 200/200 on families it had no signal for). That was checked directly, not assumed:
+    /// renormalizing is a positive linear rescaling of every legal child's prior by the same
+    /// constant, which cannot change which child has the highest prior -- confirmed by rerunning
+    /// the exact benchmark before and after this function existed and getting byte-identical
+    /// results (272/400 both times). The actual cause, found by printing the policy's raw
+    /// output at a failing root state, is a genuine miscalibration: on
+    /// `1 * (1 * (3*x + 6*x) + 0)`, the two legal moves are `identity_mul_one` (the correct
+    /// first step) and `distribute`; the network assigns `distribute` roughly 5,400x more raw
+    /// probability, and the same mis-ranking reproduces at deeper instances of the same family
+    /// (`identity_mul_one` still loses by ~2,500x at depth 6 and ~500x at depth 8). The
+    /// network's training data (`mm_brain::data`) teaches this rule only on flat, single-level
+    /// expressions (`x * 1`, `1 * x`); it was never shown the rule firing on a `1 * (...)`
+    /// wrapping a compound sub-expression, and confidently prefers a different, also-trained
+    /// rule that superficially matches the nested shape instead. A confidently wrong prior
+    /// starves the correct branch of simulation budget regardless of normalization -- MCTS
+    /// spends its budget on the branch the policy insists is best, not on the one UCB's
+    /// exploration term would eventually reach if given enough visits.
+    ///
+    /// Degenerate case this function does still handle: if every legal child has a vanishing
+    /// prior (the policy's mass is entirely on illegal actions), fall back to a uniform
+    /// distribution over the children rather than dividing by ~0.
+    fn renormalize_priors(children: &mut [Box<MCTSNode>]) {
+        if children.is_empty() {
+            return;
+        }
+        let total: f64 = children.iter().map(|c| c.prior).sum();
+        let uniform = 1.0 / children.len() as f64;
+        if total.is_finite() && total > 1e-12 {
+            for child in children.iter_mut() {
+                child.prior /= total;
+            }
+        } else {
+            for child in children.iter_mut() {
+                child.prior = uniform;
+            }
+        }
     }
 
     /// Expand a node by adding one child per verified rule application.
@@ -397,6 +469,8 @@ impl NeuralMCTS {
                 )));
             }
         }
+
+        Self::renormalize_priors(&mut node.children);
     }
 
     /// Select the index of the best child by UCB, breaking ties towards the lower index.
@@ -455,6 +529,10 @@ impl NeuralMCTS {
             return SearchOutcome {
                 solution: Solution::assess(start.clone(), result, steps),
                 reached_goal: true,
+                // Overwritten by the caller (`search_best_effort`), which knows the actual
+                // tree size; `extract` only sees `root` by reference and has no reason to
+                // recompute a count it did not need for path extraction itself.
+                nodes_expanded: 0,
             };
         }
 
@@ -493,6 +571,7 @@ impl NeuralMCTS {
         SearchOutcome {
             solution,
             reached_goal: false,
+            nodes_expanded: 0, // overwritten by the caller; see the note on the goal-path arm
         }
     }
 
@@ -1455,6 +1534,103 @@ mod tests {
         let (_symbols, x) = var();
         let solution = mcts.simplify(x.clone());
         assert_eq!(solution.result, x, "the cycle must not change the answer");
+    }
+
+    // `renormalize_priors` is justified purely on PUCT semantics -- see its doc comment for
+    // why it is NOT presented as a fix for any measured search-quality result. These tests
+    // check only the three properties a legal-action prior distribution must have; none of
+    // them touch policy weights, search outcomes, or the E1 benchmark.
+    mod renormalize_priors_semantics {
+        use super::*;
+
+        fn child(prior: f64) -> Box<MCTSNode> {
+            Box::new(MCTSNode::new(Expr::int(0), prior))
+        }
+
+        #[test]
+        fn priors_sum_to_one_after_renormalizing() {
+            let mut children = vec![child(0.003), child(0.0000006), child(0.001)];
+            NeuralMCTS::renormalize_priors(&mut children);
+            let sum: f64 = children.iter().map(|c| c.prior).sum();
+            assert!(
+                (sum - 1.0).abs() < 1e-9,
+                "renormalized priors must sum to 1.0 over the legal action set, got {sum}"
+            );
+        }
+
+        #[test]
+        fn relative_order_is_unchanged_by_renormalizing() {
+            // This is the property that matters for reading the E1 result correctly: renormalizing
+            // is a positive linear rescaling of every child by the same constant, so it can change
+            // magnitude but never which child has the largest (or smallest) prior. A test that
+            // showed otherwise would mean this function does something other than renormalize.
+            let raw = [0.00403985_f64, 0.00000075, 0.002];
+            let mut children: Vec<Box<MCTSNode>> = raw.iter().map(|&p| child(p)).collect();
+            NeuralMCTS::renormalize_priors(&mut children);
+
+            let mut raw_order: Vec<usize> = (0..raw.len()).collect();
+            raw_order.sort_by(|&a, &b| raw[b].partial_cmp(&raw[a]).unwrap());
+
+            let mut renorm_order: Vec<usize> = (0..children.len()).collect();
+            renorm_order
+                .sort_by(|&a, &b| children[b].prior.partial_cmp(&children[a].prior).unwrap());
+
+            assert_eq!(
+                raw_order, renorm_order,
+                "renormalizing must not change the ranking of children by prior"
+            );
+        }
+
+        #[test]
+        fn a_vanishing_total_falls_back_to_uniform_rather_than_dividing_by_zero() {
+            let mut children = vec![child(1e-20), child(1e-20), child(1e-20), child(1e-20)];
+            NeuralMCTS::renormalize_priors(&mut children);
+            for c in &children {
+                assert!(
+                    (c.prior - 0.25).abs() < 1e-9,
+                    "with a vanishing total, every child should fall back to 1/n, got {}",
+                    c.prior
+                );
+                assert!(c.prior.is_finite());
+            }
+        }
+
+        #[test]
+        fn an_empty_child_list_is_a_no_op() {
+            let mut children: Vec<Box<MCTSNode>> = Vec::new();
+            NeuralMCTS::renormalize_priors(&mut children); // must not panic
+            assert!(children.is_empty());
+        }
+    }
+
+    #[test]
+    fn nodes_expanded_is_one_when_the_start_already_satisfies_the_goal() {
+        // No simulation runs at all here (`search_best_effort` returns before building a
+        // tree), so the only node that can exist is the one the caller started with.
+        let mcts = NeuralMCTS::with_config(standard_rules(), Verifier::new(), small_config());
+        let (_symbols, x) = var();
+        let outcome = mcts.search_best_effort(x.clone(), |e| *e == x);
+        assert!(outcome.reached_goal);
+        assert_eq!(outcome.nodes_expanded, 1);
+    }
+
+    #[test]
+    fn nodes_expanded_reflects_the_actual_tree_the_search_built() {
+        // x + 0 reaches a trivial goal in one step, so the tree is at minimum {root, one
+        // child reached by identity_add_zero}. This does not pin an exact count -- MCTS may
+        // expand siblings too -- only the floor a tree that did any work at all must clear,
+        // and that it is not the degenerate `1` from the zero-simulation branch above.
+        let mcts = NeuralMCTS::with_config(standard_rules(), Verifier::new(), small_config());
+        let (_symbols, x) = var();
+        let start = add_zero(&x);
+        let outcome = mcts.search_best_effort(start, |e| *e == x);
+        assert!(outcome.reached_goal, "x + 0 -> x must be reachable");
+        assert!(
+            outcome.nodes_expanded >= 2,
+            "a search that expanded at least once must report more than the trivial 1-node case, \
+             got {}",
+            outcome.nodes_expanded
+        );
     }
 
     #[test]

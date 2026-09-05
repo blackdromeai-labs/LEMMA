@@ -13,11 +13,30 @@ use mm_brain::{
 };
 use mm_core::Expr;
 
+fn training_device() -> candle_core::Result<Device> {
+    #[cfg(feature = "cuda")]
+    {
+        Device::new_cuda(0)
+    }
+
+    #[cfg(not(feature = "cuda"))]
+    {
+        Err(candle_core::Error::Msg(
+            "train_network requires GPU support; rerun with `--features cuda`".to_string(),
+        ))
+    }
+}
+
 fn main() {
     println!("=== Math Monster: Neural Network Training ===\n");
 
-    // Use CPU for now
-    let device = Device::Cpu;
+    let device = match training_device() {
+        Ok(device) => device,
+        Err(error) => {
+            eprintln!("Failed to initialize CUDA device 0: {error}");
+            std::process::exit(2);
+        }
+    };
     println!("Using device: {:?}", device);
 
     // Generate synthetic training data - 10K examples

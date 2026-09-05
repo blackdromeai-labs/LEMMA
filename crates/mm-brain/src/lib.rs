@@ -24,6 +24,7 @@
 //! ```
 
 pub mod data;
+pub mod data_compositional;
 pub mod encoder;
 pub mod network;
 pub mod policy;
@@ -33,6 +34,7 @@ pub mod text_classifier;
 pub mod training;
 
 pub use data::DataGenerator;
+pub use data_compositional::{CompositionalDataGenerator, GenerationReport, COMPOSITIONAL_SEED};
 pub use encoder::ExpressionEncoder;
 pub use network::{MathNetwork, NetworkConfig};
 pub use policy::PolicyNetwork;

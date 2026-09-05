@@ -6,9 +6,19 @@ authors.workspace = true
 license.workspace = true
 description = "Neural network strategy learning for LEMMA"
 
+[features]
+default = []
+# `candle-nn/cuda` is required, not redundant. candle-nn gates its own CUDA kernels behind
+# its own `cuda` feature -- `LayerNorm::cuda_fwd` in candle-nn/src/ops.rs sits under
+# `#[cfg(feature = "cuda")]`. Enabling only `candle-core/cuda` compiles candle-nn without
+# those methods, so the CustomOp3 default fires and training dies at the first layer norm
+# with "no cuda implementation for layer-norm".
+cuda = ["candle-core/cuda", "candle-nn/cuda"]
+
 [dependencies]
 mm-core = { path = "../mm-core" }
 mm-rules = { path = "../mm-rules" }
+mm-verifier = { path = "../mm-verifier" }
 rand.workspace = true
 thiserror.workspace = true
 serde.workspace = true

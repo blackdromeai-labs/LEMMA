@@ -1,0 +1,615 @@
+   Compiling mm-core v0.1.0 (I:\Blackdrome\LEMMA\crates\mm-core)
+   Compiling mm-rules v0.1.0 (I:\Blackdrome\LEMMA\crates\mm-rules)
+   Compiling mm-synth v0.1.0 (I:\Blackdrome\LEMMA\crates\mm-synth)
+   Compiling mm-macro v0.1.0 (I:\Blackdrome\LEMMA\crates\mm-macro)
+   Compiling mm-verifier v0.1.0 (I:\Blackdrome\LEMMA\crates\mm-verifier)
+   Compiling mm-brain v0.1.0 (I:\Blackdrome\LEMMA\crates\mm-brain)
+   Compiling mm-boink v0.1.0 (I:\Blackdrome\LEMMA\crates\mm-boink)
+   Compiling mm-search v0.1.0 (I:\Blackdrome\LEMMA\crates\mm-search)
+   Compiling mm-solver v0.1.0 (I:\Blackdrome\LEMMA\crates\mm-solver)
+   Compiling mm-tui v0.1.0 (I:\Blackdrome\LEMMA\crates\mm-tui)
+   Compiling lemma v0.1.0 (I:\Blackdrome\LEMMA)
+    Finished `release` profile [optimized] target(s) in 48.60s
+     Running unittests src\lib.rs (target\release\deps\mm_boink-638124c68065db46.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\release\deps\mm_brain-992fbbeea7b6e955.exe)
+
+running 28 tests
+test encoder::tests::test_encode_to_tensor ... ok
+test encoder::tests::test_tokenize_simple ... ok
+test provenance::tests::digest_mismatch_is_rejected ... ok
+test provenance::tests::action_count_mismatch_is_rejected ... ok
+test data::tests::test_quotient_rule_examples ... ok
+test policy::tests::loading_a_missing_model_is_an_error_not_a_silent_untrained_network ... ok
+test provenance::tests::matching_manifest_is_accepted ... ok
+test data::tests::test_equation_examples ... ok
+test data::tests::test_generate_constant_folding ... ok
+test provenance::tests::untrained_provenance_is_not_trained ... ok
+test substitution::tests::test_functional_equation_prediction ... ok
+test text_classifier::tests::keywords_drive_the_scores ... ok
+test substitution::tests::test_number_theory_prediction ... ok
+test text_classifier::tests::missing_vocab_is_an_error ... ok
+test substitution::tests::test_search_hints ... ok
+test substitution::tests::test_inequality_prediction ... ok
+test policy::tests::untrained_network_is_labelled_untrained ... ok
+test text_classifier::tests::unmatched_text_produces_a_flat_distribution ... ok
+test network::tests::test_policy_sums_to_one ... ok
+test policy::tests::value_estimate_is_bounded ... ok
+test data::tests::test_generate_dataset ... ok
+test substitution::tests::test_iterated_function ... ok
+test policy::tests::priors_are_readable_for_every_registered_rule ... ok
+test policy::tests::policy_head_matches_the_action_vocabulary ... ok
+test network::tests::test_network_forward ... ok
+test training::tests::test_trainer_creation ... ok
+test policy::tests::top_k_returns_registered_rules_in_deterministic_order ... ok
+test training::tests::test_single_train_step ... ok
+
+test result: ok. 28 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running unittests src\lib.rs (target\release\deps\mm_core-40ab36496ed822f4.exe)
+
+running 52 tests
+test canon::tests::test_commutative_ordering ... ok
+test canon::tests::test_constant_folding ... ok
+test eval::tests::a_negative_base_to_a_non_literal_exponent_is_unsupported_not_undefined ... ok
+test canon::tests::test_power_simplification ... ok
+test canon::tests::test_identity_simplification ... ok
+test eval::tests::a_negative_base_to_an_even_denominator_rational_exponent_does_not_evaluate ... ok
+test eval::tests::a_negative_base_to_an_odd_denominator_rational_exponent_evaluates_to_its_real_root ... ok
+test eval::tests::test_arithmetic_evaluation ... ok
+test eval::tests::absence_of_any_jointly_evaluable_sample_does_not_produce_a_positive_verdict ... ok
+test eval::tests::an_infinite_subexpression_does_not_manufacture_a_positive_equivalence_verdict ... ok
+test eval::tests::test_trig_evaluation ... ok
+test eval::tests::test_approx_equals ... ok
+test eval::tests::a_nan_producing_subexpression_does_not_manufacture_a_positive_equivalence_verdict ... ok
+test eval::tests::test_variable_evaluation ... ok
+test expr::tests::test_expr_complexity ... ok
+test expr::tests::test_expr_equality ... ok
+test format::tests::a_symbol_from_another_table_renders_instead_of_panicking ... ok
+test eval::tests::test_constant_evaluation ... ok
+test format::tests::absolute_value_uses_bars ... ok
+test format::tests::forms_the_parser_cannot_read_are_pinned ... ok
+test format::tests::logic_and_quantifiers_render_with_binding ... ok
+test format::tests::every_variant_renders_without_panicking ... ok
+test format::tests::factorial_binds_tighter_than_power_and_wraps_compounds ... ok
+test format::tests::arithmetic_keeps_only_the_parentheses_it_needs ... ok
+test format::tests::calculus_matches_the_parser_syntax ... ok
+test format::tests::canonical_n_ary_forms_render ... ok
+test format::tests::relations_render_infix ... ok
+test format::tests::rendered_output_parses_back_to_the_same_expression ... ok
+test format::tests::atoms_render_plainly ... ok
+test format::tests::negation_parenthesises_only_looser_operands ... ok
+test format::tests::summation_and_product_match_the_parser_syntax ... ok
+test format::tests::truncation_counts_characters_not_bytes ... ok
+test format::tests::unary_and_binary_functions_use_call_syntax ... ok
+test parse::tests::test_parse_addition ... ok
+test parse::tests::test_parse_equation ... ok
+test parse::tests::test_parse_factorial ... ok
+test parse::tests::test_parse_function ... ok
+test parse::tests::test_parse_variable ... ok
+test parse::tests::test_parse_number ... ok
+test parse::tests::test_parse_complex ... ok
+test proof::tests::test_add_hypothesis ... ok
+test parse::tests::test_parse_calculus ... ok
+test format::tests::powers_are_right_associative_and_bind_tightest ... ok
+test rational::tests::test_basic_arithmetic ... ok
+test proof::tests::test_proof_state_creation ... ok
+test rational::tests::test_display ... ok
+test rational::tests::test_power ... ok
+test proof::tests::test_add_goal ... ok
+test rational::tests::test_reduction ... ok
+test symbol::tests::test_symbol_interning ... ok
+test symbol::tests::test_symbol_resolution ... ok
+test symbol::tests::test_table_operations ... ok
+
+test result: ok. 52 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests\expr_equality.rs (target\release\deps\expr_equality-0df6a124ce842ccb.exe)
+
+running 4 tests
+test every_variant_is_equal_to_itself ... ok
+test every_variant_survives_a_hash_set_round_trip ... ok
+test ordering_agrees_with_equality ... ok
+test the_whole_witness_corpus_is_reflexive ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\release\deps\mm_macro-3ac80f0b8b2aa11a.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\basic.rs (target\release\deps\basic-05b0729cd9f78105.exe)
+
+running 1 test
+test test_basic_expr ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\release\deps\mm_rules-6b1e2252f3c23f52.exe)
+
+running 75 tests
+test algebra::tests::test_constant_fold ... ok
+test backward::tests::test_forall_backward ... ok
+test algebra::tests::test_distribute ... ok
+test backward::tests::test_squared_form_detection ... ok
+test board_exam::tests::test_ap_nth_term ... ok
+test board_exam::tests::test_ap_sum ... ok
+test board_exam::tests::test_area_under_parabola ... ok
+test board_exam::tests::test_definite_integral ... ok
+test algebra::tests::test_identity_add_zero ... ok
+test board_exam::tests::test_gp_infinite_sum ... ok
+test backward::tests::test_inequality_to_difference ... ok
+test board_exam::tests::test_gp_nth_term ... ok
+test board_exam::tests::test_gp_sum ... ok
+test board_exam::tests::test_integrate_polynomial ... ok
+test board_exam::tests::test_quadratic_complex ... ok
+test board_exam::tests::test_quadratic_one_root ... ok
+test board_exam::tests::test_quadratic_two_roots ... ok
+test action::tests::count_mismatch_is_rejected ... ok
+test action::tests::const_fold_is_action_zero_not_one ... ok
+test board_exam::tests::test_sum_product_of_roots ... ok
+test action::tests::unknown_rule_is_an_error_not_a_default ... ok
+test action::tests::indices_are_dense_and_much_smaller_than_rule_ids ... ok
+test action::tests::vocabulary_covers_every_rule_exactly_once ... ok
+test action::tests::digest_is_stable_and_content_sensitive ... ok
+test action::tests::indices_round_trip_through_keys ... ok
+test calculus::tests::test_cbse_q8_min_value ... ok
+test calculus::tests::test_cbse_q8_max_value ... ok
+test calculus::tests::test_integral_constant ... ok
+test calculus::tests::test_constant_rule ... ok
+test calculus::tests::test_integral_constant_multiple ... ok
+test calculus::tests::test_differentiate_polynomial ... ok
+test calculus::tests::test_integral_cos ... ok
+test calculus::tests::test_integral_csc2 ... ok
+test calculus::tests::test_integral_difference ... ok
+test calculus::tests::test_integral_exp ... ok
+test calculus::tests::test_integral_power_rule ... ok
+test calculus::tests::test_integral_sec2 ... ok
+test calculus::tests::test_integral_sin ... ok
+test calculus::tests::test_integral_sum ... ok
+test calculus::tests::test_integral_tan ... ok
+test calculus::tests::test_integration_by_parts ... ok
+test calculus::tests::test_partial_fractions ... ok
+test calculus::tests::test_power_rule ... ok
+test calculus::tests::test_trig_substitution ... ok
+test calculus::tests::test_u_substitution ... ok
+test case_analysis::tests::test_parity_split ... ok
+test case_analysis::tests::test_prove_cases ... ok
+test case_analysis::tests::test_sign_split ... ok
+test case_analysis::tests::test_suggest_splits ... ok
+test equations::tests::test_cancel_addition ... ok
+test equations::tests::test_cancel_multiplication ... ok
+test equations::tests::test_linear_solve ... ok
+test geometry::tests::test_centroid_formula ... ok
+test geometry::tests::test_distance_formula ... ok
+test geometry::tests::test_ellipse_eccentricity ... ok
+test geometry::tests::test_geometry_rules_count ... ok
+test geometry::tests::test_hyperbola_focal_difference ... ok
+test induction::tests::test_complete_induction ... ok
+test induction::tests::test_induction_from_one ... ok
+test induction::tests::test_inductive_step ... ok
+test induction::tests::test_simple_induction_setup ... ok
+test inequality_chain::tests::test_from_hypotheses ... ok
+test inequality_chain::tests::test_mixed_strictness ... ok
+test inequality_chain::tests::test_simple_transitivity ... ok
+test polynomial::tests::test_constant_equality ... ok
+test polynomial::tests::test_polynomial_equality ... ok
+test polynomial::tests::test_sum_formula_step ... ok
+test polynomial::tests::test_variable_equality ... ok
+test quantifier::tests::test_quantifier_negation ... ok
+test quantifier::tests::test_universal_instantiation ... ok
+test quantifier::tests::test_universal_introduction ... ok
+test trig::tests::test_pythagorean_identity ... ok
+test witness::tests::corpus_covers_the_major_expression_shapes ... ok
+test witness::tests::corpus_is_non_trivial_and_deterministic ... ok
+test rule::tests::test_rule_set_operations ... ok
+
+test result: ok. 75 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests\registry_invariants.rs (target\release\deps\registry_invariants-fb2df12f4f8184f4.exe)
+
+running 10 tests
+test duplicate_id_is_rejected ... ok
+test duplicate_key_is_rejected ... ok
+test same_name_in_different_modules_is_allowed ... ok
+test get_by_id_returns_the_rule_that_was_registered ... ok
+test by_category_agrees_with_all_and_get ... ok
+test every_rule_id_is_unique ... ok
+test standard_registry_builds_without_collisions ... ok
+test every_rule_key_is_unique ... ok
+test action_vocabulary_covers_the_whole_registry ... ok
+test iteration_order_is_deterministic ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests\rule_census.rs (target\release\deps\rule_census-67e9edc2887f36fa.exe)
+
+running 7 tests
+test the_verdict_labels_are_distinct ... ok
+test transforming_rules_are_reachable_through_the_guardrail ... ok
+test a_rule_that_transforms_does_so_on_at_least_one_witness ... ok
+test no_witness_rules_are_listed_so_the_corpus_can_be_widened ... ok
+test rule_census_matches_the_pinned_counts ... ok
+test no_op_rules_are_listed_so_they_can_be_found ... ok
+test every_rule_receives_exactly_one_verdict ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running unittests src\lib.rs (target\release\deps\mm_search-def2d6186700f017.exe)
+
+running 34 tests
+test bridge::tests::test_multiple_bridges ... ok
+test bridge::tests::test_bridge_detection ... ok
+test deep_mcts::tests::test_config_presets ... ok
+test bridge::tests::test_no_bridge ... ok
+test deep_mcts::tests::statistics_are_measured_not_derived_from_the_configuration ... ok
+test deep_mcts::tests::depth_is_recorded_when_the_search_descends ... ok
+test beam::tests::test_beam_search_creation ... ok
+test deep_mcts::tests::a_goal_at_the_root_is_reported_immediately ... ok
+test beam::tests::simplify_records_a_replayable_trace ... ok
+test mcts::tests::node_starts_unvisited ... ok
+test beam::tests::an_unsolved_problem_is_not_reported_as_verified ... ok
+test mcts::tests::a_goal_is_extracted_even_when_it_is_not_the_most_visited_child ... ok
+test mcts::tests::a_search_without_a_goal_returns_none_not_a_partial_solution ... ok
+test beam::tests::test_simplify_constant ... ok
+test mcts::tests::max_depth_is_respected ... ok
+test mcts::tests::a_cycle_does_not_stall_simplify ... ok
+test mcts::tests::ucb_score_is_positive_for_a_visited_node ... ok
+test tests::a_broken_chain_is_unverified ... ok
+test tests::a_complete_checked_chain_is_checked ... ok
+test tests::empty_trace_with_unchanged_result_is_checked ... ok
+test tests::a_trace_that_starts_elsewhere_is_unverified ... ok
+test mcts::tests::an_untrained_policy_is_not_consulted ... ok
+test tests::a_trace_that_ends_elsewhere_is_unverified ... ok
+test tests::one_unchecked_step_prevents_full_verification ... ok
+test mcts::tests::reaching_the_goal_backs_up_through_the_terminal_node ... ok
+test tests::untraced_change_cannot_be_checked ... ok
+test mcts::tests::one_rule_with_two_applications_produces_two_children ... ok
+test mcts::tests::no_untraced_jump_to_the_final_answer ... ok
+test mcts::tests::two_different_rules_both_keep_their_children ... ok
+test mcts::tests::search_results_are_deterministic ... ok
+test mcts::tests::simplify_produces_a_replayable_trace ... ok
+test mcts::tests::the_default_policy_is_reported_as_untrained ... ok
+test mcts::tests::every_registered_rule_has_a_readable_prior ... ok
+test mcts::tests::simplify_is_deterministic_across_solver_instances ... ok
+
+test result: ok. 34 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests\guardrail_reachability.rs (target\release\deps\guardrail_reachability-0d0c8b66b83993c8.exe)
+
+running 3 tests
+test calculus_rules_survive_nesting ... ok
+test trigonometric_rules_survive_a_squared_argument ... ok
+test the_set_of_guardrail_hidden_rules_is_pinned ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests\solution_integrity.rs (target\release\deps\solution_integrity-6ed737cb42e9ea03.exe)
+
+running 5 tests
+test an_untraced_final_fold_cannot_be_marked_fully_verified ... ok
+test an_unchecked_fallback_cannot_be_marked_fully_verified ... ok
+test an_unsound_rule_never_enters_a_returned_trace ... ok
+test post_processing_is_recorded_as_steps ... ok
+test a_reported_result_is_always_reachable_from_the_recorded_steps ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src\lib.rs (target\release\deps\mm_solver-62f809c7526a799a.exe)
+
+running 14 tests
+test orchestrator::tests::test_induction_simple ... ok
+test orchestrator::tests::test_trivial_inequality ... ok
+test imo_solver::tests::inequality_hints_are_still_reported ... ok
+test imo_solver::tests::text_input_is_reported_as_unsupported ... ok
+test imo_solver::tests::two_unrelated_problems_cannot_produce_the_same_canned_solution ... ok
+test imo_solver::tests::hints_are_still_reported_for_text ... ok
+test imo_solver::tests::an_expression_that_is_already_a_goal_solves_trivially ... ok
+test imo_solver::tests::test_solver_creation ... ok
+test tests::a_simplified_result_carries_a_replayable_trace ... ok
+test tests::test_solver_creation ... ok
+test tests::test_parse ... ok
+test tests::solve_for_still_reports_parse_errors ... ok
+test tests::test_simplify ... ok
+test tests::solve_for_reports_that_it_is_unimplemented ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests\evaluation.rs (target\release\deps\evaluation-20855937d2eee2eb.exe)
+
+running 8 tests
+test every_solved_case_has_a_replayable_trace ... ok
+test algebraic_identities ... ok
+test equation_solving ... ok
+test trigonometric_identities ... ok
+test constant_arithmetic ... ok
+test derivatives ... ok
+test multi_step_algebra ... ok
+test provenance_is_recorded ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests\proof_suite.rs (target\release\deps\proof_suite-318635e9aab90c9a.exe)
+
+running 11 tests
+test test_10_power_inequality ... ok
+test test_07_binomial_difference ... ok
+test test_04_square_nonnegative ... ok
+test test_09_absolute_triangle ... ok
+test test_02_binomial_square ... ok
+test test_03_difference_of_squares ... ok
+test test_01_squares_inequality ... ok
+test test_08_three_term_inequality ... ok
+test test_06_trivial_equality ... ok
+test test_05_sum_inequality ... ok
+test every_problem_produces_backward_steps ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src\lib.rs (target\release\deps\mm_synth-e00638bd52deec88.exe)
+
+running 1 test
+test generator::tests::test_generator_basic ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\release\deps\mm_tui-dd86dc51a6b14e5c.exe)
+
+running 54 tests
+test app::tests::a_failed_request_is_not_remembered_as_a_result ... ok
+test app::tests::each_submission_gets_a_new_id ... ok
+test app::tests::a_stale_response_is_ignored ... ok
+test app::tests::clear_keeps_the_variable_so_the_next_run_does_not_need_retyping ... ok
+test app::tests::ctrl_q_quits_even_while_editing ... ok
+test app::tests::help_opens_from_an_editor_because_question_mark_is_not_expression_syntax ... ok
+test app::tests::enter_inside_an_editor_does_not_create_a_second_line ... ok
+test app::tests::escape_from_the_trace_returns_to_the_form ... ok
+test app::tests::history_records_the_mode_the_request_was_sent_with ... ok
+test app::tests::focus_moves_off_a_field_the_new_mode_does_not_use ... ok
+test app::tests::clear_empties_the_form_and_the_result ... ok
+test app::tests::history_cursor_stays_in_range ... ok
+test app::tests::history_records_the_inputs_the_request_was_sent_with ... ok
+test app::tests::history_keeps_the_most_recent_entries_only ... ok
+test app::tests::key_release_events_are_ignored ... ok
+test app::tests::focus_order_follows_the_mode ... ok
+test app::tests::letters_reach_the_editor_instead_of_triggering_shortcuts ... ok
+test app::tests::overlays_toggle_and_escape_closes_them ... ok
+test app::tests::recalling_history_restores_the_form_and_the_trace ... ok
+test app::tests::submitting_while_running_does_not_queue_a_second_job ... ok
+test app::tests::switching_mode_drops_a_result_from_the_previous_operation ... ok
+test app::tests::tab_cycles_focus_and_wraps ... ok
+test app::tests::trace_navigation_is_safe_with_no_steps ... ok
+test app::tests::trace_selection_stays_in_range ... ok
+test app::tests::typing_sqrt_does_not_quit ... ok
+test presentation::tests::every_badge_has_a_distinct_label_and_marker ... ok
+test presentation::tests::evidence_distinguishes_replay_from_independent_checks ... ok
+test presentation::tests::heuristic_status_never_becomes_checked ... ok
+test presentation::tests::modes_declare_the_fields_they_read ... ok
+test presentation::tests::only_checked_counts_as_verified ... ok
+test presentation::tests::status_reasons_come_from_the_domain ... ok
+test presentation::tests::step_summary_reports_the_evidence_class ... ok
+test presentation::tests::verify_result_maps_to_candidate_badges ... ok
+test splash::tests::every_banner_row_is_the_same_width ... ok
+test splash::tests::fits_within_the_workbenchs_stated_minimum_width ... ok
+test splash::tests::nothing_is_swept_at_tick_zero ... ok
+test splash::tests::the_sweep_fully_colours_the_banner_once_reveal_ticks_pass ... ok
+test splash::tests::the_hint_only_appears_after_the_sweep_and_both_subtitles_have_landed ... ok
+test splash::tests::renders_without_panicking_on_a_minimum_size_backend ... ok
+test worker::tests::input_errors_become_an_input_error_badge ... ok
+test worker::tests::verify_candidate_needs_an_equation ... ok
+test worker::tests::verify_candidate_accepts_a_true_candidate ... ok
+test worker::tests::differentiate_requires_a_variable ... ok
+test worker::tests::simplify_reports_the_domain_status ... ok
+test worker::tests::an_empty_expression_is_an_input_error_not_a_solver_run ... ok
+test worker::tests::every_step_carries_identity_and_evidence ... ok
+test worker::tests::simplify_renders_readable_maths_not_debug_output ... ok
+test worker::tests::verify_candidate_rejects_a_false_candidate ... ok
+test worker::tests::differentiate_builds_the_derivative_from_the_parsed_expression ... ok
+test worker::tests::a_parse_error_is_attributed_to_its_field ... ok
+test worker::tests::a_variable_field_rejects_things_that_are_not_names ... ok
+test worker::tests::the_worker_answers_on_its_own_thread_and_echoes_the_request_id ... ok
+test splash::tests::renders_without_panicking_at_every_tick_on_a_realistic_backend ... ok
+test worker::tests::dropping_the_worker_does_not_wait_for_queued_work ... ok
+
+test result: ok. 54 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+     Running unittests src\main.rs (target\release\deps\mm_tui-75928048034162a4.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\end_to_end.rs (target\release\deps\end_to_end-26399c343fe76324.exe)
+
+running 8 tests
+test differentiate_runs_end_to_end_with_its_variable ... ok
+test simplify_runs_end_to_end_and_shows_a_readable_result ... ok
+test a_multi_step_trace_is_navigable_and_its_detail_follows_the_selection ... ok
+test the_ui_stays_responsive_while_the_solver_is_working ... ok
+test history_records_completed_runs_and_can_restore_one ... ok
+test switching_modes_between_runs_keeps_each_result_with_its_own_operation ... ok
+test a_parse_error_stays_in_the_ui_and_the_next_run_still_works ... ok
+test verify_candidate_runs_end_to_end_for_a_true_and_a_false_candidate ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests\render.rs (target\release\deps\render-f5f537a0eebb19ce.exe)
+
+running 32 tests
+test a_tiny_terminal_gets_a_notice_and_does_not_panic ... ok
+test long_rule_names_and_reasons_do_not_overflow_the_frame ... ok
+test multi_byte_text_is_truncated_on_character_boundaries ... ok
+test an_unchecked_step_is_visible_as_unchecked ... ok
+test a_candidate_check_says_it_records_no_transformations ... ok
+test overlays_fit_inside_a_small_but_valid_terminal ... ok
+test a_parse_error_is_shown_as_input_error_beside_its_field ... ok
+test a_heuristic_result_never_prints_the_word_checked_as_its_verdict ... ok
+test idle_state_invites_formal_input_and_says_so ... ok
+test checked_results_say_checked ... ok
+test a_step_checked_only_by_replay_says_so_in_the_detail ... ok
+test partial_results_show_their_mixed_evidence_reason ... ok
+test running_state_shows_a_running_label_and_no_verdict ... ok
+test no_screen_offers_natural_language_or_equation_solving ... ok
+test an_overlay_covers_the_panes_beneath_it ... ok
+test differentiate_mode_shows_the_variable_field ... ok
+test stacked_layout_separates_result_and_trace ... ok
+test selecting_a_different_step_changes_the_detail ... ok
+test the_history_overlay_lists_completed_requests ... ok
+test the_help_overlay_lists_keys_and_states_the_input_contract ... ok
+test the_detail_pane_shows_before_after_rule_evidence_and_reason ... ok
+test the_history_overlay_reports_when_it_is_empty ... ok
+test the_footer_offers_different_keys_depending_on_focus ... ok
+test wide_layout_puts_result_and_trace_on_the_same_rows ... ok
+test unsupported_results_are_distinct_from_failures ... ok
+test wide_layout_shows_every_pane ... ok
+test unverified_results_state_why ... ok
+test verify_mode_shows_every_field ... ok
+test simplify_mode_hides_the_variable_and_candidate_fields ... ok
+test the_trace_lists_steps_and_marks_the_selection ... ok
+test every_badge_renders_its_label_and_marker ... ok
+test every_size_from_tiny_to_wide_renders_without_panicking ... ok
+
+test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running tests\terminal_restore.rs (target\release\deps\terminal_restore-44387e831aa37ea7.exe)
+
+running 3 tests
+[?25h[?25h[?25htest restore_is_safe_without_a_console ... ok
+[?25h[?25htest a_panic_inside_the_guarded_region_still_leaves_the_terminal_restored ... [?25hok
+test restore_is_idempotent ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (target\release\deps\mm_verifier-5e430e97a33a28fa.exe)
+
+running 17 tests
+test numerical::tests::test_numerical_equivalence ... ok
+test numerical::tests::a_nan_from_an_unguarded_operation_does_not_manufacture_a_positive_zero_verdict ... ok
+test numerical::tests::absence_of_any_successful_evaluation_does_not_produce_a_positive_zero_verdict ... ok
+test numerical::tests::test_is_zero ... ok
+test status::tests::all_symbolic_is_checked ... ok
+test status::tests::any_unchecked_step_makes_the_whole_result_unverified ... ok
+test numerical::tests::an_infinite_ratio_does_not_manufacture_a_positive_equation_verdict ... ok
+test status::tests::empty_trace_is_checked ... ok
+test numerical::tests::a_nan_producing_subexpression_does_not_manufacture_a_positive_zero_verdict ... ok
+test status::tests::mixed_strength_evidence_is_partial ... ok
+test numerical::tests::an_infinite_subexpression_does_not_manufacture_a_positive_zero_verdict ... ok
+test status::tests::replay_only_evidence_is_heuristic_not_checked ... ok
+test status::tests::sampling_only_is_heuristic ... ok
+test symbolic::tests::test_commutative_equivalence ... ok
+test symbolic::tests::test_symbolic_equivalence ... ok
+test tests::test_verifier_creation ... ok
+test tests::test_substitution ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\adversarial.rs (target\release\deps\adversarial-c4c72a91e65677df.exe)
+
+running 9 tests
+test formal_mode_does_not_dress_up_a_calculus_step ... ok
+test a_genuine_calculus_rewrite_still_gets_replay_trust ... ok
+test an_unchecked_step_sinks_the_whole_result ... ok
+test a_calculus_step_is_labelled_replay_only_not_proved ... ok
+test formal_mode_reports_that_it_is_unsupported ... ok
+test independent_equivalence_can_justify_a_non_rule_step ... ok
+test a_broken_rule_is_not_certified_by_reproducing_its_own_output ... ok
+test a_broken_rule_cannot_hide_behind_a_sibling_derivative ... ok
+test verify_equivalence_does_not_certify_from_zero_jointly_evaluable_samples ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\equation_semantics.rs (target\release\deps\equation_semantics-8fe1b98eac5ad233.exe)
+
+running 3 tests
+test expression_semantics_are_still_correct_for_term_rewrites ... ok
+test dividing_both_sides_is_produced_correctly_and_accepted ... ok
+test adding_to_both_sides_is_accepted ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\rule_acceptance.rs (target\release\deps\rule_acceptance-435a70579b3575d1.exe)
+
+running 3 tests
+test acceptance_counts_are_internally_consistent ... ok
+test verifier_acceptance_matches_the_pinned_counts ... ok
+test rules_the_verifier_always_rejects_are_listed ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+   Doc-tests mm_boink
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests mm_brain
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests mm_core
+
+running 7 tests
+test crates\mm-core\src\proof.rs - proof (line 14) ... ignored
+test crates\mm-core\src\lib.rs - (line 20) ... ok
+test crates\mm-core\src\symbol.rs - symbol::SymbolTable (line 27) ... ok
+test crates\mm-core\src\expr.rs - expr::Expr::complexity (line 674) ... ok
+test crates\mm-core\src\format.rs - format::format_expr (line 83) ... ok
+test crates\mm-core\src\parse.rs - parse (line 28) ... ok
+test crates\mm-core\src\eval.rs - eval::Expr::evaluate (line 88) ... ok
+
+test result: ok. 6 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 1.19s
+
+   Doc-tests mm_macro
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests mm_rules
+
+running 2 tests
+test crates\mm-rules\src\rule.rs - rule::rule (line 191) ... ignored
+test crates\mm-rules\src\rule.rs - rule::rule (line 206) ... ignored
+
+test result: ok. 0 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests mm_search
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests mm_solver
+
+running 1 test
+test crates\mm-solver\src\lib.rs - (line 24) ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.84s
+
+   Doc-tests mm_synth
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests mm_tui
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests mm_verifier
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+cargo test exit code: 0

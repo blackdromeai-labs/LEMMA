@@ -39,18 +39,24 @@ use mm_rules::{corpus, standard_rules, RuleContext, WitnessSymbols};
 ///
 /// The remaining 8 are still hidden, deliberately: `am_gm_2`, `sum_squares_ge_product`,
 /// `triangle_ineq`, `reverse_triangle`, `abs_nonneg`, `square_nonneg`, `diff_squared_ge_zero`
-/// and `number_theory::euler_phi_prime_power`. Retagging them exposed a second, worse defect:
-/// `Verifier::verify_step` cannot numerically sample an expression containing a derivative or
-/// integral, so it trusts rule replay for *any* rewrite inside one -- and these rules produce
-/// a *bound*, not an equal value (`a+b -> 2sqrt(ab)`), or depend on an unstated precondition
+/// and `number_theory::euler_phi_prime_power`. Retagging them originally exposed a second,
+/// worse defect: at the time, `Verifier::verify_step` trusted rule replay for *any* rewrite
+/// inside an expression that merely *contained* a derivative or integral anywhere, not only
+/// for a rewrite that was itself about the derivative or integral -- so an unrelated,
+/// overbroad rule could hijack an intermediate state of a calculus simplification and be
+/// accepted with no check at all. That is now fixed (`is_calculus_rewrite` in
+/// `mm-verifier/src/lib.rs`, regression-tested in `mm-verifier/tests/adversarial.rs`), so it
+/// is no longer why these 8 are hidden.
+///
+/// They stay hidden for the reason that was always independently true: each one produces a
+/// *bound*, not an equal value (`a+b -> 2sqrt(ab)`), or depends on an unstated precondition
 /// the `Expr` type cannot check (`euler_phi_prime_power` assumes its argument is a prime
-/// power and matches any `Pow` at all). Retagging them made the search apply them to
-/// unrelated intermediate states of a calculus simplification and accept the wrong result
-/// with no check at all -- confirmed by a full `d/dx(x^2 + x^3)` search collapsing to a
-/// constant it had never computed. Fixing `Verifier::verify_step`'s calculus shortcut to stop
-/// trusting an unrelated rule just because a derivative appears somewhere in the tree is a
-/// bigger, separate change; until then these 8 stay behind the domain tag that happens to
-/// keep them away from calculus expressions.
+/// power and matches any `Pow` at all). `Verifier::verify_step`'s symbolic and numeric checks
+/// only ever establish *equality*, so these rules would be rejected by the verifier even with
+/// the guardrail removed entirely -- confirmed directly: measuring accepted-but-not-reachable
+/// rules (`mm-search/examples/reachability_intersections.rs`) finds it empty on every run.
+/// Widening their domain tag again would not make them usable; it would only reopen a
+/// reachability path to rules the verifier was always going to refuse.
 const EXPECTED_HIDDEN: usize = 8;
 
 fn hidden_rules() -> Vec<String> {

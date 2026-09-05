@@ -1,0 +1,30 @@
+=== assess_trace benchmark ===
+rustc:          rustc 1.88.0 (6b00bc388 2025-06-23)
+profile:        release
+target arch:    x86_64
+target os:      windows
+logical cores:  16
+reference traces: 7
+warm-up passes:  10 (per length group)
+sample passes:   200 (per length group)
+inner reps/pass: 2000
+
+--- trace length = 1 step(s), 5 reference trace(s) in group ---
+per-call assess_trace latency across 200 sample passes (ns/call):
+  min:    157.9
+  mean:   225.0
+  p50:    225.0
+  p90:    277.4
+  p99:    362.6
+  max:    502.6
+
+--- trace length = 2 step(s), 2 reference trace(s) in group ---
+per-call assess_trace latency across 200 sample passes (ns/call):
+  min:    268.1
+  mean:   422.1
+  p50:    430.5
+  p90:    557.7
+  p99:    862.9
+  max:    921.5
+
+cpu: AMD Ryzen 7 7735HS with Radeon Graphics

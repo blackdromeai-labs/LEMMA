@@ -49,8 +49,11 @@ impl PolicyNetwork {
     /// Create a randomly initialised policy network for a specific vocabulary and device.
     pub fn untrained_for(vocabulary: ActionVocabulary, device: Device) -> Result<Self> {
         let config = NetworkConfig::for_vocabulary(&vocabulary);
+        // The encoder pads to a fixed width, and the network is built for that same width.
+        // They must be derived from one number: an encoder padding to 64 feeding a network
+        // built for 16 is a shape mismatch at the first forward pass.
+        let encoder = ExpressionEncoder::new(device.clone()).with_max_length(config.max_seq_len);
         let network = MathNetwork::new(config, &device)?;
-        let encoder = ExpressionEncoder::new(device.clone());
         let provenance = ModelProvenance::Untrained {
             vocabulary_digest: vocabulary.digest(),
         };
@@ -107,7 +110,10 @@ impl PolicyNetwork {
 
         Ok(Self {
             network,
-            encoder: ExpressionEncoder::new(device.clone()),
+            // Padding width must come from the manifest, not from the encoder's default: a
+            // model trained at any `max_seq_len` other than the default would otherwise be
+            // fed tensors of the wrong width at inference.
+            encoder: ExpressionEncoder::new(device.clone()).with_max_length(manifest.max_seq_len),
             device,
             provenance: ModelProvenance::Loaded {
                 path: PathBuf::from(weights),

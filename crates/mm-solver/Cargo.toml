@@ -6,18 +6,27 @@ authors.workspace = true
 license.workspace = true
 description = "Unified solver API for LEMMA"
 
+[features]
+default = []
+# See the note in crates/mm-brain/Cargo.toml: candle-nn's CUDA kernels are gated behind
+# candle-nn's own `cuda` feature, so it must be named explicitly here too.
+cuda = ["candle-core/cuda", "candle-nn/cuda", "mm-brain/cuda"]
+
 [dependencies]
 mm-core = { path = "../mm-core" }
 mm-rules = { path = "../mm-rules" }
 mm-verifier = { path = "../mm-verifier" }
 mm-search = { path = "../mm-search" }
 mm-brain = { path = "../mm-brain" }
+mm-boink = { path = "../mm-boink" }
 mm-macro = { path = "../mm-macro" }
 thiserror.workspace = true
 candle-core.workspace = true
 candle-nn.workspace = true
 rand.workspace = true
 rand_chacha.workspace = true
+serde.workspace = true
+serde_json.workspace = true
 
 [[example]]
 name = "solve_quadratic"
@@ -62,3 +71,35 @@ path = "examples/proof_solver_demo.rs"
 [[example]]
 name = "seeded_eval"
 path = "examples/seeded_eval.rs"
+
+[[example]]
+name = "neurosymbolic_benchmark"
+path = "examples/neurosymbolic_benchmark.rs"
+
+[[example]]
+name = "frontier_search_benchmark"
+path = "examples/frontier_search_benchmark.rs"
+
+[[example]]
+name = "dataset_stats"
+path = "examples/dataset_stats.rs"
+
+[[example]]
+name = "train_policy"
+path = "examples/train_policy.rs"
+
+[[example]]
+name = "check_policy"
+path = "examples/check_policy.rs"
+
+[[example]]
+name = "inspect_priors"
+path = "examples/inspect_priors.rs"
+
+[[example]]
+name = "train_compositional_policy"
+path = "examples/train_compositional_policy.rs"
+
+[[example]]
+name = "compare_policies"
+path = "examples/compare_policies.rs"

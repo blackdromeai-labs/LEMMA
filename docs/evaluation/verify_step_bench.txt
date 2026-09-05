@@ -1,0 +1,23 @@
+=== verify_step benchmark ===
+rustc:          rustc 1.88.0 (6b00bc388 2025-06-23)
+profile:        release
+target arch:    x86_64
+target os:      windows
+logical cores:  16
+witness corpus: 228 expressions
+registered rules: 572
+precomputed (before, after, rule) triples: 295
+warm-up passes: 20
+sample passes:  200
+
+calls per pass: 295
+
+per-call verify_step latency across 200 sample passes (ns/call):
+  min:    3701.0
+  mean:   5026.6
+  p50:    4641.7
+  p90:    6732.2
+  p99:    7429.8
+  max:    8851.9
+
+cpu: AMD Ryzen 7 7735HS with Radeon Graphics

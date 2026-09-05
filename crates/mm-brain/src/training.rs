@@ -102,8 +102,13 @@ impl Trainer {
         let varmap = VarMap::new();
         let vb = candle_nn::VarBuilder::from_varmap(&varmap, DType::F32, &device);
 
+        // The encoder's padding width and the network's positional-encoding width must be the
+        // same number. `train_step` pads batches to `encoder.max_length()`, so an encoder left
+        // at its default while the network was built for a different `max_seq_len` fails at the
+        // first forward pass with a narrow-out-of-bounds error on the positional encoding.
+        let max_seq_len = network_config.max_seq_len;
         let network = MathNetwork::new_with_vb(network_config, vb)?;
-        let encoder = ExpressionEncoder::new(device.clone());
+        let encoder = ExpressionEncoder::new(device.clone()).with_max_length(max_seq_len);
 
         let params = ParamsAdamW {
             lr: training_config.learning_rate,

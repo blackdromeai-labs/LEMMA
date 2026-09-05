@@ -50,6 +50,7 @@ pub mod format;
 pub mod parse;
 pub mod proof;
 pub mod rational;
+pub mod sampling;
 pub mod symbol;
 
 pub use error::MathError;

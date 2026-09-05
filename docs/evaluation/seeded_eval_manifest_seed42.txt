@@ -1,0 +1,95 @@
+seed = 42  (rerun with `cargo run --release --example seeded_eval -p mm-solver -- 42` to reproduce this exact set)
+
+[ 1/79] identity-1                 PASS  got Add(Var(SymbolU32 { value: 1 }), Var(SymbolU32 { value: 2 }))  expected Add(Var(SymbolU32 { value: 1 }), Var(SymbolU32 { value: 2 }))  [checked]  1.2ms
+[ 2/79] power-product-x^4-x^2      PASS  got Pow(Var(SymbolU32 { value: 1 }), Const(6))  expected Pow(Var(SymbolU32 { value: 1 }), Const(6))  [partial]  0.2ms
+[ 3/79] pythagorean-3              PASS  got Const(1)  expected Const(1)  [heuristic]  0.2ms
+[ 4/79] derivative-x^5             PASS  got Mul(Const(5), Pow(Var(SymbolU32 { value: 1 }), Const(4)))  expected Mul(Const(5), Pow(Var(SymbolU32 { value: 1 }), Const(4)))  [heuristic]  0.1ms
+[ 5/79] gcd-191-294                PASS  got Const(1)  expected Const(1)  [heuristic]  0.0ms
+[ 6/79] modpow-18-4-96             PASS  got Const(48)  expected Const(48)  [heuristic]  0.1ms
+[ 7/79] linear-eq-2x+-2=-10        PASS  got Equation { lhs: Var(SymbolU32 { value: 1 }), rhs: Const(-4) }  expected Equation { lhs: Var(SymbolU32 { value: 1 }), rhs: Const(-4) }  [heuristic]  0.2ms
+[ 8/79] binomial-square-(x+2)^2    POLY  got Add(Add(Pow(Var(SymbolU32 { value: 1 }), Const(2)), Mul(Const(2), Mul(Var(SymbolU32 { value: 1 }), Const(2)))), Const(4))  expected Add(Add(Pow(Var(SymbolU32 { value: 1 }), Const(2)), Mul(Const(4), Var(SymbolU32 { value: 1 }))), Const(4))  [partial]  0.5ms
+[ 9/79] arith-5-7-7                PASS  got Const(245)  expected Const(245)  [checked]  0.1ms
+[10/79] identity-10                PASS  got Var(SymbolU32 { value: 1 })  expected Var(SymbolU32 { value: 1 })  [checked]  0.0ms
+[11/79] power-product-x^2-x^4      PASS  got Pow(Var(SymbolU32 { value: 1 }), Const(6))  expected Pow(Var(SymbolU32 { value: 1 }), Const(6))  [partial]  0.1ms
+[12/79] pythagorean-12             PASS  got Const(1)  expected Const(1)  [heuristic]  0.1ms
+[13/79] derivative-x^2             PASS  got Mul(Const(2), Var(SymbolU32 { value: 1 }))  expected Mul(Const(2), Pow(Var(SymbolU32 { value: 1 }), Const(1)))  [partial]  0.1ms
+[14/79] gcd-441-329                PASS  got Const(7)  expected Const(7)  [heuristic]  0.0ms
+[15/79] modpow-10-3-66             PASS  got Const(10)  expected Const(10)  [heuristic]  0.0ms
+[16/79] linear-eq-7x+-9=-16        PASS  got Equation { lhs: Var(SymbolU32 { value: 1 }), rhs: Const(-1) }  expected Equation { lhs: Var(SymbolU32 { value: 1 }), rhs: Const(-1) }  [heuristic]  0.1ms
+[17/79] binomial-square-(x+1)^2    PASS  got Add(Add(Pow(Var(SymbolU32 { value: 1 }), Const(2)), Mul(Const(2), Var(SymbolU32 { value: 1 }))), Const(1))  expected Add(Add(Pow(Var(SymbolU32 { value: 1 }), Const(2)), Mul(Const(2), Var(SymbolU32 { value: 1 }))), Const(1))  [partial]  0.5ms
+[18/79] arith-7-5-4                PASS  got Const(31)  expected Const(31)  [checked]  0.1ms
+[19/79] identity-19                PASS  got Var(SymbolU32 { value: 1 })  expected Var(SymbolU32 { value: 1 })  [checked]  0.0ms
+[20/79] power-product-x^4-x^5      PASS  got Pow(Var(SymbolU32 { value: 1 }), Const(9))  expected Pow(Var(SymbolU32 { value: 1 }), Const(9))  [partial]  0.1ms
+[21/79] pythagorean-21             PASS  got Const(1)  expected Const(1)  [heuristic]  0.1ms
+[22/79] derivative-x^5             PASS  got Mul(Const(5), Pow(Var(SymbolU32 { value: 1 }), Const(4)))  expected Mul(Const(5), Pow(Var(SymbolU32 { value: 1 }), Const(4)))  [heuristic]  0.1ms
+[23/79] gcd-313-471                PASS  got Const(1)  expected Const(1)  [heuristic]  0.0ms
+[24/79] modpow-10-8-26             PASS  got Const(22)  expected Const(22)  [heuristic]  0.0ms
+[25/79] linear-eq-7x+-1=-1         PASS  got Equation { lhs: Var(SymbolU32 { value: 1 }), rhs: Const(0) }  expected Equation { lhs: Var(SymbolU32 { value: 1 }), rhs: Const(0) }  [heuristic]  0.1ms
+[26/79] binomial-square-(x+2)^2    POLY  got Add(Add(Pow(Var(SymbolU32 { value: 1 }), Const(2)), Mul(Const(2), Mul(Var(SymbolU32 { value: 1 }), Const(2)))), Const(4))  expected Add(Add(Pow(Var(SymbolU32 { value: 1 }), Const(2)), Mul(Const(4), Var(SymbolU32 { value: 1 }))), Const(4))  [partial]  0.5ms
+[27/79] arith-9-2-8                PASS  got Const(144)  expected Const(144)  [checked]  0.0ms
+[28/79] identity-28                PASS  got Add(Var(SymbolU32 { value: 1 }), Var(SymbolU32 { value: 2 }))  expected Add(Var(SymbolU32 { value: 1 }), Var(SymbolU32 { value: 2 }))  [checked]  0.1ms
+[29/79] power-product-x^3-x^1      PASS  got Pow(Var(SymbolU32 { value: 1 }), Const(4))  expected Pow(Var(SymbolU32 { value: 1 }), Const(4))  [partial]  0.1ms
+[30/79] pythagorean-30             PASS  got Const(1)  expected Const(1)  [heuristic]  0.1ms
+[31/79] derivative-x^3             PASS  got Mul(Const(3), Pow(Var(SymbolU32 { value: 1 }), Const(2)))  expected Mul(Const(3), Pow(Var(SymbolU32 { value: 1 }), Const(2)))  [heuristic]  0.1ms
+[32/79] gcd-185-475                PASS  got Const(5)  expected Const(5)  [heuristic]  0.0ms
+[33/79] modpow-10-9-66             PASS  got Const(10)  expected Const(10)  [heuristic]  0.0ms
+[34/79] linear-eq-2x+-8=8          PASS  got Equation { lhs: Var(SymbolU32 { value: 1 }), rhs: Const(8) }  expected Equation { lhs: Var(SymbolU32 { value: 1 }), rhs: Const(8) }  [heuristic]  0.2ms
+[35/79] binomial-square-(x+2)^2    POLY  got Add(Add(Pow(Var(SymbolU32 { value: 1 }), Const(2)), Mul(Const(2), Mul(Var(SymbolU32 { value: 1 }), Const(2)))), Const(4))  expected Add(Add(Pow(Var(SymbolU32 { value: 1 }), Const(2)), Mul(Const(4), Var(SymbolU32 { value: 1 }))), Const(4))  [partial]  0.6ms
+[36/79] arith-6-7-9                PASS  got Const(378)  expected Const(378)  [checked]  0.1ms
+[37/79] identity-37                PASS  got Add(Var(SymbolU32 { value: 1 }), Var(SymbolU32 { value: 2 }))  expected Add(Var(SymbolU32 { value: 1 }), Var(SymbolU32 { value: 2 }))  [checked]  0.2ms
+[38/79] power-product-x^4-x^3      PASS  got Pow(Var(SymbolU32 { value: 1 }), Const(7))  expected Pow(Var(SymbolU32 { value: 1 }), Const(7))  [partial]  0.1ms
+[39/79] pythagorean-39             PASS  got Const(1)  expected Const(1)  [heuristic]  0.1ms
+[40/79] derivative-x^3             PASS  got Mul(Const(3), Pow(Var(SymbolU32 { value: 1 }), Const(2)))  expected Mul(Const(3), Pow(Var(SymbolU32 { value: 1 }), Const(2)))  [heuristic]  0.2ms
+[41/79] gcd-149-228                PASS  got Const(1)  expected Const(1)  [heuristic]  0.1ms
+[42/79] modpow-13-3-69             PASS  got Const(58)  expected Const(58)  [heuristic]  0.1ms
+[43/79] linear-eq-4x+5=1           PASS  got Equation { lhs: Var(SymbolU32 { value: 1 }), rhs: Const(-1) }  expected Equation { lhs: Var(SymbolU32 { value: 1 }), rhs: Const(-1) }  [heuristic]  0.1ms
+[44/79] binomial-square-(x+8)^2    POLY  got Add(Add(Pow(Var(SymbolU32 { value: 1 }), Const(2)), Mul(Const(2), Mul(Var(SymbolU32 { value: 1 }), Const(8)))), Const(64))  expected Add(Add(Pow(Var(SymbolU32 { value: 1 }), Const(2)), Mul(Const(16), Var(SymbolU32 { value: 1 }))), Const(64))  [partial]  0.5ms
+[45/79] arith-8-9-10               PASS  got Const(62)  expected Const(62)  [checked]  0.2ms
+[46/79] identity-46                PASS  got Var(SymbolU32 { value: 1 })  expected Var(SymbolU32 { value: 1 })  [checked]  0.0ms
+[47/79] power-product-x^3-x^5      PASS  got Pow(Var(SymbolU32 { value: 1 }), Const(8))  expected Pow(Var(SymbolU32 { value: 1 }), Const(8))  [partial]  0.1ms
+[48/79] pythagorean-48             PASS  got Const(1)  expected Const(1)  [heuristic]  0.2ms
+[49/79] derivative-x^3             PASS  got Mul(Const(3), Pow(Var(SymbolU32 { value: 1 }), Const(2)))  expected Mul(Const(3), Pow(Var(SymbolU32 { value: 1 }), Const(2)))  [heuristic]  0.1ms
+[50/79] gcd-261-139                PASS  got Const(1)  expected Const(1)  [heuristic]  0.0ms
+[51/79] modpow-16-2-33             PASS  got Const(25)  expected Const(25)  [heuristic]  0.1ms
+[52/79] linear-eq-5x+-9=-14        PASS  got Equation { lhs: Var(SymbolU32 { value: 1 }), rhs: Const(-1) }  expected Equation { lhs: Var(SymbolU32 { value: 1 }), rhs: Const(-1) }  [heuristic]  0.1ms
+[53/79] binomial-square-(x+4)^2    POLY  got Add(Add(Pow(Var(SymbolU32 { value: 1 }), Const(2)), Mul(Const(2), Mul(Var(SymbolU32 { value: 1 }), Const(4)))), Const(16))  expected Add(Add(Pow(Var(SymbolU32 { value: 1 }), Const(2)), Mul(Const(8), Var(SymbolU32 { value: 1 }))), Const(16))  [partial]  0.5ms
+[54/79] arith-10-4-8               PASS  got Const(320)  expected Const(320)  [checked]  0.0ms
+[55/79] identity-55                PASS  got Add(Var(SymbolU32 { value: 1 }), Var(SymbolU32 { value: 2 }))  expected Add(Var(SymbolU32 { value: 1 }), Var(SymbolU32 { value: 2 }))  [checked]  0.1ms
+[56/79] power-product-x^5-x^3      PASS  got Pow(Var(SymbolU32 { value: 1 }), Const(8))  expected Pow(Var(SymbolU32 { value: 1 }), Const(8))  [partial]  0.1ms
+[57/79] pythagorean-57             PASS  got Const(1)  expected Const(1)  [heuristic]  0.1ms
+[58/79] derivative-x^7             PASS  got Mul(Const(7), Pow(Var(SymbolU32 { value: 1 }), Const(6)))  expected Mul(Const(7), Pow(Var(SymbolU32 { value: 1 }), Const(6)))  [heuristic]  0.1ms
+[59/79] gcd-238-304                PASS  got Const(2)  expected Const(2)  [heuristic]  0.0ms
+[60/79] modpow-11-7-32             PASS  got Const(3)  expected Const(3)  [heuristic]  0.0ms
+[61/79] linear-eq-2x+6=8           PASS  got Equation { lhs: Var(SymbolU32 { value: 1 }), rhs: Const(1) }  expected Equation { lhs: Var(SymbolU32 { value: 1 }), rhs: Const(1) }  [heuristic]  0.1ms
+[62/79] binomial-square-(x+8)^2    POLY  got Add(Add(Pow(Var(SymbolU32 { value: 1 }), Const(2)), Mul(Const(2), Mul(Var(SymbolU32 { value: 1 }), Const(8)))), Const(64))  expected Add(Add(Pow(Var(SymbolU32 { value: 1 }), Const(2)), Mul(Const(16), Var(SymbolU32 { value: 1 }))), Const(64))  [partial]  0.5ms
+[63/79] arith-4-10-5               PASS  got Const(70)  expected Const(70)  [checked]  0.1ms
+[64/79] identity-64                PASS  got Var(SymbolU32 { value: 1 })  expected Var(SymbolU32 { value: 1 })  [checked]  0.1ms
+[65/79] power-product-x^5-x^2      PASS  got Pow(Var(SymbolU32 { value: 1 }), Const(7))  expected Pow(Var(SymbolU32 { value: 1 }), Const(7))  [partial]  0.1ms
+[66/79] pythagorean-66             PASS  got Const(1)  expected Const(1)  [heuristic]  0.1ms
+[67/79] derivative-x^6             PASS  got Mul(Const(6), Pow(Var(SymbolU32 { value: 1 }), Const(5)))  expected Mul(Const(6), Pow(Var(SymbolU32 { value: 1 }), Const(5)))  [heuristic]  0.1ms
+[68/79] gcd-363-87                 PASS  got Const(3)  expected Const(3)  [heuristic]  0.0ms
+[69/79] modpow-8-6-60              PASS  got Const(4)  expected Const(4)  [heuristic]  0.0ms
+[70/79] linear-eq-4x+7=39          PASS  got Equation { lhs: Var(SymbolU32 { value: 1 }), rhs: Const(8) }  expected Equation { lhs: Var(SymbolU32 { value: 1 }), rhs: Const(8) }  [heuristic]  0.1ms
+[71/79] binomial-square-(x+4)^2    POLY  got Add(Add(Pow(Var(SymbolU32 { value: 1 }), Const(2)), Mul(Const(2), Mul(Var(SymbolU32 { value: 1 }), Const(4)))), Const(16))  expected Add(Add(Pow(Var(SymbolU32 { value: 1 }), Const(2)), Mul(Const(8), Var(SymbolU32 { value: 1 }))), Const(16))  [partial]  0.6ms
+[72/79] arith-4-5-5                PASS  got Const(15)  expected Const(15)  [checked]  0.1ms
+[73/79] binomial-14-11             PASS  got Const(364)  expected Const(364)  [heuristic]  0.0ms
+[74/79] binomial-11-7              PASS  got Const(330)  expected Const(330)  [heuristic]  0.0ms
+[75/79] binomial-11-4              PASS  got Const(330)  expected Const(330)  [heuristic]  0.0ms
+[76/79] binomial-8-4               PASS  got Const(70)  expected Const(70)  [heuristic]  0.0ms
+[77/79] binomial-5-4               PASS  got Const(5)  expected Const(5)  [heuristic]  0.0ms
+[78/79] binomial-11-7              PASS  got Const(330)  expected Const(330)  [heuristic]  0.0ms
+[79/79] binomial-8-7               PASS  got Const(8)  expected Const(8)  [heuristic]  0.0ms
+
+=== Results by category ===
+  algebra-expand       1/8   (12%)
+  algebra-identity     8/8   (100%)
+  algebra-power        8/8   (100%)
+  arithmetic           8/8   (100%)
+  calculus             8/8   (100%)
+  combinatorics        7/7   (100%)
+  equation-solving     8/8   (100%)
+  number-theory       16/16  (100%)
+  trigonometry         8/8   (100%)
+
+=== Overall: 72/79 passed strictly (91.1%); 7 more independently confirmed via polynomial coefficients (not canonically identical); 0 more sampling-equivalent only (NOT independently confirmed -- weakest tier); 0 genuinely wrong or unreplayed. Ran in 0.01s ===
+exit code: 0

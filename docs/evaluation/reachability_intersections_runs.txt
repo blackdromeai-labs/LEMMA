@@ -1,0 +1,251 @@
+# 10 runs of reachability_intersections, 2026-09-05T11:48:29Z
+--- run 1/10 ---
+registered                : 572
+executable                : 138
+reachable                 : 130
+accepted                  : 118
+reachable AND accepted    : 118
+accepted but NOT reachable: 0
+reachable but NOT accepted: 12
+executable but NOT reachable: 8
+
+accepted-but-not-reachable rules (verifier-accepted on at least one witness, guardrail-hidden):
+
+reachable-but-not-accepted rules (guardrail exposes them, verifier refuses):
+  algebra::exp_ln
+  algebra::log_power
+  algebra::sqrt_product
+  inequalities::ln_comparison
+  inequalities::ln_monotonic
+  number_theory::euler_criterion
+  number_theory::euler_theorem
+  number_theory::legendre_symbol_compute
+  number_theory::sqrt_quotient
+  polynomials::diff_nth_power
+  polynomials::sum_cubes
+  trig::sin_arcsin
+--- run 2/10 ---
+registered                : 572
+executable                : 138
+reachable                 : 130
+accepted                  : 118
+reachable AND accepted    : 118
+accepted but NOT reachable: 0
+reachable but NOT accepted: 12
+executable but NOT reachable: 8
+
+accepted-but-not-reachable rules (verifier-accepted on at least one witness, guardrail-hidden):
+
+reachable-but-not-accepted rules (guardrail exposes them, verifier refuses):
+  algebra::exp_ln
+  algebra::log_power
+  algebra::sqrt_product
+  inequalities::ln_comparison
+  inequalities::ln_monotonic
+  number_theory::euler_criterion
+  number_theory::euler_theorem
+  number_theory::legendre_symbol_compute
+  number_theory::sqrt_quotient
+  polynomials::diff_nth_power
+  polynomials::sum_cubes
+  trig::sin_arcsin
+--- run 3/10 ---
+registered                : 572
+executable                : 138
+reachable                 : 130
+accepted                  : 118
+reachable AND accepted    : 118
+accepted but NOT reachable: 0
+reachable but NOT accepted: 12
+executable but NOT reachable: 8
+
+accepted-but-not-reachable rules (verifier-accepted on at least one witness, guardrail-hidden):
+
+reachable-but-not-accepted rules (guardrail exposes them, verifier refuses):
+  algebra::exp_ln
+  algebra::log_power
+  algebra::sqrt_product
+  inequalities::ln_comparison
+  inequalities::ln_monotonic
+  number_theory::euler_criterion
+  number_theory::euler_theorem
+  number_theory::legendre_symbol_compute
+  number_theory::sqrt_quotient
+  polynomials::diff_nth_power
+  polynomials::sum_cubes
+  trig::sin_arcsin
+--- run 4/10 ---
+registered                : 572
+executable                : 138
+reachable                 : 130
+accepted                  : 118
+reachable AND accepted    : 118
+accepted but NOT reachable: 0
+reachable but NOT accepted: 12
+executable but NOT reachable: 8
+
+accepted-but-not-reachable rules (verifier-accepted on at least one witness, guardrail-hidden):
+
+reachable-but-not-accepted rules (guardrail exposes them, verifier refuses):
+  algebra::exp_ln
+  algebra::log_power
+  algebra::sqrt_product
+  inequalities::ln_comparison
+  inequalities::ln_monotonic
+  number_theory::euler_criterion
+  number_theory::euler_theorem
+  number_theory::legendre_symbol_compute
+  number_theory::sqrt_quotient
+  polynomials::diff_nth_power
+  polynomials::sum_cubes
+  trig::sin_arcsin
+--- run 5/10 ---
+registered                : 572
+executable                : 138
+reachable                 : 130
+accepted                  : 118
+reachable AND accepted    : 118
+accepted but NOT reachable: 0
+reachable but NOT accepted: 12
+executable but NOT reachable: 8
+
+accepted-but-not-reachable rules (verifier-accepted on at least one witness, guardrail-hidden):
+
+reachable-but-not-accepted rules (guardrail exposes them, verifier refuses):
+  algebra::exp_ln
+  algebra::log_power
+  algebra::sqrt_product
+  inequalities::ln_comparison
+  inequalities::ln_monotonic
+  number_theory::euler_criterion
+  number_theory::euler_theorem
+  number_theory::legendre_symbol_compute
+  number_theory::sqrt_quotient
+  polynomials::diff_nth_power
+  polynomials::sum_cubes
+  trig::sin_arcsin
+--- run 6/10 ---
+registered                : 572
+executable                : 138
+reachable                 : 130
+accepted                  : 118
+reachable AND accepted    : 118
+accepted but NOT reachable: 0
+reachable but NOT accepted: 12
+executable but NOT reachable: 8
+
+accepted-but-not-reachable rules (verifier-accepted on at least one witness, guardrail-hidden):
+
+reachable-but-not-accepted rules (guardrail exposes them, verifier refuses):
+  algebra::exp_ln
+  algebra::log_power
+  algebra::sqrt_product
+  inequalities::ln_comparison
+  inequalities::ln_monotonic
+  number_theory::euler_criterion
+  number_theory::euler_theorem
+  number_theory::legendre_symbol_compute
+  number_theory::sqrt_quotient
+  polynomials::diff_nth_power
+  polynomials::sum_cubes
+  trig::sin_arcsin
+--- run 7/10 ---
+registered                : 572
+executable                : 138
+reachable                 : 130
+accepted                  : 118
+reachable AND accepted    : 118
+accepted but NOT reachable: 0
+reachable but NOT accepted: 12
+executable but NOT reachable: 8
+
+accepted-but-not-reachable rules (verifier-accepted on at least one witness, guardrail-hidden):
+
+reachable-but-not-accepted rules (guardrail exposes them, verifier refuses):
+  algebra::exp_ln
+  algebra::log_power
+  algebra::sqrt_product
+  inequalities::ln_comparison
+  inequalities::ln_monotonic
+  number_theory::euler_criterion
+  number_theory::euler_theorem
+  number_theory::legendre_symbol_compute
+  number_theory::sqrt_quotient
+  polynomials::diff_nth_power
+  polynomials::sum_cubes
+  trig::sin_arcsin
+--- run 8/10 ---
+registered                : 572
+executable                : 138
+reachable                 : 130
+accepted                  : 118
+reachable AND accepted    : 118
+accepted but NOT reachable: 0
+reachable but NOT accepted: 12
+executable but NOT reachable: 8
+
+accepted-but-not-reachable rules (verifier-accepted on at least one witness, guardrail-hidden):
+
+reachable-but-not-accepted rules (guardrail exposes them, verifier refuses):
+  algebra::exp_ln
+  algebra::log_power
+  algebra::sqrt_product
+  inequalities::ln_comparison
+  inequalities::ln_monotonic
+  number_theory::euler_criterion
+  number_theory::euler_theorem
+  number_theory::legendre_symbol_compute
+  number_theory::sqrt_quotient
+  polynomials::diff_nth_power
+  polynomials::sum_cubes
+  trig::sin_arcsin
+--- run 9/10 ---
+registered                : 572
+executable                : 138
+reachable                 : 130
+accepted                  : 118
+reachable AND accepted    : 118
+accepted but NOT reachable: 0
+reachable but NOT accepted: 12
+executable but NOT reachable: 8
+
+accepted-but-not-reachable rules (verifier-accepted on at least one witness, guardrail-hidden):
+
+reachable-but-not-accepted rules (guardrail exposes them, verifier refuses):
+  algebra::exp_ln
+  algebra::log_power
+  algebra::sqrt_product
+  inequalities::ln_comparison
+  inequalities::ln_monotonic
+  number_theory::euler_criterion
+  number_theory::euler_theorem
+  number_theory::legendre_symbol_compute
+  number_theory::sqrt_quotient
+  polynomials::diff_nth_power
+  polynomials::sum_cubes
+  trig::sin_arcsin
+--- run 10/10 ---
+registered                : 572
+executable                : 138
+reachable                 : 130
+accepted                  : 118
+reachable AND accepted    : 118
+accepted but NOT reachable: 0
+reachable but NOT accepted: 12
+executable but NOT reachable: 8
+
+accepted-but-not-reachable rules (verifier-accepted on at least one witness, guardrail-hidden):
+
+reachable-but-not-accepted rules (guardrail exposes them, verifier refuses):
+  algebra::exp_ln
+  algebra::log_power
+  algebra::sqrt_product
+  inequalities::ln_comparison
+  inequalities::ln_monotonic
+  number_theory::euler_criterion
+  number_theory::euler_theorem
+  number_theory::legendre_symbol_compute
+  number_theory::sqrt_quotient
+  polynomials::diff_nth_power
+  polynomials::sum_cubes
+  trig::sin_arcsin

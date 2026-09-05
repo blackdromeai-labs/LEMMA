@@ -1,0 +1,171 @@
+# 10 runs of method_breakdown, 2026-09-05T11:48:30Z
+--- run 1/10 ---
+accepted transformation APPLICATIONS by method (one count per accepted RuleApplication -- can exceed the number of distinct (rule, witness) pairs below if a rule matched a witness more than once):
+  symbolic equivalence : 25
+  numeric sampling     : 94
+  rule replay only     : 59
+  total applications   : 178
+
+distinct (rule, witness) PAIRS accepted by method (deduplicated; a method's three counts here can still overlap with each other since the same pair can be accepted via more than one method on different applications):
+  symbolic equivalence : 25
+  numeric sampling     : 94
+  rule replay only     : 59
+
+distinct RULES with at least one acceptance by method (not disjoint):
+  symbolic equivalence : 13
+  numeric sampling     : 62
+  rule replay only     : 47
+  union (any method)   : 118
+--- run 2/10 ---
+accepted transformation APPLICATIONS by method (one count per accepted RuleApplication -- can exceed the number of distinct (rule, witness) pairs below if a rule matched a witness more than once):
+  symbolic equivalence : 25
+  numeric sampling     : 94
+  rule replay only     : 59
+  total applications   : 178
+
+distinct (rule, witness) PAIRS accepted by method (deduplicated; a method's three counts here can still overlap with each other since the same pair can be accepted via more than one method on different applications):
+  symbolic equivalence : 25
+  numeric sampling     : 94
+  rule replay only     : 59
+
+distinct RULES with at least one acceptance by method (not disjoint):
+  symbolic equivalence : 13
+  numeric sampling     : 62
+  rule replay only     : 47
+  union (any method)   : 118
+--- run 3/10 ---
+accepted transformation APPLICATIONS by method (one count per accepted RuleApplication -- can exceed the number of distinct (rule, witness) pairs below if a rule matched a witness more than once):
+  symbolic equivalence : 25
+  numeric sampling     : 94
+  rule replay only     : 59
+  total applications   : 178
+
+distinct (rule, witness) PAIRS accepted by method (deduplicated; a method's three counts here can still overlap with each other since the same pair can be accepted via more than one method on different applications):
+  symbolic equivalence : 25
+  numeric sampling     : 94
+  rule replay only     : 59
+
+distinct RULES with at least one acceptance by method (not disjoint):
+  symbolic equivalence : 13
+  numeric sampling     : 62
+  rule replay only     : 47
+  union (any method)   : 118
+--- run 4/10 ---
+accepted transformation APPLICATIONS by method (one count per accepted RuleApplication -- can exceed the number of distinct (rule, witness) pairs below if a rule matched a witness more than once):
+  symbolic equivalence : 25
+  numeric sampling     : 94
+  rule replay only     : 59
+  total applications   : 178
+
+distinct (rule, witness) PAIRS accepted by method (deduplicated; a method's three counts here can still overlap with each other since the same pair can be accepted via more than one method on different applications):
+  symbolic equivalence : 25
+  numeric sampling     : 94
+  rule replay only     : 59
+
+distinct RULES with at least one acceptance by method (not disjoint):
+  symbolic equivalence : 13
+  numeric sampling     : 62
+  rule replay only     : 47
+  union (any method)   : 118
+--- run 5/10 ---
+accepted transformation APPLICATIONS by method (one count per accepted RuleApplication -- can exceed the number of distinct (rule, witness) pairs below if a rule matched a witness more than once):
+  symbolic equivalence : 25
+  numeric sampling     : 95
+  rule replay only     : 59
+  total applications   : 179
+
+distinct (rule, witness) PAIRS accepted by method (deduplicated; a method's three counts here can still overlap with each other since the same pair can be accepted via more than one method on different applications):
+  symbolic equivalence : 25
+  numeric sampling     : 95
+  rule replay only     : 59
+
+distinct RULES with at least one acceptance by method (not disjoint):
+  symbolic equivalence : 13
+  numeric sampling     : 62
+  rule replay only     : 47
+  union (any method)   : 118
+--- run 6/10 ---
+accepted transformation APPLICATIONS by method (one count per accepted RuleApplication -- can exceed the number of distinct (rule, witness) pairs below if a rule matched a witness more than once):
+  symbolic equivalence : 25
+  numeric sampling     : 94
+  rule replay only     : 59
+  total applications   : 178
+
+distinct (rule, witness) PAIRS accepted by method (deduplicated; a method's three counts here can still overlap with each other since the same pair can be accepted via more than one method on different applications):
+  symbolic equivalence : 25
+  numeric sampling     : 94
+  rule replay only     : 59
+
+distinct RULES with at least one acceptance by method (not disjoint):
+  symbolic equivalence : 13
+  numeric sampling     : 62
+  rule replay only     : 47
+  union (any method)   : 118
+--- run 7/10 ---
+accepted transformation APPLICATIONS by method (one count per accepted RuleApplication -- can exceed the number of distinct (rule, witness) pairs below if a rule matched a witness more than once):
+  symbolic equivalence : 25
+  numeric sampling     : 94
+  rule replay only     : 59
+  total applications   : 178
+
+distinct (rule, witness) PAIRS accepted by method (deduplicated; a method's three counts here can still overlap with each other since the same pair can be accepted via more than one method on different applications):
+  symbolic equivalence : 25
+  numeric sampling     : 94
+  rule replay only     : 59
+
+distinct RULES with at least one acceptance by method (not disjoint):
+  symbolic equivalence : 13
+  numeric sampling     : 62
+  rule replay only     : 47
+  union (any method)   : 118
+--- run 8/10 ---
+accepted transformation APPLICATIONS by method (one count per accepted RuleApplication -- can exceed the number of distinct (rule, witness) pairs below if a rule matched a witness more than once):
+  symbolic equivalence : 25
+  numeric sampling     : 94
+  rule replay only     : 59
+  total applications   : 178
+
+distinct (rule, witness) PAIRS accepted by method (deduplicated; a method's three counts here can still overlap with each other since the same pair can be accepted via more than one method on different applications):
+  symbolic equivalence : 25
+  numeric sampling     : 94
+  rule replay only     : 59
+
+distinct RULES with at least one acceptance by method (not disjoint):
+  symbolic equivalence : 13
+  numeric sampling     : 63
+  rule replay only     : 47
+  union (any method)   : 119
+--- run 9/10 ---
+accepted transformation APPLICATIONS by method (one count per accepted RuleApplication -- can exceed the number of distinct (rule, witness) pairs below if a rule matched a witness more than once):
+  symbolic equivalence : 25
+  numeric sampling     : 94
+  rule replay only     : 59
+  total applications   : 178
+
+distinct (rule, witness) PAIRS accepted by method (deduplicated; a method's three counts here can still overlap with each other since the same pair can be accepted via more than one method on different applications):
+  symbolic equivalence : 25
+  numeric sampling     : 94
+  rule replay only     : 59
+
+distinct RULES with at least one acceptance by method (not disjoint):
+  symbolic equivalence : 13
+  numeric sampling     : 62
+  rule replay only     : 47
+  union (any method)   : 118
+--- run 10/10 ---
+accepted transformation APPLICATIONS by method (one count per accepted RuleApplication -- can exceed the number of distinct (rule, witness) pairs below if a rule matched a witness more than once):
+  symbolic equivalence : 25
+  numeric sampling     : 94
+  rule replay only     : 59
+  total applications   : 178
+
+distinct (rule, witness) PAIRS accepted by method (deduplicated; a method's three counts here can still overlap with each other since the same pair can be accepted via more than one method on different applications):
+  symbolic equivalence : 25
+  numeric sampling     : 94
+  rule replay only     : 59
+
+distinct RULES with at least one acceptance by method (not disjoint):
+  symbolic equivalence : 13
+  numeric sampling     : 62
+  rule replay only     : 47
+  union (any method)   : 118

@@ -1,0 +1,450 @@
+{
+  "budget_curve": [
+    {
+      "arm": "uniform",
+      "budget": 1,
+      "elapsed_ms": 21,
+      "id": {
+        "nodes_sum_all": 492,
+        "nodes_sum_solved": 0,
+        "solved": 0,
+        "steps_sum_solved": 0,
+        "total": 200
+      },
+      "ood": {
+        "nodes_sum_all": 440,
+        "nodes_sum_solved": 0,
+        "solved": 0,
+        "steps_sum_solved": 0,
+        "total": 200
+      }
+    },
+    {
+      "arm": "shallow",
+      "budget": 1,
+      "elapsed_ms": 3677,
+      "id": {
+        "nodes_sum_all": 492,
+        "nodes_sum_solved": 0,
+        "solved": 0,
+        "steps_sum_solved": 0,
+        "total": 200
+      },
+      "ood": {
+        "nodes_sum_all": 440,
+        "nodes_sum_solved": 0,
+        "solved": 0,
+        "steps_sum_solved": 0,
+        "total": 200
+      }
+    },
+    {
+      "arm": "compositional",
+      "budget": 1,
+      "elapsed_ms": 3456,
+      "id": {
+        "nodes_sum_all": 492,
+        "nodes_sum_solved": 0,
+        "solved": 0,
+        "steps_sum_solved": 0,
+        "total": 200
+      },
+      "ood": {
+        "nodes_sum_all": 440,
+        "nodes_sum_solved": 0,
+        "solved": 0,
+        "steps_sum_solved": 0,
+        "total": 200
+      }
+    },
+    {
+      "arm": "uniform",
+      "budget": 2,
+      "elapsed_ms": 35,
+      "id": {
+        "nodes_sum_all": 788,
+        "nodes_sum_solved": 156,
+        "solved": 40,
+        "steps_sum_solved": 80,
+        "total": 200
+      },
+      "ood": {
+        "nodes_sum_all": 680,
+        "nodes_sum_solved": 136,
+        "solved": 40,
+        "steps_sum_solved": 80,
+        "total": 200
+      }
+    },
+    {
+      "arm": "shallow",
+      "budget": 2,
+      "elapsed_ms": 6682,
+      "id": {
+        "nodes_sum_all": 788,
+        "nodes_sum_solved": 124,
+        "solved": 32,
+        "steps_sum_solved": 64,
+        "total": 200
+      },
+      "ood": {
+        "nodes_sum_all": 680,
+        "nodes_sum_solved": 136,
+        "solved": 40,
+        "steps_sum_solved": 80,
+        "total": 200
+      }
+    },
+    {
+      "arm": "compositional",
+      "budget": 2,
+      "elapsed_ms": 6605,
+      "id": {
+        "nodes_sum_all": 788,
+        "nodes_sum_solved": 128,
+        "solved": 33,
+        "steps_sum_solved": 66,
+        "total": 200
+      },
+      "ood": {
+        "nodes_sum_all": 673,
+        "nodes_sum_solved": 128,
+        "solved": 38,
+        "steps_sum_solved": 76,
+        "total": 200
+      }
+    },
+    {
+      "arm": "uniform",
+      "budget": 5,
+      "elapsed_ms": 73,
+      "id": {
+        "nodes_sum_all": 1464,
+        "nodes_sum_solved": 616,
+        "solved": 100,
+        "steps_sum_solved": 280,
+        "total": 200
+      },
+      "ood": {
+        "nodes_sum_all": 1096,
+        "nodes_sum_solved": 496,
+        "solved": 112,
+        "steps_sum_solved": 328,
+        "total": 200
+      }
+    },
+    {
+      "arm": "shallow",
+      "budget": 5,
+      "elapsed_ms": 19934,
+      "id": {
+        "nodes_sum_all": 1512,
+        "nodes_sum_solved": 280,
+        "solved": 56,
+        "steps_sum_solved": 144,
+        "total": 200
+      },
+      "ood": {
+        "nodes_sum_all": 1136,
+        "nodes_sum_solved": 576,
+        "solved": 120,
+        "steps_sum_solved": 360,
+        "total": 200
+      }
+    },
+    {
+      "arm": "compositional",
+      "budget": 5,
+      "elapsed_ms": 17955,
+      "id": {
+        "nodes_sum_all": 1459,
+        "nodes_sum_solved": 309,
+        "solved": 62,
+        "steps_sum_solved": 162,
+        "total": 200
+      },
+      "ood": {
+        "nodes_sum_all": 1111,
+        "nodes_sum_solved": 498,
+        "solved": 108,
+        "steps_sum_solved": 321,
+        "total": 200
+      }
+    },
+    {
+      "arm": "uniform",
+      "budget": 10,
+      "elapsed_ms": 118,
+      "id": {
+        "nodes_sum_all": 2068,
+        "nodes_sum_solved": 940,
+        "solved": 122,
+        "steps_sum_solved": 372,
+        "total": 200
+      },
+      "ood": {
+        "nodes_sum_all": 1384,
+        "nodes_sum_solved": 1144,
+        "solved": 184,
+        "steps_sum_solved": 808,
+        "total": 200
+      }
+    },
+    {
+      "arm": "shallow",
+      "budget": 10,
+      "elapsed_ms": 21236,
+      "id": {
+        "nodes_sum_all": 2545,
+        "nodes_sum_solved": 497,
+        "solved": 72,
+        "steps_sum_solved": 256,
+        "total": 200
+      },
+      "ood": {
+        "nodes_sum_all": 1344,
+        "nodes_sum_solved": 1344,
+        "solved": 200,
+        "steps_sum_solved": 920,
+        "total": 200
+      }
+    },
+    {
+      "arm": "compositional",
+      "budget": 10,
+      "elapsed_ms": 20224,
+      "id": {
+        "nodes_sum_all": 2386,
+        "nodes_sum_solved": 587,
+        "solved": 84,
+        "steps_sum_solved": 279,
+        "total": 200
+      },
+      "ood": {
+        "nodes_sum_all": 1330,
+        "nodes_sum_solved": 1179,
+        "solved": 185,
+        "steps_sum_solved": 835,
+        "total": 200
+      }
+    },
+    {
+      "arm": "uniform",
+      "budget": 25,
+      "elapsed_ms": 173,
+      "id": {
+        "nodes_sum_all": 3500,
+        "nodes_sum_solved": 2768,
+        "solved": 180,
+        "steps_sum_solved": 760,
+        "total": 200
+      },
+      "ood": {
+        "nodes_sum_all": 1520,
+        "nodes_sum_solved": 1152,
+        "solved": 184,
+        "steps_sum_solved": 808,
+        "total": 200
+      }
+    },
+    {
+      "arm": "shallow",
+      "budget": 25,
+      "elapsed_ms": 31474,
+      "id": {
+        "nodes_sum_all": 2943,
+        "nodes_sum_solved": 511,
+        "solved": 72,
+        "steps_sum_solved": 256,
+        "total": 200
+      },
+      "ood": {
+        "nodes_sum_all": 1344,
+        "nodes_sum_solved": 1344,
+        "solved": 200,
+        "steps_sum_solved": 920,
+        "total": 200
+      }
+    },
+    {
+      "arm": "compositional",
+      "budget": 25,
+      "elapsed_ms": 33963,
+      "id": {
+        "nodes_sum_all": 3375,
+        "nodes_sum_solved": 1072,
+        "solved": 104,
+        "steps_sum_solved": 369,
+        "total": 200
+      },
+      "ood": {
+        "nodes_sum_all": 1380,
+        "nodes_sum_solved": 1338,
+        "solved": 196,
+        "steps_sum_solved": 899,
+        "total": 200
+      }
+    },
+    {
+      "arm": "uniform",
+      "budget": 50,
+      "elapsed_ms": 362,
+      "id": {
+        "nodes_sum_all": 4308,
+        "nodes_sum_solved": 4308,
+        "solved": 200,
+        "steps_sum_solved": 920,
+        "total": 200
+      },
+      "ood": {
+        "nodes_sum_all": 1576,
+        "nodes_sum_solved": 1328,
+        "solved": 192,
+        "steps_sum_solved": 856,
+        "total": 200
+      }
+    },
+    {
+      "arm": "shallow",
+      "budget": 50,
+      "elapsed_ms": 63460,
+      "id": {
+        "nodes_sum_all": 2949,
+        "nodes_sum_solved": 517,
+        "solved": 72,
+        "steps_sum_solved": 256,
+        "total": 200
+      },
+      "ood": {
+        "nodes_sum_all": 1344,
+        "nodes_sum_solved": 1344,
+        "solved": 200,
+        "steps_sum_solved": 920,
+        "total": 200
+      }
+    },
+    {
+      "arm": "compositional",
+      "budget": 50,
+      "elapsed_ms": 55318,
+      "id": {
+        "nodes_sum_all": 3771,
+        "nodes_sum_solved": 1427,
+        "solved": 113,
+        "steps_sum_solved": 408,
+        "total": 200
+      },
+      "ood": {
+        "nodes_sum_all": 1390,
+        "nodes_sum_solved": 1342,
+        "solved": 196,
+        "steps_sum_solved": 899,
+        "total": 200
+      }
+    },
+    {
+      "arm": "uniform",
+      "budget": 150,
+      "elapsed_ms": 282,
+      "id": {
+        "nodes_sum_all": 5206,
+        "nodes_sum_solved": 5206,
+        "solved": 200,
+        "steps_sum_solved": 920,
+        "total": 200
+      },
+      "ood": {
+        "nodes_sum_all": 1624,
+        "nodes_sum_solved": 1624,
+        "solved": 200,
+        "steps_sum_solved": 920,
+        "total": 200
+      }
+    },
+    {
+      "arm": "shallow",
+      "budget": 150,
+      "elapsed_ms": 136106,
+      "id": {
+        "nodes_sum_all": 2954,
+        "nodes_sum_solved": 522,
+        "solved": 72,
+        "steps_sum_solved": 256,
+        "total": 200
+      },
+      "ood": {
+        "nodes_sum_all": 1344,
+        "nodes_sum_solved": 1344,
+        "solved": 200,
+        "steps_sum_solved": 920,
+        "total": 200
+      }
+    },
+    {
+      "arm": "compositional",
+      "budget": 150,
+      "elapsed_ms": 106078,
+      "id": {
+        "nodes_sum_all": 4920,
+        "nodes_sum_solved": 2456,
+        "solved": 133,
+        "steps_sum_solved": 516,
+        "total": 200
+      },
+      "ood": {
+        "nodes_sum_all": 1403,
+        "nodes_sum_solved": 1361,
+        "solved": 197,
+        "steps_sum_solved": 902,
+        "total": 200
+      }
+    }
+  ],
+  "budgets": [
+    1,
+    2,
+    5,
+    10,
+    25,
+    50,
+    150
+  ],
+  "prior_rank": {
+    "compositional": {
+      "arm": "compositional",
+      "id": {
+        "decision_points": 920,
+        "mean_rank": 1.3608695652173912,
+        "median_rank": 1.0,
+        "top1_rate": 0.6391304347826087,
+        "top3_rate": 1.0
+      },
+      "ood": {
+        "decision_points": 920,
+        "mean_rank": 1.076086956521739,
+        "median_rank": 1.0,
+        "top1_rate": 0.9239130434782609,
+        "top3_rate": 1.0
+      },
+      "skipped_decision_points": 0
+    },
+    "shallow": {
+      "arm": "shallow",
+      "id": {
+        "decision_points": 920,
+        "mean_rank": 1.383695652173913,
+        "median_rank": 1.0,
+        "top1_rate": 0.616304347826087,
+        "top3_rate": 1.0
+      },
+      "ood": {
+        "decision_points": 920,
+        "mean_rank": 1.0434782608695652,
+        "median_rank": 1.0,
+        "top1_rate": 0.9565217391304348,
+        "top3_rate": 1.0
+      },
+      "skipped_decision_points": 0
+    }
+  }
+}

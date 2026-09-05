@@ -244,6 +244,46 @@ fn a_genuine_calculus_rewrite_still_gets_replay_trust() {
     );
 }
 
+/// End-to-end version of the vacuous-truth regression tests in `mm-core`'s and `mm-verifier`'s
+/// own unit tests: confirms the fix holds through the public `Verifier` API, not just the
+/// internal sampling functions directly.
+///
+/// As in those unit tests, the defensible property is about the verifier's behavior under zero
+/// evidence, not a claim that these two expressions are "not equal" in some absolute sense --
+/// two everywhere-undefined expressions could be considered extensionally equal under some
+/// partial-function semantics, and this test takes no position on that. What it pins down is
+/// that `verify_equivalence` must not turn an absence of any jointly evaluable sample into a
+/// positive certification.
+#[test]
+fn verify_equivalence_does_not_certify_from_zero_jointly_evaluable_samples() {
+    let mut symbols = SymbolTable::new();
+    let x = symbols.intern("x");
+
+    // Two expressions that are undefined everywhere, for unrelated reasons: division by zero
+    // on every sample, and a logarithm domain error on every sample -- no sample is ever
+    // jointly evaluable for both sides. No non-calculus reason for `verify_equivalence` to
+    // reach for the calculus escape hatch here either -- this is the numeric-sampling path
+    // itself being asked "are these equivalent" and having no evaluated sample to answer from.
+    let always_div_by_zero = Expr::Div(
+        Box::new(Expr::int(1)),
+        Box::new(Expr::Sub(Box::new(Expr::Var(x)), Box::new(Expr::Var(x)))),
+    );
+    let always_ln_domain_error = Expr::Ln(Box::new(Expr::Sub(
+        Box::new(Expr::Neg(Box::new(Expr::Pow(
+            Box::new(Expr::Var(x)),
+            Box::new(Expr::int(2)),
+        )))),
+        Box::new(Expr::int(1)),
+    )));
+
+    let result = Verifier::new().verify_equivalence(&always_div_by_zero, &always_ln_domain_error);
+    assert!(
+        !result.is_valid(),
+        "with zero jointly evaluable samples, verify_equivalence must not return a positive \
+         certification, got {result:?}"
+    );
+}
+
 #[test]
 fn an_unchecked_step_sinks_the_whole_result() {
     let evidence = [
