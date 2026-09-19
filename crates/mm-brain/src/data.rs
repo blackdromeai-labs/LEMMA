@@ -142,6 +142,18 @@ impl DataGenerator {
         }
     }
 
+    /// Set the encoder's padding width.
+    ///
+    /// Must match the `max_seq_len` of the network being trained: the encoder pads every
+    /// example to this width and the network is built for exactly that width. The default (64)
+    /// is far wider than these expressions need -- most tokenize to well under a dozen tokens
+    /// -- and since attention cost grows with the square of the padded width, training at the
+    /// default spends most of its time on padding.
+    pub fn with_max_length(mut self, len: usize) -> Self {
+        self.encoder = ExpressionEncoder::new(self.encoder.device().clone()).with_max_length(len);
+        self
+    }
+
     /// The action vocabulary the generated labels are expressed in.
     pub fn vocabulary(&self) -> &ActionVocabulary {
         &self.vocabulary

@@ -1,0 +1,12 @@
+{
+  "vocabulary_version": 1,
+  "vocabulary_digest": 18352749361355727982,
+  "num_actions": 572,
+  "num_policy_classes": 573,
+  "embed_dim": 128,
+  "hidden_dim": 256,
+  "num_heads": 8,
+  "num_layers": 3,
+  "max_seq_len": 32,
+  "token_vocab_size": 64
+}

@@ -1,0 +1,101 @@
+{
+  "simulations": 150,
+  "trained": {
+    "arm": "trained",
+    "by_split_depth": {
+      "ID-d2": {
+        "solved": 32,
+        "total": 40
+      },
+      "ID-d3": {
+        "solved": 16,
+        "total": 40
+      },
+      "ID-d4": {
+        "solved": 8,
+        "total": 40
+      },
+      "ID-d6": {
+        "solved": 8,
+        "total": 40
+      },
+      "ID-d8": {
+        "solved": 8,
+        "total": 40
+      },
+      "OOD-d2": {
+        "solved": 40,
+        "total": 40
+      },
+      "OOD-d3": {
+        "solved": 40,
+        "total": 40
+      },
+      "OOD-d4": {
+        "solved": 40,
+        "total": 40
+      },
+      "OOD-d6": {
+        "solved": 40,
+        "total": 40
+      },
+      "OOD-d8": {
+        "solved": 40,
+        "total": 40
+      }
+    },
+    "elapsed_ms": 125070,
+    "solved": 272,
+    "total": 400,
+    "total_steps": 1176
+  },
+  "uniform": {
+    "arm": "uniform",
+    "by_split_depth": {
+      "ID-d2": {
+        "solved": 40,
+        "total": 40
+      },
+      "ID-d3": {
+        "solved": 40,
+        "total": 40
+      },
+      "ID-d4": {
+        "solved": 40,
+        "total": 40
+      },
+      "ID-d6": {
+        "solved": 40,
+        "total": 40
+      },
+      "ID-d8": {
+        "solved": 40,
+        "total": 40
+      },
+      "OOD-d2": {
+        "solved": 40,
+        "total": 40
+      },
+      "OOD-d3": {
+        "solved": 40,
+        "total": 40
+      },
+      "OOD-d4": {
+        "solved": 40,
+        "total": 40
+      },
+      "OOD-d6": {
+        "solved": 40,
+        "total": 40
+      },
+      "OOD-d8": {
+        "solved": 40,
+        "total": 40
+      }
+    },
+    "elapsed_ms": 291,
+    "solved": 400,
+    "total": 400,
+    "total_steps": 1840
+  }
+}

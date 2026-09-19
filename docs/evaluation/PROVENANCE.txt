@@ -1,0 +1,29 @@
+# Evidence provenance -- regenerated every run, never hand-edited
+generated_at_utc: 2026-09-05T11:46:59Z
+invocation: bash docs/evaluation/regenerate.sh
+
+## Source revision evaluated
+commit: c05373bff814933c5fa781bc4a1d4b286d5bd54b
+branch: hardening/rule-identity-and-verification
+working_tree: DIRTY -- this evidence does NOT correspond to the commit above by
+  itself, and MUST NOT be committed as final evidence in this state. It reflects
+  that commit plus the uncommitted changes listed below. Commit the reviewed
+  diff first, then re-run this script from that clean checkout before treating
+  any of these files as citable.
+  uncommitted changes (git status --porcelain):
+     M crates/mm-core/src/eval.rs
+     M crates/mm-search/tests/guardrail_reachability.rs
+     M crates/mm-solver/examples/seeded_eval.rs
+     M crates/mm-verifier/src/numerical.rs
+     M crates/mm-verifier/tests/adversarial.rs
+    ?? crates/mm-search/examples/assess_trace_latency.rs
+    ?? crates/mm-search/examples/reachability_intersections.rs
+    ?? crates/mm-verifier/examples/
+    ?? docs/evaluation/
+    ?? paper/
+
+## Platform
+uname: MINGW64_NT-10.0-26200 Lappy 3.6.6-1cdd4371.x86_64 2026-01-15 22:20 UTC x86_64 Msys
+rustc: rustc 1.88.0 (6b00bc388 2025-06-23)
+cargo: cargo 1.88.0 (873a06493 2025-05-10)
+cpu: AMD Ryzen 7 7735HS with Radeon Graphics

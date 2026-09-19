@@ -36,7 +36,8 @@ verification status.
 
 > [!IMPORTANT]
 > LEMMA is an experimental research platform—not a complete CAS, theorem prover, or
-> natural-language mathematics assistant. No pretrained policy model ships with the repository.
+> natural-language mathematics assistant. The evaluated v3 policy checkpoint is released
+> separately on [Hugging Face](https://huggingface.co/BlackdromeAILabs/lemma-v3-policy).
 
 ## Terminal workbench
 
@@ -133,6 +134,20 @@ no trained model is available, search uses uniform priors and reports that prove
 
 For crate boundaries and data flow, see the [architecture guide](docs/architecture.md).
 
+## Paper and released research artifacts
+
+The paper, benchmark, and evaluated policy checkpoint are released as separate, citable
+artifacts:
+
+- **Paper:** [LEMMA: Learned Guidance for Evidence-Carrying Long-Horizon Symbolic Rewriting](https://doi.org/10.5281/zenodo.22842820)
+- **Benchmark:** [LEMMA long-horizon rewrite benchmark](https://huggingface.co/datasets/BlackdromeAILabs/lemma-long-horizon-rewrite-benchmark)
+- **Model:** [LEMMA v3 policy](https://huggingface.co/BlackdromeAILabs/lemma-v3-policy)
+
+The paper source and released PDF are in [`paper/`](paper/README.md). Cite the archival paper
+record as: Saxena, Atul, and Pushp Kharat. 2026. *LEMMA: Learned Guidance for Evidence-Carrying
+Long-Horizon Symbolic Rewriting* (Version 1.0.0). Zenodo.
+https://doi.org/10.5281/zenodo.22842820
+
 ## Verification, without the hand-waving
 
 | Status | What it guarantees |
@@ -202,7 +217,7 @@ research-integrity requirements.
 - Witness coverage is incomplete, particularly for geometry and advanced identities
 - General equation solving, natural-language input, complete integration/limits/ODE support,
   and formal proof are not implemented end to end
-- No pretrained neural-policy artifact is distributed
+- The released v3 policy is a research checkpoint, not a general mathematical-reasoning model
 - Search is incomplete and can miss valid transformation chains
 
 ## Contributing

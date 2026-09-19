@@ -1,0 +1,108 @@
+# Evidence provenance -- regenerated every run, never hand-edited
+generated_at_utc: 2026-09-05T11:46:59Z
+invocation: bash docs/evaluation/regenerate.sh
+
+## Source revision evaluated
+commit: c05373bff814933c5fa781bc4a1d4b286d5bd54b
+branch: hardening/rule-identity-and-verification
+working_tree: DIRTY -- this evidence does NOT correspond to the commit above by
+  itself, and MUST NOT be committed as final evidence in this state. It reflects
+  that commit plus the uncommitted changes listed below. Commit the reviewed
+  diff first, then re-run this script from that clean checkout before treating
+  any of these files as citable.
+  uncommitted changes (git status --porcelain):
+     M crates/mm-core/src/eval.rs
+     M crates/mm-search/tests/guardrail_reachability.rs
+     M crates/mm-solver/examples/seeded_eval.rs
+     M crates/mm-verifier/src/numerical.rs
+     M crates/mm-verifier/tests/adversarial.rs
+    ?? crates/mm-search/examples/assess_trace_latency.rs
+    ?? crates/mm-search/examples/reachability_intersections.rs
+    ?? crates/mm-verifier/examples/
+    ?? docs/evaluation/
+    ?? paper/
+
+## Platform
+uname: MINGW64_NT-10.0-26200 Lappy 3.6.6-1cdd4371.x86_64 2026-01-15 22:20 UTC x86_64 Msys
+rustc: rustc 1.88.0 (6b00bc388 2025-06-23)
+cargo: cargo 1.88.0 (873a06493 2025-05-10)
+cpu: AMD Ryzen 7 7735HS with Radeon Graphics
+
+full workspace release test suite (source: workspace_tests.txt):
+  test binaries reporting a result line: 35
+  total: 389 passed, 0 failed, 3 ignored
+  suites with at least one failure: 0
+  cargo test exit code: 0 (GREEN)
+
+reachability_intersections.rs -- 10 runs (source: reachability_intersections_runs.txt)
+  registered: [572]  (constant across all 10 runs: True)
+  executable: [138]  (constant across all 10 runs: True)
+  reachable:  [130]  (constant across all 10 runs: True)
+  accepted, exact distribution over 10 runs: 118 (10/10)
+  accepted but NOT reachable, exact distribution over 10 runs: 0 (10/10)
+    -> 0 in all 10/10 runs: on this 228-witness corpus, every generated application of the guardrail-hidden rules was rejected in all 10 runs. This does not establish unconditional rejection for every possible expression -- only that no counterexample appeared in this corpus across this many runs.
+  reachable minus accepted, per-run range over 10 runs: 12-12 (= reachable[130] - accepted, tracks the accepted distribution above exactly, not an independent figure)
+  executable but NOT reachable, exact distribution over 10 runs: 8 (10/10)
+
+method_breakdown.rs -- 10 runs (source: method_breakdown_runs.txt)
+  applications (symbolic/numeric/replay-only), exact distributions over 10 runs:
+    symbolic : 25 (10/10)
+    numeric  : 94 (9/10), 95 (1/10)
+    replay   : 59 (10/10)
+  distinct (rule, witness) pairs, exact distributions over 10 runs:
+    symbolic : 25 (10/10)
+    numeric  : 94 (9/10), 95 (1/10)
+    replay   : 59 (10/10)
+  distinct rules (not disjoint across methods), exact distributions over 10 runs:
+    symbolic : 13 (10/10)
+    numeric  : 62 (9/10), 63 (1/10)
+    replay   : 47 (10/10)
+    union    : 118 (9/10), 119 (1/10)
+  NOTE: this file alone does not establish accepted-minus-reachable=0 -- only
+  reachability_intersections.rs measures reachability, so only its own runs support that claim.
+
+seeded_eval.rs -- pinned seed (source: seeded_eval_manifest_seed42.txt)
+  seed: 42
+  strict PASS:            72/79 (91.1%)
+  POLY (independently confirmed via coefficient extraction): 7
+  SAMPLE (sampling-equivalent only, NOT independently confirmed): 0
+  genuinely wrong or unreplayed: 0
+  process exit code: 0 (0 = no genuinely-wrong/unreplayed cases AND no SAMPLE-tier-only cases)
+  determinism check (rerun same seed, diff modulo timing): IDENTICAL modulo timing -- deterministic on seed 42
+
+verify_step benchmark (source: verify_step_bench.txt):
+  rustc: rustc 1.88.0 (6b00bc388 2025-06-23)
+  profile: release
+  cpu: AMD Ryzen 7 7735HS with Radeon Graphics
+  warm-up passes: 20
+  sample passes: 200
+  min: 3701.0 ns/call
+  mean: 5026.6 ns/call
+  p50: 4641.7 ns/call
+  p90: 6732.2 ns/call
+  p99: 7429.8 ns/call
+  max: 8851.9 ns/call
+
+assess_trace benchmark (source: assess_trace_bench.txt):
+  rustc: rustc 1.88.0 (6b00bc388 2025-06-23)
+  profile: release
+  cpu: AMD Ryzen 7 7735HS with Radeon Graphics
+  warm-up passes: 10 (per length group)
+  sample passes: 200 (per length group)
+  inner reps/pass: 2000
+  -- length=1 step(s), 5 reference trace(s) --
+    min: 157.9 ns/call
+    mean: 225.0 ns/call
+    p50: 225.0 ns/call
+    p90: 277.4 ns/call
+    p99: 362.6 ns/call
+    max: 502.6 ns/call
+  -- length=2 step(s), 2 reference trace(s) --
+    min: 268.1 ns/call
+    mean: 422.1 ns/call
+    p50: 430.5 ns/call
+    p90: 557.7 ns/call
+    p99: 862.9 ns/call
+    max: 921.5 ns/call
+  NOTE: only 1-step and 2-step groups exist in this reference set -- do not
+  infer a general scaling trend from two points.
