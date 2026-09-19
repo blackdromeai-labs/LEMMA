@@ -1,0 +1,12 @@
+# Local LaTeX build products and review logs
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+$buildDir/
+
+# Keep the released source and PDF tracked.
+!main.tex
+!LEMMA_PAPER.pdf
+!README.md
