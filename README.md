@@ -241,7 +241,7 @@ LEMMA is open source under the [Mozilla Public License 2.0](LICENSE). MPL-2.0 ke
 covered source files open when distributed while allowing LEMMA to be combined with separately
 licensed—including proprietary—code.
 
-## Extension of the original code of **[LEMMA by Pushp Kharat](https://github.com/Pushp-Kharat1/LEMMA)** 
+### Extension of the original code of **[LEMMA by Pushp Kharat](https://github.com/Pushp-Kharat1/LEMMA)** 
 
 ---
 
